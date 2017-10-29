@@ -1,11 +1,14 @@
 ﻿{
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
+  "contentVersion": "1.0.0.1",
   "parameters": {
     "siteName": {
       "type": "string"
     },
     "hostingPlanName": {
+      "type": "string"
+    },
+    "siteLocation": {
       "type": "string"
     },
     "sku": {
@@ -19,7 +22,7 @@
       ],
       "defaultValue": "Free"
     },
-    "workerSize": {
+    "Worker Size": {
       "type": "string",
       "allowedValues": [
         "1",
@@ -31,11 +34,12 @@
     "Email Service": {
       "type": "string",
       "allowedValues": [
+        "Not configured",
         "Mailgun",
         "Gmail",
         "SendGrid"
       ],
-      "defaultValue": "Mailgun"
+      "defaultValue": "Not configured"
     },
     "Email Username": {
       "type": "string",
@@ -58,15 +62,14 @@
   },
   "variables": {
     "skuMapping": "[if(equals(parameters('sku'), 'Free'), 'F', if(equals(parameters('sku'), 'Shared'), 'D', if(equals(parameters('sku'), 'Basic'), 'B', if(equals(parameters('sku'), 'Standard'), 'S', if(equals(parameters('sku'), 'Premium'), 'P', 'F')))))]",
-    "sku": "[concat(variables('skuMapping'), parameters('workerSize'))]",
-    "dasdasdsName": "[concat('dasdasds', uniqueString(resourceGroup().id))]"
+    "sku": "[concat(variables('skuMapping'), parameters('Worker Size'))]"
   },
   "resources": [
     {
       "name": "[parameters('hostingPlanName')]",
       "type": "Microsoft.Web/serverfarms",
-      "location": "[resourceGroup().location]",
-      "apiVersion": "2015-08-01",
+      "location": "[parameters('siteLocation')]",
+      "apiVersion": "2016-09-01",
       "sku": {
         "name": "[variables('sku')]"
       },
@@ -79,8 +82,8 @@
     {
       "name": "[parameters('siteName')]",
       "type": "Microsoft.Web/sites",
-      "location": "[resourceGroup().location]",
-      "apiVersion": "2015-08-01",
+      "location": "[parameters('siteLocation')]",
+      "apiVersion": "2016-08-01",
       "dependsOn": [
         "[resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName'))]"
       ],
@@ -96,7 +99,7 @@
         {
           "name": "appsettings",
           "type": "config",
-          "apiVersion": "2015-08-01",
+          "apiVersion": "2016-08-01",
           "dependsOn": [
             "[resourceId('Microsoft.Web/sites', parameters('siteName'))]"
           ],
@@ -113,7 +116,7 @@
         {
           "name": "web",
           "type": "sourcecontrols",
-          "apiVersion": "2015-08-01",
+          "apiVersion": "2016-08-01",
           "dependsOn": [
             "[resourceId('Microsoft.Web/sites', parameters('siteName'))]"
           ],
@@ -126,7 +129,5 @@
         }
       ]
     }
-  ],
-  "outputs": {
-  }
+  ]
 }
