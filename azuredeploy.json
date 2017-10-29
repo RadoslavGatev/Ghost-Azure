@@ -1,11 +1,14 @@
 ﻿{
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
+  "contentVersion": "1.0.0.2",
   "parameters": {
     "siteName": {
       "type": "string"
     },
     "hostingPlanName": {
+      "type": "string"
+    },
+    "siteLocation": {
       "type": "string"
     },
     "sku": {
@@ -19,7 +22,7 @@
       ],
       "defaultValue": "Free"
     },
-    "workerSize": {
+    "Worker Size": {
       "type": "string",
       "allowedValues": [
         "1",
@@ -28,14 +31,19 @@
       ],
       "defaultValue": "1"
     },
+    "Deploy App Insights": {
+      "type": "bool",
+      "defaultValue": true
+    },
     "Email Service": {
       "type": "string",
       "allowedValues": [
+        "Not configured",
         "Mailgun",
         "Gmail",
         "SendGrid"
       ],
-      "defaultValue": "Mailgun"
+      "defaultValue": "Not configured"
     },
     "Email Username": {
       "type": "string",
@@ -58,15 +66,15 @@
   },
   "variables": {
     "skuMapping": "[if(equals(parameters('sku'), 'Free'), 'F', if(equals(parameters('sku'), 'Shared'), 'D', if(equals(parameters('sku'), 'Basic'), 'B', if(equals(parameters('sku'), 'Standard'), 'S', if(equals(parameters('sku'), 'Premium'), 'P', 'F')))))]",
-    "sku": "[concat(variables('skuMapping'), parameters('workerSize'))]",
-    "dasdasdsName": "[concat('dasdasds', uniqueString(resourceGroup().id))]"
+    "sku": "[concat(variables('skuMapping'), parameters('Worker Size'))]",
+    "appInsightsName": "[concat(parameters('siteName'), '-insights')]"
   },
   "resources": [
     {
       "name": "[parameters('hostingPlanName')]",
       "type": "Microsoft.Web/serverfarms",
-      "location": "[resourceGroup().location]",
-      "apiVersion": "2015-08-01",
+      "location": "[parameters('siteLocation')]",
+      "apiVersion": "2016-09-01",
       "sku": {
         "name": "[variables('sku')]"
       },
@@ -79,8 +87,8 @@
     {
       "name": "[parameters('siteName')]",
       "type": "Microsoft.Web/sites",
-      "location": "[resourceGroup().location]",
-      "apiVersion": "2015-08-01",
+      "location": "[parameters('siteLocation')]",
+      "apiVersion": "2016-08-01",
       "dependsOn": [
         "[resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName'))]"
       ],
@@ -96,9 +104,11 @@
         {
           "name": "appsettings",
           "type": "config",
-          "apiVersion": "2015-08-01",
+          "apiVersion": "2016-08-01",
           "dependsOn": [
-            "[resourceId('Microsoft.Web/sites', parameters('siteName'))]"
+            "[resourceId('Microsoft.Web/sites', parameters('siteName'))]",
+            "[resourceId('Microsoft.Web/sites/sourcecontrols', parameters('siteName'), 'web')]",
+            "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
           ],
           "properties": {
             "url": "[concat('https://', reference(resourceId('Microsoft.Web/sites', parameters('siteName'))).hostNames[0])]",
@@ -107,13 +117,14 @@
             "mail__options__auth__user": "[parameters('Email Username')]",
             "mail__options__auth__pass": "[parameters('Email Password')]",
             "mail__from": "[parameters('Email From Address')]",
-            "WEBSITE_NODE_DEFAULT_VERSION": "6.11.5"
+            "WEBSITE_NODE_DEFAULT_VERSION": "6.11.5",
+            "APPINSIGHTS_INSTRUMENTATION_KEY": "[reference(concat('Microsoft.Insights/components/', variables('appInsightsName'))).InstrumentationKey]"
           }
         },
         {
           "name": "web",
           "type": "sourcecontrols",
-          "apiVersion": "2015-08-01",
+          "apiVersion": "2016-08-01",
           "dependsOn": [
             "[resourceId('Microsoft.Web/sites', parameters('siteName'))]"
           ],
@@ -125,8 +136,23 @@
           }
         }
       ]
+    },
+    {
+      "name": "[variables('appInsightsName')]",
+      "type": "Microsoft.Insights/components",
+      "location": "[parameters('siteLocation')]",
+      "apiVersion": "2014-04-01",
+      "condition": "[parameters('Deploy App Insights')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('siteName'))]"
+      ],
+      "tags": {
+        "displayName": "[variables('appInsightsName')]"
+      },
+      "properties": {
+        "ApplicationId": "[resourceId('Microsoft.Web/sites', parameters('siteName'))]",
+        "Application_Type": "Node.JS"
+      }
     }
-  ],
-  "outputs": {
-  }
+  ]
 }
