@@ -2,40 +2,48 @@ var path                = require('path'),
     express             = require('express'),
     middleware          = require('./middleware'),
     bodyParser          = require('body-parser'),
-    templates           = require('../../../controllers/frontend/templates'),
-    setResponseContext  = require('../../../controllers/frontend/context'),
+    renderer            = require('../../../controllers/frontend/renderer'),
     brute               = require('../../../middleware/brute'),
+
+    templateName = 'private',
 
     privateRouter = express.Router();
 
-function controller(req, res) {
-    var templateName = 'private',
-        defaultTemplate = path.resolve(__dirname, 'views', templateName + '.hbs'),
-        view = templates.pickTemplate(templateName, defaultTemplate),
-        data = {};
+function _renderer(req, res) {
+    // Note: this is super similar to the config middleware used in channels
+    // @TODO refactor into to something explicit & DRY this up
+    res._route = {
+        type: 'custom',
+        templateName: templateName,
+        defaultTemplate: path.resolve(__dirname, 'views', templateName + '.hbs')
+    };
+
+    // Renderer begin
+    // Format data
+    var data = {};
 
     if (res.error) {
         data.error = res.error;
     }
 
-    setResponseContext(req, res);
-
-    return res.render(view, data);
+    // Render Call
+    return renderer(req, res, data);
 }
 
 // password-protected frontend route
-privateRouter.route('/')
+privateRouter
+    .route('/')
     .get(
         middleware.isPrivateSessionAuth,
-        controller
+        _renderer
     )
     .post(
         bodyParser.urlencoded({extended: true}),
         middleware.isPrivateSessionAuth,
         brute.privateBlog,
         middleware.authenticateProtection,
-        controller
+        _renderer
     );
 
 module.exports = privateRouter;
-module.exports.controller = controller;
+module.exports.renderer = _renderer;

@@ -59,7 +59,7 @@ _private.prepareError = function prepareError(err, req, res, next) {
     next(err);
 };
 
-_private.JSONErrorRenderer = function JSONErrorRenderer(err, req, res, /*jshint unused:false */ next) {
+_private.JSONErrorRenderer = function JSONErrorRenderer(err, req, res, next) { // eslint-disable-line no-unused-vars
     // @TODO: jsonapi errors format (http://jsonapi.org/format/#error-objects)
     res.json({
         errors: [{
@@ -71,6 +71,7 @@ _private.JSONErrorRenderer = function JSONErrorRenderer(err, req, res, /*jshint 
     });
 };
 
+// @TODO: differentiate properly between rendering errors for theme templates, and other situations
 _private.HTMLErrorRenderer = function HTMLErrorRender(err, req, res, next) {
     // If the error code is explicitly set to STATIC_FILE_NOT_FOUND,
     // Skip trying to render an HTML error, and move on to the basic error renderer
@@ -80,25 +81,35 @@ _private.HTMLErrorRenderer = function HTMLErrorRender(err, req, res, next) {
         return next(err);
     }
 
-    var templateData = {
-            message: err.message,
-            // @deprecated
-            code: err.statusCode,
-            statusCode: err.statusCode,
-            errorDetails: err.errorDetails || []
-        },
-        template = templates.error(err.statusCode);
+    // Renderer begin
+    // Format Data
+    var data = {
+        message: err.message,
+        // @deprecated
+        code: err.statusCode,
+        statusCode: err.statusCode,
+        errorDetails: err.errorDetails || []
+    };
+
+    // Context
+    // We don't do context for errors?!
+
+    // Template
+    templates.setTemplate(req, res);
 
     // It can be that something went wrong with the theme or otherwise loading handlebars
     // This ensures that no matter what res.render will work here
+    // @TODO: split the error handler for assets, admin & theme to refactor this away
     if (_.isEmpty(req.app.engines)) {
-        template = 'error';
+        res._template = 'error';
         req.app.engine('hbs', _private.createHbsEngine());
         req.app.set('view engine', 'hbs');
         req.app.set('views', config.get('paths').defaultViews);
     }
 
-    res.render(template, templateData, function renderResponse(err, html) {
+    // @TODO use renderer here?!
+    // Render Call - featuring an error handler for what happens if rendering fails
+    res.render(res._template, data, function renderResponse(err, html) {
         if (!err) {
             return res.send(html);
         }
@@ -115,7 +126,7 @@ _private.HTMLErrorRenderer = function HTMLErrorRender(err, req, res, next) {
     });
 };
 
-_private.BasicErorRenderer = function BasicErrorRenderer(err, req, res, /*jshint unused:false */ next) {
+_private.BasicErorRenderer = function BasicErrorRenderer(err, req, res, next) { // eslint-disable-line no-unused-vars
     return res.send(res.statusCode + ' ' + err.message);
 };
 
