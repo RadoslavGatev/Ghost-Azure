@@ -8,19 +8,26 @@ var path                = require('path'),
     api                 = require('../../../api'),
     errors              = require('../../../errors'),
     validator           = require('../../../data/validation').validator,
-    templates           = require('../../../controllers/frontend/templates'),
     postLookup          = require('../../../controllers/frontend/post-lookup'),
-    setResponseContext  = require('../../../controllers/frontend/context');
+    renderer            = require('../../../controllers/frontend/renderer'),
 
-function controller(req, res) {
-    var templateName = 'subscribe',
-        defaultTemplate = path.resolve(__dirname, 'views', templateName + '.hbs'),
-        view = templates.pickTemplate(templateName, defaultTemplate),
-        data = req.body;
+    templateName = 'subscribe';
 
-    setResponseContext(req, res);
+function _renderer(req, res) {
+    // Note: this is super similar to the config middleware used in channels
+    // @TODO refactor into to something explicit & DRY this up
+    res._route = {
+        type: 'custom',
+        templateName: templateName,
+        defaultTemplate: path.resolve(__dirname, 'views', templateName + '.hbs')
+    };
 
-    return res.render(view, data);
+    // Renderer begin
+    // Format data
+    var data = req.body;
+
+    // Render Call
+    return renderer(req, res, data);
 }
 
 /**
@@ -29,13 +36,11 @@ function controller(req, res) {
  * For success cases, we don't have to worry, because then the input contained a valid email address.
  */
 function errorHandler(error, req, res, next) {
-    /*jshint unused:false */
-
     req.body.email = '';
 
     if (error.statusCode !== 404) {
         res.locals.error = error;
-        return controller(req, res);
+        return _renderer(req, res);
     }
 
     next(error);
@@ -100,21 +105,21 @@ function storeSubscriber(req, res, next) {
 }
 
 // subscribe frontend route
-subscribeRouter.route('/')
+subscribeRouter
+    .route('/')
     .get(
-        controller
+        _renderer
     )
     .post(
         bodyParser.urlencoded({extended: true}),
         honeyPot,
         handleSource,
         storeSubscriber,
-        controller
+        _renderer
     );
 
 // configure an error handler just for subscribe problems
 subscribeRouter.use(errorHandler);
 
 module.exports = subscribeRouter;
-module.exports.controller = controller;
 module.exports.storeSubscriber = storeSubscriber;
