@@ -8,22 +8,22 @@
 
 require('./core/server/overrides');
 
-var config         = require('./core/server/config'),
-    utils          = require('./core/server/utils'),
-    _              = require('lodash'),
-    chalk          = require('chalk'),
-    fs             = require('fs-extra'),
-    KnexMigrator   = require('knex-migrator'),
+var config = require('./core/server/config'),
+    urlService = require('./core/server/services/url'),
+    _ = require('lodash'),
+    chalk = require('chalk'),
+    fs = require('fs-extra'),
+    KnexMigrator = require('knex-migrator'),
     knexMigrator = new KnexMigrator({
         knexMigratorFilePath: config.get('paths:appRoot')
     }),
 
-    path           = require('path'),
+    path = require('path'),
 
-    escapeChar     = process.platform.match(/^win/) ? '^' : '\\',
-    cwd            = process.cwd().replace(/( |\(|\))/g, escapeChar + '$1'),
+    escapeChar = process.platform.match(/^win/) ? '^' : '\\',
+    cwd = process.cwd().replace(/( |\(|\))/g, escapeChar + '$1'),
     buildDirectory = path.resolve(cwd, '.build'),
-    distDirectory  = path.resolve(cwd, '.dist'),
+    distDirectory = path.resolve(cwd, '.dist'),
 
     // ## Grunt configuration
 
@@ -47,7 +47,7 @@ var config         = require('./core/server/config'),
             pkg: grunt.file.readJSON('package.json'),
 
             clientFiles: [
-                'server/admin/views/default.html',
+                'server/web/admin/views/default.html',
                 'built/assets/ghost.js',
                 'built/assets/ghost.css',
                 'built/assets/vendor.js',
@@ -132,7 +132,8 @@ var config         = require('./core/server/config'),
                     reporter: grunt.option('reporter') || 'spec',
                     timeout: '30000',
                     save: grunt.option('reporter-output'),
-                    require: ['core/server/overrides']
+                    require: ['core/server/overrides'],
+                    exit: true
                 },
 
                 // #### All Unit tests
@@ -179,7 +180,7 @@ var config         = require('./core/server/config'),
                     options: {
                         mask: '**/*_spec.js',
                         coverageFolder: 'core/test/coverage/unit',
-                        mochaOptions: ['--timeout=15000', '--require', 'core/server/overrides'],
+                        mochaOptions: ['--timeout=15000', '--require', 'core/server/overrides', '--exit'],
                         excludes: ['core/client', 'core/server/built']
                     }
                 },
@@ -192,7 +193,7 @@ var config         = require('./core/server/config'),
                     options: {
                         coverageFolder: 'core/test/coverage/all',
                         mask: '**/*_spec.js',
-                        mochaOptions: ['--timeout=15000', '--require', 'core/server/overrides'],
+                        mochaOptions: ['--timeout=15000', '--require', 'core/server/overrides', '--exit'],
                         excludes: ['core/client', 'core/server/built']
                     }
 
@@ -229,8 +230,8 @@ var config         = require('./core/server/config'),
                         var upstream = grunt.option('upstream') || process.env.GHOST_UPSTREAM || 'upstream';
                         grunt.log.writeln('Pulling down the latest master from ' + upstream);
                         return 'git checkout master; git pull ' + upstream + ' master; ' +
-                        'yarn; git submodule foreach "git checkout master && git pull ' +
-                        upstream + ' master"';
+                            'yarn; git submodule foreach "git checkout master && git pull ' +
+                            upstream + ' master"';
                     }
                 },
 
@@ -348,7 +349,7 @@ var config         = require('./core/server/config'),
 
                 watch: {
                     projects: {
-                        'core/client': ['shell:ember:watch', '--live-reload-base-url="' + utils.url.getSubdir() + '/ghost/"']
+                        'core/client': ['shell:ember:watch', '--live-reload-base-url="' + urlService.utils.getSubdir() + '/ghost/"']
                     }
                 }
             },
@@ -737,8 +738,8 @@ var config         = require('./core/server/config'),
                 grunt.config.set('copy.admin_html', {
                     files: [{
                         cwd: '.',
-                        src: 'core/server/admin/views/default-prod.html',
-                        dest: 'core/server/admin/views/default.html'
+                        src: 'core/server/web/admin/views/default-prod.html',
+                        dest: 'core/server/web/admin/views/default.html'
                     }]
                 });
 

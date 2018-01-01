@@ -1,21 +1,38 @@
 'use strict';
 
-const logging = require('../../../../logging'),
+var Promise = require('bluebird'),
+    common = require('../../../../lib/common'),
     commands = require('../../../schema').commands,
     table = 'webhooks',
-    message = 'Adding table: ' + table;
+    message1 = 'Adding table: ' + table,
+    message2 = 'Dropping table: ' + table;
 
-module.exports = function addWebhooksTable(options) {
-    let transacting = options.transacting;
+module.exports.up = function addWebhooksTable(options) {
+    let connection = options.connection;
 
-    return transacting.schema.hasTable(table)
+    return connection.schema.hasTable(table)
         .then(function (exists) {
             if (exists) {
-                logging.warn(message);
+                common.logging.warn(message1);
                 return Promise.resolve();
             }
 
-            logging.info(message);
-            return commands.createTable(table, transacting);
+            common.logging.info(message1);
+            return commands.createTable(table, connection);
+        });
+};
+
+module.exports.down = function removeWebhooksTable(options) {
+    let connection = options.connection;
+
+    return connection.schema.hasTable(table)
+        .then(function (exists) {
+            if (!exists) {
+                common.logging.warn(message2);
+                return Promise.resolve();
+            }
+
+            common.logging.info(message2);
+            return commands.deleteTable(table, connection);
         });
 };

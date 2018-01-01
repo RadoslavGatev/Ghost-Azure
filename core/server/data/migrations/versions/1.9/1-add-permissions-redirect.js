@@ -1,7 +1,7 @@
 var _ = require('lodash'),
     utils = require('../../../schema/fixtures/utils'),
     permissions = require('../../../../permissions'),
-    logging = require('../../../../logging'),
+    common = require('../../../../lib/common'),
     resource = 'redirect',
     _private = {};
 
@@ -15,13 +15,17 @@ _private.getRelations = function getRelations() {
 
 _private.printResult = function printResult(result, message) {
     if (result.done === result.expected) {
-        logging.info(message);
+        common.logging.info(message);
     } else {
-        logging.warn('(' + result.done + '/' + result.expected + ') ' + message);
+        common.logging.warn('(' + result.done + '/' + result.expected + ') ' + message);
     }
 };
 
-module.exports = function addRedirectsPermissions(options) {
+module.exports.config = {
+    transaction: true
+};
+
+module.exports.up = function addRedirectsPermissions(options) {
     var modelToAdd = _private.getPermissions(),
         relationToAdd = _private.getRelations(),
         localOptions = _.merge({
@@ -37,3 +41,9 @@ module.exports = function addRedirectsPermissions(options) {
         return permissions.init(localOptions);
     });
 };
+
+/**
+ * @TODO:
+ * The down function is quite tricky, because the fixture utility adds **all** missing fixtures for a target resource.
+ * So if we are writing a down function, we are only allowed to remove the fixtures which were added between two Ghost versions.
+ */
