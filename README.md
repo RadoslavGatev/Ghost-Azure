@@ -33,3 +33,6 @@ OR
 git checkout my_branch
 git pull https://github.com/solvsoftware/Ghost-Azure azure
 ```
+
+## Frequently Asked Questions
+https://github.com/solvsoftware/Ghost-Azure/wiki/FAQ
