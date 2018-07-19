@@ -1,7 +1,7 @@
 # Ghost-Azure 
 ## Your Ghost blog ready for Azure app service deployment. 
 [![Deploy to Azure](https://azuredeploy.net/deploybutton.png)](https://azuredeploy.net/)
-[![Visualize](http://armviz.io/visualizebutton.png)](http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2Fsolvsoftware%2FGhost-Azure%2Fazure%2Fazuredeploy.json)
+[![Visualize](http://armviz.io/visualizebutton.png)](http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2Fdmoore44%2FGhost-Azure%2Fazure%2Fazuredeploy.json)
 [Deploy to Azure via Portal](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsolvsoftware%2FGhost-Azure%2Fazure%2Fazuredeploy.json)
 <p>
 </p>
@@ -31,8 +31,8 @@ node db.js
 OR
 ```bash
 git checkout my_branch
-git pull https://github.com/solvsoftware/Ghost-Azure azure
+git pull https://github.com/dmoore44/Ghost-Azure azure
 ```
 
 ## Frequently Asked Questions
-https://github.com/solvsoftware/Ghost-Azure/wiki/FAQ
+https://github.com/dmoore44/Ghost-Azure/wiki/FAQ
