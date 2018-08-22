@@ -6,8 +6,8 @@ var _ = require('lodash'),
     glob = require('glob'),
     uuid = require('uuid'),
     extract = require('extract-zip'),
-    sequence = require('../../utils/sequence'),
-    pipeline = require('../../utils/pipeline'),
+    sequence = require('../../lib/promise/sequence'),
+    pipeline = require('../../lib/promise/pipeline'),
     common = require('../../lib/common'),
     ImageHandler = require('./handlers/image'),
     JSONHandler = require('./handlers/json'),
@@ -354,8 +354,7 @@ _.extend(ImportManager.prototype, {
      * @param {importOptions} importOptions to allow override of certain import features such as locking a user
      * @returns {Promise}
      */
-    importFromFile: function (file, importOptions) {
-        importOptions = importOptions || {};
+    importFromFile: function (file, importOptions = {}) {
         var self = this;
 
         // Step 1: Handle converting the file to usable data

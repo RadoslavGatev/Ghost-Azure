@@ -7,18 +7,16 @@ var path = require('path'),
     // Dirty requires
     api = require('../../../api'),
     common = require('../../../lib/common'),
+    urlService = require('../../../services/url'),
     validator = require('../../../data/validation').validator,
-    postLookup = require('../../../controllers/frontend/post-lookup'),
-    renderer = require('../../../controllers/frontend/renderer'),
+    routing = require('../../../services/routing'),
 
     templateName = 'subscribe';
 
 function _renderer(req, res) {
-    // Note: this is super similar to the config middleware used in channels
-    // @TODO refactor into to something explicit & DRY this up
-    res._route = {
+    res.routerOptions = {
         type: 'custom',
-        templateName: templateName,
+        templates: templateName,
         defaultTemplate: path.resolve(__dirname, 'views', templateName + '.hbs')
     };
 
@@ -27,7 +25,7 @@ function _renderer(req, res) {
     var data = req.body;
 
     // Render Call
-    return renderer(req, res, data);
+    return routing.helpers.renderer(req, res, data);
 }
 
 /**
@@ -63,24 +61,17 @@ function santizeUrl(url) {
 function handleSource(req, res, next) {
     req.body.subscribed_url = santizeUrl(req.body.location);
     req.body.subscribed_referrer = santizeUrl(req.body.referrer);
+
     delete req.body.location;
     delete req.body.referrer;
 
-    postLookup(req.body.subscribed_url)
-        .then(function (result) {
-            if (result && result.post) {
-                req.body.post_id = result.post.id;
-            }
+    const resource = urlService.getResource(urlService.utils.absoluteToRelative(req.body.subscribed_url, {withoutSubdirectory: true}));
 
-            next();
-        })
-        .catch(function (err) {
-            if (err instanceof common.errors.NotFoundError) {
-                return next();
-            }
+    if (resource) {
+        req.body.post_id = resource.data.id;
+    }
 
-            next(err);
-        });
+    next();
 }
 
 function storeSubscriber(req, res, next) {

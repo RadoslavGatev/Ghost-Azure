@@ -1,28 +1,30 @@
-var fs = require('fs'),
+const fs = require('fs-extra'),
     session = require('cookie-session'),
     crypto = require('crypto'),
     path = require('path'),
     config = require('../../../config'),
     urlService = require('../../../services/url'),
-    globalUtils = require('../../../utils'),
+    constants = require('../../../lib/constants'),
     common = require('../../../lib/common'),
-    settingsCache = require('../../../settings/cache'),
-    privateRoute = '/' + config.get('routeKeywords').private + '/',
-    privateBlogging;
+    settingsCache = require('../../../services/settings/cache'),
+    // routeKeywords.private: 'private'
+    privateRoute = '/private/';
+
+let privateBlogging = null;
 
 function verifySessionHash(salt, hash) {
     if (!salt || !hash) {
         return false;
     }
 
-    var hasher = crypto.createHash('sha256');
+    let hasher = crypto.createHash('sha256');
     hasher.update(settingsCache.get('password') + salt, 'utf8');
     return hasher.digest('hex') === hash;
 }
 
 privateBlogging = {
     checkIsPrivate: function checkIsPrivate(req, res, next) {
-        var isPrivateBlog = settingsCache.get('is_private');
+        let isPrivateBlog = settingsCache.get('is_private');
 
         if (!isPrivateBlog) {
             res.isPrivateBlog = false;
@@ -32,7 +34,7 @@ privateBlogging = {
         res.isPrivateBlog = true;
 
         return session({
-            maxAge: globalUtils.ONE_MONTH_MS,
+            maxAge: constants.ONE_MONTH_MS,
             signed: false
         })(req, res, next);
     },
@@ -69,7 +71,7 @@ privateBlogging = {
         // NOTE: Redirect to /private if the session does not exist.
         privateBlogging.authenticatePrivateSession(req, res, function onSessionVerified() {
             // CASE: RSS is disabled for private blogging e.g. they create overhead
-            if (req.path.lastIndexOf('/rss/', 0) === 0 || req.path.lastIndexOf('/rss/') === req.url.length - 5) {
+            if (req.path.match(/\/rss(\/?|\/\d+\/?)$/)) {
                 return next(new common.errors.NotFoundError({
                     message: common.i18n.t('errors.errors.pageNotFound')
                 }));
@@ -80,7 +82,7 @@ privateBlogging = {
     },
 
     authenticatePrivateSession: function authenticatePrivateSession(req, res, next) {
-        var hash = req.session.token || '',
+        let hash = req.session.token || '',
             salt = req.session.salt || '',
             isVerified = verifySessionHash(salt, hash),
             url;
@@ -100,7 +102,7 @@ privateBlogging = {
             return res.redirect(urlService.utils.urlFor('home', true));
         }
 
-        var hash = req.session.token || '',
+        let hash = req.session.token || '',
             salt = req.session.salt || '',
             isVerified = verifySessionHash(salt, hash);
 
@@ -118,7 +120,7 @@ privateBlogging = {
             return next();
         }
 
-        var bodyPass = req.body.password,
+        let bodyPass = req.body.password,
             pass = settingsCache.get('password'),
             hasher = crypto.createHash('sha256'),
             salt = Date.now().toString(),

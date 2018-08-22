@@ -1,13 +1,13 @@
-var Promise = require('bluebird'),
+const Promise = require('bluebird'),
     fs = require('fs-extra'),
-    pUnlink = Promise.promisify(fs.unlink),
-    storage = require('../adapters/storage'),
-    upload;
+    storage = require('../adapters/storage');
+
+let upload;
 
 /**
  * ## Upload API Methods
  *
- * **See:** [API Methods](index.js.html#api%20methods)
+ * **See:** [API Methods](constants.js.html#api%20methods)
  */
 upload = {
 
@@ -23,7 +23,7 @@ upload = {
 
         return store.save(options).finally(function () {
             // Remove uploaded file from tmp location
-            return pUnlink(options.path);
+            return fs.unlink(options.path);
         });
     })
 };

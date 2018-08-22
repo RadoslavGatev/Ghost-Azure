@@ -25,6 +25,14 @@ var config = require('./core/server/config'),
     buildDirectory = path.resolve(cwd, '.build'),
     distDirectory = path.resolve(cwd, '.dist'),
 
+    hasBuiltClient = false,
+    logBuildingClient = function (grunt) {
+        if (!hasBuiltClient) {
+            grunt.log.writeln('Building admin client... (can take ~1min)');
+            setTimeout(logBuildingClient, 5000, grunt);
+        }
+    },
+
     // ## Grunt configuration
 
     configureGrunt = function (grunt) {
@@ -57,7 +65,7 @@ var config = require('./core/server/config'),
             // ### grunt-contrib-watch
             // Watch files and livereload in the browser during development.
             // See the [grunt dev](#live%20reload) task for how this is used.
-            watch: {
+            watch: grunt.option('no-server-watch') ? {files: []} : {
                 livereload: {
                     files: [
                         'content/themes/casper/assets/css/*.css',
@@ -71,7 +79,7 @@ var config = require('./core/server/config'),
                     files: ['core/ghost-server.js', 'core/server/**/*.js', 'config.*.json', '!config.testing.json'],
                     tasks: ['express:dev'],
                     options: {
-                        nospawn: true,
+                        spawn: false,
                         livereload: true
                     }
                 }
@@ -202,7 +210,10 @@ var config = require('./core/server/config'),
 
             bgShell: {
                 client: {
-                    cmd: 'grunt subgrunt:watch',
+                    cmd: function () {
+                        logBuildingClient(grunt);
+                        return 'grunt subgrunt:watch';
+                    },
                     bg: grunt.option('client') ? false : true,
                     stdout: function (chunk) {
                         // hide certain output to prevent confusion when running alongside server
@@ -217,8 +228,15 @@ var config = require('./core/server/config'),
                         if (!filter) {
                             grunt.log.write(chunk);
                         }
+
+                        if (chunk.indexOf('Build successful') !== -1) {
+                            hasBuiltClient = true;
+                        }
                     },
-                    stderr: true
+                    stderr: function (chunk) {
+                        hasBuiltClient = true;
+                        grunt.log.error(chunk);
+                    }
                 }
             },
 

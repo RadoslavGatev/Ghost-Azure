@@ -1,68 +1,55 @@
-var _ = require('lodash'),
+const _ = require('lodash'),
     Promise = require('bluebird'),
-    bcrypt = require('bcryptjs'),
     validator = require('validator'),
     ObjectId = require('bson-objectid'),
     ghostBookshelf = require('./base'),
     baseUtils = require('./base/utils'),
     common = require('../lib/common'),
-    utils = require('../utils'),
-    gravatar = require('../utils/gravatar'),
+    security = require('../lib/security'),
+    imageLib = require('../lib/image'),
+    pipeline = require('../lib/promise/pipeline'),
     validation = require('../data/validation'),
-    pipeline = require('../utils/pipeline'),
-
-    bcryptGenSalt = Promise.promisify(bcrypt.genSalt),
-    bcryptHash = Promise.promisify(bcrypt.hash),
-    bcryptCompare = Promise.promisify(bcrypt.compare),
     activeStates = ['active', 'warn-1', 'warn-2', 'warn-3', 'warn-4'],
     /**
      * inactive: owner user before blog setup, suspended users
      * locked user: imported users, they get a random passport
      */
     inactiveStates = ['inactive', 'locked'],
-    allStates = activeStates.concat(inactiveStates),
-    User,
-    Users;
+    allStates = activeStates.concat(inactiveStates);
 
-/**
- * generate a random salt and then hash the password with that salt
- */
-function generatePasswordHash(password) {
-    return bcryptGenSalt().then(function (salt) {
-        return bcryptHash(password, salt);
-    });
-}
+let User, Users;
 
 User = ghostBookshelf.Model.extend({
 
     tableName: 'users',
 
     defaults: function defaults() {
-        var baseDefaults = ghostBookshelf.Model.prototype.defaults.call(this);
-
-        return _.merge({
-            password: utils.uid(50)
-        }, baseDefaults);
+        return {
+            password: security.identifier.uid(50),
+            visibility: 'public',
+            status: 'active'
+        };
     },
 
     emitChange: function emitChange(event, options) {
-        common.events.emit('user' + '.' + event, this, options);
+        const eventToTrigger = 'user' + '.' + event;
+        ghostBookshelf.Model.prototype.emitChange.bind(this)(this, eventToTrigger, options);
     },
 
-    onDestroyed: function onDestroyed(model, response, options) {
+    onDestroyed: function onDestroyed(model, options) {
         if (_.includes(activeStates, model.previous('status'))) {
             model.emitChange('deactivated', options);
         }
 
-        model.emitChange('deleted');
+        model.emitChange('deleted', options);
     },
 
-    onCreated: function onCreated(model) {
-        model.emitChange('added');
+    onCreated: function onCreated(model, attrs, options) {
+        model.emitChange('added', options);
 
         // active is the default state, so if status isn't provided, this will be an active user
         if (!model.get('status') || _.includes(activeStates, model.get('status'))) {
-            model.emitChange('activated');
+            model.emitChange('activated', options);
         }
     },
 
@@ -74,11 +61,11 @@ User = ghostBookshelf.Model.extend({
             model.emitChange(model.isActive ? 'activated' : 'deactivated', options);
         } else {
             if (model.isActive) {
-                model.emitChange('activated.edited');
+                model.emitChange('activated.edited', options);
             }
         }
 
-        model.emitChange('edited');
+        model.emitChange('edited', options);
     },
 
     isActive: function isActive() {
@@ -104,10 +91,26 @@ User = ghostBookshelf.Model.extend({
 
         ghostBookshelf.Model.prototype.onSaving.apply(this, arguments);
 
+        /**
+         * Bookshelf call order:
+         *   - onSaving
+         *   - onValidate (validates the model against the schema)
+         *
+         * Before we can generate a slug, we have to ensure that the name is not blank.
+         */
+        if (!this.get('name')) {
+            throw new common.errors.ValidationError({
+                message: common.i18n.t('notices.data.validation.index.valueCannotBeBlank', {
+                    tableName: this.tableName,
+                    columnKey: 'name'
+                })
+            });
+        }
+
         // If the user's email is set & has changed & we are not importing
         if (self.hasChanged('email') && self.get('email') && !options.importing) {
             tasks.gravatar = (function lookUpGravatar() {
-                return gravatar.lookup({
+                return imageLib.gravatar.lookup({
                     email: self.get('email')
                 }).then(function (response) {
                     if (response && response.image) {
@@ -145,7 +148,7 @@ User = ghostBookshelf.Model.extend({
          *     normal behaviour if not (set random password, lock user, and hash password)
          *   - no validations should run, when importing
          */
-        if (self.isNew() || self.hasChanged('password')) {
+        if (self.hasChanged('password')) {
             this.set('password', String(this.get('password')));
 
             // CASE: import with `importPersistUser` should always be an bcrypt password already,
@@ -157,7 +160,7 @@ User = ghostBookshelf.Model.extend({
 
             if (options.importing) {
                 // always set password to a random uid when importing
-                this.set('password', utils.uid(50));
+                this.set('password', security.identifier.uid(50));
 
                 // lock users so they have to follow the password reset flow
                 if (this.get('status') !== 'inactive') {
@@ -173,7 +176,7 @@ User = ghostBookshelf.Model.extend({
             }
 
             tasks.hashPassword = (function hashPassword() {
-                return generatePasswordHash(self.get('password'))
+                return security.password.hash(self.get('password'))
                     .then(function (hash) {
                         self.set('password', hash);
                     });
@@ -183,28 +186,9 @@ User = ghostBookshelf.Model.extend({
         return Promise.props(tasks);
     },
 
-    // For the user model ONLY it is possible to disable validations.
-    // This is used to bypass validation during the credential check, and must never be done with user-provided data
-    // Should be removed when #3691 is done
-    onValidate: function validate() {
-        var opts = arguments[1],
-            userData;
-
-        if (opts && _.has(opts, 'validate') && opts.validate === false) {
-            return;
-        }
-
-        // use the base toJSON since this model's overridden toJSON
-        // removes fields and we want everything to run through the validator.
-        userData = ghostBookshelf.Model.prototype.toJSON.call(this);
-
-        return validation.validateSchema(this.tableName, userData);
-    },
-
-    toJSON: function toJSON(options) {
-        options = options || {};
-
-        var attrs = ghostBookshelf.Model.prototype.toJSON.call(this, options);
+    toJSON: function toJSON(unfilteredOptions) {
+        var options = User.filterOptions(unfilteredOptions, 'toJSON'),
+            attrs = ghostBookshelf.Model.prototype.toJSON.call(this, options);
 
         // remove password hash for security reasons
         delete attrs.password;
@@ -228,6 +212,13 @@ User = ghostBookshelf.Model.extend({
         }
 
         return attrs;
+    },
+
+    emptyStringProperties: function emptyStringProperties() {
+        // CASE: the client might send empty image properties with "" instead of setting them to null.
+        // This can cause GQL to fail. We therefore enforce 'null' for empty image properties.
+        // See https://github.com/TryGhost/GQL/issues/24
+        return ['profile_image', 'cover_image'];
     },
 
     format: function format(options) {
@@ -261,20 +252,20 @@ User = ghostBookshelf.Model.extend({
         });
     },
 
-    enforcedFilters: function enforcedFilters() {
-        if (this.isInternalContext()) {
+    enforcedFilters: function enforcedFilters(options) {
+        if (options.context && options.context.internal) {
             return null;
         }
 
-        return this.isPublicContext() ? 'status:[' + allStates.join(',') + ']' : null;
+        return options.context && options.context.public ? 'status:[' + allStates.join(',') + ']' : null;
     },
 
-    defaultFilters: function defaultFilters() {
-        if (this.isInternalContext()) {
+    defaultFilters: function defaultFilters(options) {
+        if (options.context && options.context.internal) {
             return null;
         }
 
-        return this.isPublicContext() ? null : 'status:[' + allStates.join(',') + ']';
+        return options.context && options.context.public ? null : 'status:[' + allStates.join(',') + ']';
     }
 }, {
     orderDefaultOptions: function orderDefaultOptions() {
@@ -341,11 +332,11 @@ User = ghostBookshelf.Model.extend({
             permittedOptionsToReturn = permittedOptionsToReturn.concat(validOptions[methodName]);
         }
 
-        // CASE: The `include` parameter is allowed when using the public API, but not the `roles` value.
+        // CASE: The `withRelated` parameter is allowed when using the public API, but not the `roles` value.
         // Otherwise we expose too much information.
         if (options && options.context && options.context.public) {
-            if (options.include && options.include.indexOf('roles') !== -1) {
-                options.include.splice(options.include.indexOf('roles'), 1);
+            if (options.withRelated && options.withRelated.indexOf('roles') !== -1) {
+                options.withRelated.splice(options.withRelated.indexOf('roles'), 1);
             }
         }
 
@@ -358,11 +349,14 @@ User = ghostBookshelf.Model.extend({
      * We have to clone the data, because we remove values from this object.
      * This is not expected from outside!
      *
+     * @TODO: use base class
+     *
      * @extends ghostBookshelf.Model.findOne to include roles
      * **See:** [ghostBookshelf.Model.findOne](base.js.html#Find%20One)
      */
-    findOne: function findOne(dataToClone, options) {
-        var query,
+    findOne: function findOne(dataToClone, unfilteredOptions) {
+        var options = this.filterOptions(unfilteredOptions, 'findOne'),
+            query,
             status,
             data = _.cloneDeep(dataToClone),
             lookupRole = data.role;
@@ -376,22 +370,17 @@ User = ghostBookshelf.Model.extend({
         delete data.status;
 
         data = this.filterData(data);
-        options = this.filterOptions(options, 'findOne');
-        options.withRelated = _.union(options.withRelated, options.include);
 
         // Support finding by role
         if (lookupRole) {
             options.withRelated = _.union(options.withRelated, ['roles']);
-            options.include = _.union(options.include, ['roles']);
-
-            query = this.forge(data, {include: options.include});
+            query = this.forge(data);
 
             query.query('join', 'roles_users', 'users.id', '=', 'roles_users.user_id');
             query.query('join', 'roles', 'roles_users.role_id', '=', 'roles.id');
             query.query('where', 'roles.name', '=', lookupRole);
         } else {
-            // We pass include to forge so that toJSON has access
-            query = this.forge(data, {include: options.include});
+            query = this.forge(data);
         }
 
         if (status === 'active') {
@@ -411,8 +400,9 @@ User = ghostBookshelf.Model.extend({
      * @extends ghostBookshelf.Model.edit to handle returning the full object
      * **See:** [ghostBookshelf.Model.edit](base.js.html#edit)
      */
-    edit: function edit(data, options) {
-        var self = this,
+    edit: function edit(data, unfilteredOptions) {
+        var options = this.filterOptions(unfilteredOptions, 'edit'),
+            self = this,
             ops = [];
 
         if (data.roles && data.roles.length > 1) {
@@ -420,9 +410,6 @@ User = ghostBookshelf.Model.extend({
                 new common.errors.ValidationError({message: common.i18n.t('errors.models.user.onlyOneRolePerUserSupported')})
             );
         }
-
-        options = options || {};
-        options.withRelated = _.union(options.withRelated, options.include);
 
         if (data.email) {
             ops.push(function checkForDuplicateEmail() {
@@ -478,18 +465,16 @@ User = ghostBookshelf.Model.extend({
      * This is not expected from outside!
      *
      * @param {object} dataToClone
-     * @param {object} options
+     * @param {object} unfilteredOptions
      * @extends ghostBookshelf.Model.add to manage all aspects of user signup
      * **See:** [ghostBookshelf.Model.add](base.js.html#Add)
      */
-    add: function add(dataToClone, options) {
-        var self = this,
+    add: function add(dataToClone, unfilteredOptions) {
+        var options = this.filterOptions(unfilteredOptions, 'add'),
+            self = this,
             data = _.cloneDeep(dataToClone),
             userData = this.filterData(data),
             roles;
-
-        options = this.filterOptions(options, 'add');
-        options.withRelated = _.union(options.withRelated, options.include);
 
         // check for too many roles
         if (data.roles && data.roles.length > 1) {
@@ -558,8 +543,9 @@ User = ghostBookshelf.Model.extend({
      * Owner already has a slug -> force setting a new one by setting slug to null
      * @TODO: kill setup function?
      */
-    setup: function setup(data, options) {
-        var self = this,
+    setup: function setup(data, unfilteredOptions) {
+        var options = this.filterOptions(unfilteredOptions, 'setup'),
+            self = this,
             userData = this.filterData(data),
             passwordValidation = {};
 
@@ -568,9 +554,6 @@ User = ghostBookshelf.Model.extend({
         if (!passwordValidation.isValid) {
             return Promise.reject(new common.errors.ValidationError({message: passwordValidation.message}));
         }
-
-        options = this.filterOptions(options, 'setup');
-        options.withRelated = _.union(options.withRelated, options.include);
 
         userData.slug = null;
         return self.edit(userData, options);
@@ -626,7 +609,7 @@ User = ghostBookshelf.Model.extend({
             return this.findOne({
                 id: userModelOrId,
                 status: 'all'
-            }, {include: ['roles']}).then(function then(foundUserModel) {
+            }, {withRelated: ['roles']}).then(function then(foundUserModel) {
                 if (!foundUserModel) {
                     throw new common.errors.NotFoundError({
                         message: common.i18n.t('errors.models.user.userNotFound')
@@ -641,39 +624,31 @@ User = ghostBookshelf.Model.extend({
         }
 
         if (action === 'edit') {
-            // Owner can only be edited by owner
-            if (loadedPermissions.user && userModel.hasRole('Owner')) {
-                hasUserPermission = _.some(loadedPermissions.user.roles, {name: 'Owner'});
-            }
-            // Users with the role 'Editor' and 'Author' have complex permissions when the action === 'edit'
+            // Users with the role 'Editor', 'Author', and 'Contributor' have complex permissions when the action === 'edit'
             // We now have all the info we need to construct the permissions
-            if (loadedPermissions.user && _.some(loadedPermissions.user.roles, {name: 'Author'})) {
-                // If this is the same user that requests the operation allow it.
-                hasUserPermission = hasUserPermission || context.user === userModel.get('id');
-            }
 
-            if (loadedPermissions.user && _.some(loadedPermissions.user.roles, {name: 'Editor'})) {
+            if (context.user === userModel.get('id')) {
                 // If this is the same user that requests the operation allow it.
-                hasUserPermission = context.user === userModel.get('id');
-
-                // Alternatively, if the user we are trying to edit is an Author, allow it
-                hasUserPermission = hasUserPermission || userModel.hasRole('Author');
+                hasUserPermission = true;
+            } else if (loadedPermissions.user && userModel.hasRole('Owner')) {
+                // Owner can only be edited by owner
+                hasUserPermission = loadedPermissions.user && _.some(loadedPermissions.user.roles, {name: 'Owner'});
+            } else if (loadedPermissions.user && _.some(loadedPermissions.user.roles, {name: 'Editor'})) {
+                // If the user we are trying to edit is an Author or Contributor, allow it
+                hasUserPermission = userModel.hasRole('Author') || userModel.hasRole('Contributor');
             }
         }
 
         if (action === 'destroy') {
             // Owner cannot be deleted EVER
-            if (loadedPermissions.user && userModel.hasRole('Owner')) {
+            if (userModel.hasRole('Owner')) {
                 return Promise.reject(new common.errors.NoPermissionError({message: common.i18n.t('errors.models.user.notEnoughPermission')}));
             }
 
             // Users with the role 'Editor' have complex permissions when the action === 'destroy'
             if (loadedPermissions.user && _.some(loadedPermissions.user.roles, {name: 'Editor'})) {
-                // If this is the same user that requests the operation allow it.
-                hasUserPermission = context.user === userModel.get('id');
-
                 // Alternatively, if the user we are trying to edit is an Author, allow it
-                hasUserPermission = hasUserPermission || userModel.hasRole('Author');
+                hasUserPermission = context.user === userModel.get('id') || userModel.hasRole('Author') || userModel.hasRole('Contributor');
             }
         }
 
@@ -689,50 +664,41 @@ User = ghostBookshelf.Model.extend({
     check: function check(object) {
         var self = this;
 
-        return this.getByEmail(object.email).then(function then(user) {
-            if (!user) {
-                return Promise.reject(new common.errors.NotFoundError({
-                    message: common.i18n.t('errors.models.user.noUserWithEnteredEmailAddr')
-                }));
-            }
+        return this.getByEmail(object.email)
+            .then(function then(user) {
+                if (!user) {
+                    throw new common.errors.NotFoundError({
+                        message: common.i18n.t('errors.models.user.noUserWithEnteredEmailAddr')
+                    });
+                }
 
-            if (user.isLocked()) {
-                return Promise.reject(new common.errors.NoPermissionError({
-                    message: common.i18n.t('errors.models.user.accountLocked')
-                }));
-            }
+                if (user.isLocked()) {
+                    throw new common.errors.NoPermissionError({
+                        message: common.i18n.t('errors.models.user.accountLocked')
+                    });
+                }
 
-            if (user.isInactive()) {
-                return Promise.reject(new common.errors.NoPermissionError({
-                    message: common.i18n.t('errors.models.user.accountSuspended')
-                }));
-            }
+                if (user.isInactive()) {
+                    throw new common.errors.NoPermissionError({
+                        message: common.i18n.t('errors.models.user.accountSuspended')
+                    });
+                }
 
-            return self.isPasswordCorrect({plainPassword: object.password, hashedPassword: user.get('password')})
-                .then(function then() {
-                    return Promise.resolve(user.set({status: 'active', last_seen: new Date()}).save({validate: false}))
-                        .catch(function handleError(err) {
-                            // If we get a validation or other error during this save, catch it and log it, but don't
-                            // cause a login error because of it. The user validation is not important here.
-                            common.logging.error(new common.errors.GhostError({
-                                err: err,
-                                context: common.i18n.t('errors.models.user.userUpdateError.context'),
-                                help: common.i18n.t('errors.models.user.userUpdateError.help')
-                            }));
+                return self.isPasswordCorrect({plainPassword: object.password, hashedPassword: user.get('password')})
+                    .then(function then() {
+                        user.set({status: 'active', last_seen: new Date()});
+                        return user.save();
+                    });
+            })
+            .catch(function (err) {
+                if (err.message === 'NotFound' || err.message === 'EmptyResponse') {
+                    throw new common.errors.NotFoundError({
+                        message: common.i18n.t('errors.models.user.noUserWithEnteredEmailAddr')
+                    });
+                }
 
-                            return user;
-                        });
-                })
-                .catch(function onError(err) {
-                    return Promise.reject(err);
-                });
-        }, function handleError(error) {
-            if (error.message === 'NotFound' || error.message === 'EmptyResponse') {
-                return Promise.reject(new common.errors.NotFoundError({message: common.i18n.t('errors.models.user.noUserWithEnteredEmailAddr')}));
-            }
-
-            return Promise.reject(error);
-        });
+                throw err;
+            });
     },
 
     isPasswordCorrect: function isPasswordCorrect(object) {
@@ -745,7 +711,7 @@ User = ghostBookshelf.Model.extend({
             }));
         }
 
-        return bcryptCompare(plainPassword, hashedPassword)
+        return security.password.compare(plainPassword, hashedPassword)
             .then(function (matched) {
                 if (matched) {
                     return;
@@ -763,17 +729,20 @@ User = ghostBookshelf.Model.extend({
     /**
      * Naive change password method
      * @param {Object} object
-     * @param {Object} options
+     * @param {Object} unfilteredOptions
      */
-    changePassword: function changePassword(object, options) {
-        var self = this,
+    changePassword: function changePassword(object, unfilteredOptions) {
+        var options = this.filterOptions(unfilteredOptions, 'changePassword'),
+            self = this,
             newPassword = object.newPassword,
             userId = object.user_id,
             oldPassword = object.oldPassword,
             isLoggedInUser = userId === options.context.user,
             user;
 
-        return self.forge({id: userId}).fetch({require: true})
+        options.require = true;
+
+        return self.forge({id: userId}).fetch(options)
             .then(function then(_user) {
                 user = _user;
 
@@ -789,13 +758,14 @@ User = ghostBookshelf.Model.extend({
             });
     },
 
-    transferOwnership: function transferOwnership(object, options) {
-        var ownerRole,
+    transferOwnership: function transferOwnership(object, unfilteredOptions) {
+        var options = ghostBookshelf.Model.filterOptions(unfilteredOptions, 'transferOwnership'),
+            ownerRole,
             contextUser;
 
         return Promise.join(
             ghostBookshelf.model('Role').findOne({name: 'Owner'}),
-            User.findOne({id: options.context.user}, {include: ['roles']})
+            User.findOne({id: options.context.user}, {withRelated: ['roles']})
         )
             .then(function then(results) {
                 ownerRole = results[0];
@@ -808,7 +778,7 @@ User = ghostBookshelf.Model.extend({
                 }
 
                 return Promise.join(ghostBookshelf.model('Role').findOne({name: 'Administrator'}),
-                    User.findOne({id: object.id}, {include: ['roles']}));
+                    User.findOne({id: object.id}, {withRelated: ['roles']}));
             })
             .then(function then(results) {
                 var adminRole = results[0],
@@ -830,7 +800,7 @@ User = ghostBookshelf.Model.extend({
                     .fetch({withRelated: ['roles']});
             })
             .then(function then(users) {
-                options.include = ['roles'];
+                options.withRelated = ['roles'];
                 return users.toJSON(options);
             });
     },
@@ -838,15 +808,16 @@ User = ghostBookshelf.Model.extend({
     // Get the user by email address, enforces case insensitivity rejects if the user is not found
     // When multi-user support is added, email addresses must be deduplicated with case insensitivity, so that
     // joe@bloggs.com and JOE@BLOGGS.COM cannot be created as two separate users.
-    getByEmail: function getByEmail(email, options) {
-        options = options || {};
+    getByEmail: function getByEmail(email, unfilteredOptions) {
+        var options = ghostBookshelf.Model.filterOptions(unfilteredOptions, 'getByEmail');
+
         // We fetch all users and process them in JS as there is no easy way to make this query across all DBs
         // Although they all support `lower()`, sqlite can't case transform unicode characters
         // This is somewhat mute, as validator.isEmail() also doesn't support unicode, but this is much easier / more
         // likely to be fixed in the near future.
         options.require = true;
 
-        return Users.forge(options).fetch(options).then(function then(users) {
+        return Users.forge().fetch(options).then(function then(users) {
             var userWithEmail = users.find(function findUser(user) {
                 return user.get('email').toLowerCase() === email.toLowerCase();
             });

@@ -2,8 +2,6 @@ var downsize = require('downsize'),
     RSS = require('rss'),
     urlService = require('../../services/url'),
     filters = require('../../filters'),
-    processUrls = require('../../utils/make-absolute-urls'),
-
     generateFeed,
     generateItem,
     generateTags;
@@ -22,8 +20,8 @@ generateTags = function generateTags(data) {
 };
 
 generateItem = function generateItem(post, siteUrl, secure) {
-    var itemUrl = urlService.utils.urlFor('post', {post: post, secure: secure}, true),
-        htmlContent = processUrls(post.html, siteUrl, itemUrl),
+    var itemUrl = urlService.getUrlByResourceId(post.id, {secure: secure, absolute: true}),
+        htmlContent = urlService.utils.makeAbsoluteUrls(post.html, siteUrl, itemUrl),
         item = {
             title: post.title,
             // @TODO: DRY this up with data/meta/index & other excerpt code
@@ -32,7 +30,7 @@ generateItem = function generateItem(post, siteUrl, secure) {
             url: itemUrl,
             date: post.published_at,
             categories: generateTags(post),
-            author: post.author ? post.author.name : null,
+            author: post.primary_author ? post.primary_author.name : null,
             custom_elements: []
         },
         imageUrl;
@@ -67,7 +65,7 @@ generateItem = function generateItem(post, siteUrl, secure) {
 /**
  * Generate Feed
  *
- * Data is an object which contains the res.locals + results from fetching a channel, but without related data.
+ * Data is an object which contains the res.locals + results from fetching a collection, but without related data.
  *
  * @param {string} baseUrl
  * @param {{title, description, safeVersion, secure, posts}} data

@@ -1,15 +1,13 @@
-var Settings,
-    Promise = require('bluebird'),
+const Promise = require('bluebird'),
     _ = require('lodash'),
     uuid = require('uuid'),
     crypto = require('crypto'),
     ghostBookshelf = require('./base'),
     common = require('../lib/common'),
     validation = require('../data/validation'),
+    internalContext = {context: {internal: true}};
 
-    internalContext = {context: {internal: true}},
-
-    defaultSettings;
+let Settings, defaultSettings;
 
 // For neatness, the defaults file is split into categories.
 // It's much easier for us to work with it as a single level
@@ -58,31 +56,32 @@ Settings = ghostBookshelf.Model.extend({
     },
 
     emitChange: function emitChange(event, options) {
-        common.events.emit('settings' + '.' + event, this, options);
+        const eventToTrigger = 'settings' + '.' + event;
+        ghostBookshelf.Model.prototype.emitChange.bind(this)(this, eventToTrigger, options);
     },
 
-    onDestroyed: function onDestroyed(model, response, options) {
-        model.emitChange('deleted');
-        model.emitChange(model.attributes.key + '.' + 'deleted', options);
+    onDestroyed: function onDestroyed(model, options) {
+        model.emitChange('deleted', options);
+        model.emitChange(model._previousAttributes.key + '.' + 'deleted', options);
     },
 
     onCreated: function onCreated(model, response, options) {
-        model.emitChange('added');
+        model.emitChange('added', options);
         model.emitChange(model.attributes.key + '.' + 'added', options);
     },
 
     onUpdated: function onUpdated(model, response, options) {
-        model.emitChange('edited');
+        model.emitChange('edited', options);
         model.emitChange(model.attributes.key + '.' + 'edited', options);
     },
 
     onValidate: function onValidate() {
-        var self = this,
-            setting = this.toJSON();
+        var self = this;
 
-        return validation.validateSchema(self.tableName, setting).then(function then() {
-            return validation.validateSettings(getDefaultSettings(), self);
-        });
+        return ghostBookshelf.Model.prototype.onValidate.apply(this, arguments)
+            .then(function then() {
+                return validation.validateSettings(getDefaultSettings(), self);
+            });
     }
 }, {
     findOne: function (data, options) {
@@ -98,9 +97,9 @@ Settings = ghostBookshelf.Model.extend({
         return Promise.resolve(ghostBookshelf.Model.findOne.call(this, data, options));
     },
 
-    edit: function (data, options) {
-        var self = this;
-        options = this.filterOptions(options, 'edit');
+    edit: function (data, unfilteredOptions) {
+        var options = this.filterOptions(unfilteredOptions, 'edit'),
+            self = this;
 
         if (!Array.isArray(data)) {
             data = [data];
@@ -146,10 +145,13 @@ Settings = ghostBookshelf.Model.extend({
         });
     },
 
-    populateDefaults: function populateDefaults(options) {
-        var self = this;
+    populateDefaults: function populateDefaults(unfilteredOptions) {
+        var options = this.filterOptions(unfilteredOptions, 'populateDefaults'),
+            self = this;
 
-        options = _.merge({}, options || {}, internalContext);
+        if (!options.context) {
+            options.context = internalContext.context;
+        }
 
         return this
             .findAll(options)

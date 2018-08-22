@@ -1,22 +1,26 @@
 // # Posts API
 // RESTful API for the Post resource
-var Promise = require('bluebird'),
+const Promise = require('bluebird'),
     _ = require('lodash'),
-    pipeline = require('../utils/pipeline'),
-    apiUtils = require('./utils'),
+    pipeline = require('../lib/promise/pipeline'),
+    localUtils = require('./utils'),
     models = require('../models'),
     common = require('../lib/common'),
     docName = 'posts',
+    /**
+     * @deprecated: `author`, will be removed in Ghost 3.0
+     */
     allowedIncludes = [
-        'created_by', 'updated_by', 'published_by', 'author', 'tags', 'fields'
+        'created_by', 'updated_by', 'published_by', 'author', 'tags', 'fields', 'authors', 'authors.roles'
     ],
-    unsafeAttrs = ['author_id'],
-    posts;
+    unsafeAttrs = ['author_id', 'status', 'authors'];
+
+let posts;
 
 /**
  * ### Posts API Methods
  *
- * **See:** [API Methods](index.js.html#api%20methods)
+ * **See:** [API Methods](constants.js.html#api%20methods)
  */
 
 posts = {
@@ -44,7 +48,7 @@ posts = {
         if (options && options.context && (options.context.user || options.context.internal)) {
             extraOptions.push('staticPages');
         }
-        permittedOptions = apiUtils.browseDefaultOptions.concat(extraOptions);
+        permittedOptions = localUtils.browseDefaultOptions.concat(extraOptions);
 
         /**
          * ### Model Query
@@ -58,9 +62,9 @@ posts = {
 
         // Push all of our tasks into a `tasks` array in the correct order
         tasks = [
-            apiUtils.validate(docName, {opts: permittedOptions}),
-            apiUtils.handlePublicPermissions(docName, 'browse', unsafeAttrs),
-            apiUtils.convertOptions(allowedIncludes, models.Post.allowedFormats),
+            localUtils.validate(docName, {opts: permittedOptions}),
+            localUtils.convertOptions(allowedIncludes, models.Post.allowedFormats),
+            localUtils.handlePublicPermissions(docName, 'browse', unsafeAttrs),
             modelQuery
         ];
 
@@ -105,9 +109,9 @@ posts = {
 
         // Push all of our tasks into a `tasks` array in the correct order
         tasks = [
-            apiUtils.validate(docName, {attrs: attrs, opts: extraAllowedOptions}),
-            apiUtils.handlePublicPermissions(docName, 'read', unsafeAttrs),
-            apiUtils.convertOptions(allowedIncludes, models.Post.allowedFormats),
+            localUtils.validate(docName, {attrs: attrs, opts: extraAllowedOptions}),
+            localUtils.convertOptions(allowedIncludes, models.Post.allowedFormats),
+            localUtils.handlePublicPermissions(docName, 'read', unsafeAttrs),
             modelQuery
         ];
 
@@ -161,9 +165,9 @@ posts = {
 
         // Push all of our tasks into a `tasks` array in the correct order
         tasks = [
-            apiUtils.validate(docName, {opts: apiUtils.idDefaultOptions.concat(extraAllowedOptions)}),
-            apiUtils.handlePermissions(docName, 'edit', unsafeAttrs),
-            apiUtils.convertOptions(allowedIncludes),
+            localUtils.validate(docName, {opts: localUtils.idDefaultOptions.concat(extraAllowedOptions)}),
+            localUtils.convertOptions(allowedIncludes),
+            localUtils.handlePermissions(docName, 'edit', unsafeAttrs),
             modelQuery
         ];
 
@@ -205,9 +209,9 @@ posts = {
 
         // Push all of our tasks into a `tasks` array in the correct order
         tasks = [
-            apiUtils.validate(docName),
-            apiUtils.handlePermissions(docName, 'add', unsafeAttrs),
-            apiUtils.convertOptions(allowedIncludes),
+            localUtils.validate(docName),
+            localUtils.convertOptions(allowedIncludes),
+            localUtils.handlePermissions(docName, 'add', unsafeAttrs),
             modelQuery
         ];
 
@@ -217,7 +221,8 @@ posts = {
 
     /**
      * ## Destroy
-     * Delete a post, cleans up tag relations, but not unused tags
+     * Delete a post, cleans up tag relations, but not unused tags.
+     * You can only delete a post by `id`.
      *
      * @public
      * @param {{id (required), context,...}} options
@@ -231,22 +236,21 @@ posts = {
          * @param  {Object} options
          */
         function deletePost(options) {
-            var Post = models.Post,
-                data = _.defaults({status: 'all'}, options),
-                fetchOpts = _.defaults({require: true, columns: 'id'}, options);
+            const opts = _.defaults({require: true}, options);
 
-            return Post.findOne(data, fetchOpts).then(function () {
-                return Post.destroy(options).return(null);
-            }).catch(Post.NotFoundError, function () {
-                throw new common.errors.NotFoundError({message: common.i18n.t('errors.api.posts.postNotFound')});
-            });
+            return models.Post.destroy(opts).return(null)
+                .catch(models.Post.NotFoundError, function () {
+                    throw new common.errors.NotFoundError({
+                        message: common.i18n.t('errors.api.posts.postNotFound')
+                    });
+                });
         }
 
         // Push all of our tasks into a `tasks` array in the correct order
         tasks = [
-            apiUtils.validate(docName, {opts: apiUtils.idDefaultOptions}),
-            apiUtils.handlePermissions(docName, 'destroy', unsafeAttrs),
-            apiUtils.convertOptions(allowedIncludes),
+            localUtils.validate(docName, {opts: localUtils.idDefaultOptions}),
+            localUtils.convertOptions(allowedIncludes),
+            localUtils.handlePermissions(docName, 'destroy', unsafeAttrs),
             deletePost
         ];
 

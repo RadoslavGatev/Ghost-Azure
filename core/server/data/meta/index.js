@@ -1,5 +1,5 @@
 var Promise = require('bluebird'),
-    settingsCache = require('../../settings/cache'),
+    settingsCache = require('../../services/settings/cache'),
     urlService = require('../../services/url'),
     common = require('../../lib/common'),
     getUrl = require('./url'),
@@ -90,8 +90,8 @@ function getMetaData(data, root) {
         metaData.excerpt = customExcerpt ? customExcerpt : metaDescription ? metaDescription : fallbackExcerpt;
     }
 
-    if (data.post && data.post.author && data.post.author.name) {
-        metaData.authorName = data.post.author.name;
+    if (data.post && data.post.primary_author && data.post.primary_author.name) {
+        metaData.authorName = data.post.primary_author.name;
     }
 
     return Promise.props(getImageDimensions(metaData)).then(function () {

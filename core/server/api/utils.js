@@ -2,8 +2,7 @@
 // Shared helpers for working with the API
 var Promise = require('bluebird'),
     _ = require('lodash'),
-    path = require('path'),
-    permissions = require('../permissions'),
+    permissions = require('../services/permissions'),
     validation = require('../data/validation'),
     common = require('../lib/common'),
     utils;
@@ -194,7 +193,7 @@ utils = {
      * ## Handle Permissions
      * @param {String} docName
      * @param {String} method (browse || read || edit || add || destroy)
-     * * @param {Array} unsafeAttrNames - attribute names (e.g. post.status) that could change the outcome
+     * @param {Array} unsafeAttrNames - attribute names (e.g. post.status) that could change the outcome
      * @returns {Function}
      */
     handlePermissions: function handlePermissions(docName, method, unsafeAttrNames) {
@@ -210,7 +209,21 @@ utils = {
             var unsafeAttrObject = unsafeAttrNames && _.has(options, 'data.[' + docName + '][0]') ? _.pick(options.data[docName][0], unsafeAttrNames) : {},
                 permsPromise = permissions.canThis(options.context)[method][singular](options.id, unsafeAttrObject);
 
-            return permsPromise.then(function permissionGranted() {
+            return permsPromise.then(function permissionGranted(result) {
+                /*
+                 * Allow the permissions function to return a list of excluded attributes.
+                 * If it does, omit those attrs from the data passed through
+                 *
+                 * NOTE: excludedAttrs differ from unsafeAttrs in that they're determined by the model's permissible function,
+                 * and the attributes are simply excluded rather than throwing a NoPermission exception
+                 *
+                 * TODO: This is currently only needed because of the posts model and the contributor role. Once we extend the
+                 * contributor role to be able to edit existing tags, this concept can be removed.
+                 */
+                if (result && result.excludedAttrs && _.has(options, 'data.[' + docName + '][0]')) {
+                    options.data[docName][0] = _.omit(options.data[docName][0], result.excludedAttrs);
+                }
+
                 return options;
             }).catch(function handleNoPermissionError(err) {
                 if (err instanceof common.errors.NoPermissionError) {
@@ -218,6 +231,10 @@ utils = {
                         method: method,
                         docName: docName
                     });
+                    return Promise.reject(err);
+                }
+
+                if (common.errors.utils.isIgnitionError(err)) {
                     return Promise.reject(err);
                 }
 
@@ -256,15 +273,20 @@ utils = {
      * @param {Array} allowedIncludes
      * @returns {Function} doConversion
      */
-    convertOptions: function convertOptions(allowedIncludes, allowedFormats) {
+    convertOptions: function convertOptions(allowedIncludes, allowedFormats, convertOptions = {forModel: true}) {
         /**
-         * Convert our options from API-style to Model-style
+         * Convert our options from API-style to Model-style (default)
          * @param {Object} options
          * @returns {Object} options
          */
         return function doConversion(options) {
             if (options.include) {
-                options.include = utils.prepareInclude(options.include, allowedIncludes);
+                if (!convertOptions.forModel) {
+                    options.include = utils.prepareInclude(options.include, allowedIncludes);
+                } else {
+                    options.withRelated = utils.prepareInclude(options.include, allowedIncludes);
+                    delete options.include;
+                }
             }
 
             if (options.fields) {
@@ -287,6 +309,16 @@ utils = {
      * ### Check Object
      * Check an object passed to the API is in the correct format
      *
+     * @TODO:
+     * The weird thing about this function is..
+     *   - that the API converts properties back to model notation
+     *      - post.author -> post.author_id
+     *   - and the model layer implementation of `toJSON` knows about these transformations as well
+     *      - post.author_id -> post.author
+     *   - this must live in one place
+     *      - API IN <-> API OUT
+     *      - this should be unrelated to the model layer
+     *
      * @param {Object} object
      * @param {String} docName
      * @returns {Promise(Object)} resolves to the original object if it checks out
@@ -298,11 +330,87 @@ utils = {
             }));
         }
 
-        // convert author property to author_id to match the name in the database
         if (docName === 'posts') {
+            /**
+             * Convert author property to author_id to match the name in the database.
+             *
+             * @deprecated: `author`, will be removed in Ghost 3.0
+             */
             if (object.posts[0].hasOwnProperty('author')) {
                 object.posts[0].author_id = object.posts[0].author;
                 delete object.posts[0].author;
+            }
+
+            /**
+             * Ensure correct incoming `post.authors` structure.
+             *
+             * NOTE:
+             * The `post.authors[*].id` attribute is required till we release Ghost 3.0.
+             * Ghost 1.x keeps the deprecated support for `post.author_id`, which is the primary author id and needs to be
+             * updated if the order of the `post.authors` array changes.
+             * If we allow adding authors via the post endpoint e.g. `authors=[{name: 'newuser']` (no id property), it's hard
+             * to update the primary author id (`post.author_id`), because the new author `id` is generated when attaching
+             * the author to the post. And the attach operation happens in bookshelf-relations, which happens after
+             * the event handling in the post model.
+             *
+             * It's solvable, but not worth right now solving, because the admin UI does not support this feature.
+             *
+             * TLDR; You can only attach existing authors to a post.
+             *
+             * @TODO: remove `id` restriction in Ghost 3.0
+             */
+            if (object.posts[0].hasOwnProperty('authors')) {
+                if (!_.isArray(object.posts[0].authors) ||
+                    (object.posts[0].authors.length && _.filter(object.posts[0].authors, 'id').length !== object.posts[0].authors.length)) {
+                    return Promise.reject(new common.errors.BadRequestError({
+                        message: common.i18n.t('errors.api.utils.invalidStructure', {key: 'posts[*].authors'})
+                    }));
+                }
+
+                /**
+                 * CASE: we don't support updating nested-nested relations e.g. `post.authors[*].roles` yet.
+                 *
+                 * Bookshelf-relations supports this feature, BUT bookshelf's `hasChanged` fn will currently
+                 * clash with this, because `hasChanged` won't be able to tell if relations have changed or not.
+                 * It would always return `changed.roles = [....]`. It would always throw a model event that relations
+                 * were updated, which is not true.
+                 *
+                 * Bookshelf-relations can tell us if a relation has changed, it knows that.
+                 * But the connection between our model layer, Bookshelf's `hasChanged` fn and Bookshelf-relations
+                 * is not present. As long as we don't support this case, we have to ignore this.
+                 */
+                if (object.posts[0].authors && object.posts[0].authors.length) {
+                    _.each(object.posts[0].authors, (author, index) => {
+                        if (author.hasOwnProperty('roles')) {
+                            delete object.posts[0].authors[index].roles;
+                        }
+
+                        if (author.hasOwnProperty('permissions')) {
+                            delete object.posts[0].authors[index].permissions;
+                        }
+                    });
+                }
+            }
+
+            /**
+             * Model notation is: `tag.parent_id`.
+             * The API notation is `tag.parent`.
+             *
+             * See @TODO on the fn description. This information lives in two places. Not nice.
+             */
+            if (object.posts[0].hasOwnProperty('tags')) {
+                if (_.isArray(object.posts[0].tags) && object.posts[0].tags.length) {
+                    _.each(object.posts[0].tags, (tag, index) => {
+                        if (tag.hasOwnProperty('parent')) {
+                            object.posts[0].tags[index].parent_id = tag.parent;
+                            delete object.posts[0].tags[index].parent;
+                        }
+
+                        if (tag.hasOwnProperty('posts')) {
+                            delete object.posts[0].tags[index].posts;
+                        }
+                    });
+                }
             }
         }
 
@@ -322,18 +430,6 @@ utils = {
         }
 
         return Promise.resolve(object);
-    },
-    checkFileExists: function checkFileExists(fileData) {
-        return !!(fileData.mimetype && fileData.path);
-    },
-    checkFileIsValid: function checkFileIsValid(fileData, types, extensions) {
-        var type = fileData.mimetype,
-            ext = path.extname(fileData.name).toLowerCase();
-
-        if (_.includes(types, type) && _.includes(extensions, ext)) {
-            return true;
-        }
-        return false;
     }
 };
 

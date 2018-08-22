@@ -1,11 +1,11 @@
 // Contains all path information to be used throughout the codebase.
 // Assumes that config.url is set, and is valid
-
-var moment = require('moment-timezone'),
+const moment = require('moment-timezone'),
     _ = require('lodash'),
     url = require('url'),
-    config = require('../../config/index'),
-    settingsCache = require('../../settings/cache'),
+    cheerio = require('cheerio'),
+    config = require('../../config'),
+    settingsCache = require('../settings/cache'),
     // @TODO: unify this with the path in server/app.js
     API_PATH = '/ghost/api/v0.1/',
     STATIC_IMAGE_URL_PREFIX = 'content/images';
@@ -63,9 +63,11 @@ function deduplicateSubDir(url) {
     }
 
     subDir = subDir.replace(/^\/|\/+$/, '');
-    subDirRegex = new RegExp(subDir + '\/' + subDir + '\/');
+    // we can have subdirs that match TLDs so we need to restrict matches to
+    // duplicates that start with a / or the beginning of the url
+    subDirRegex = new RegExp('(^|\/)' + subDir + '\/' + subDir + '\/');
 
-    return url.replace(subDirRegex, subDir + '/');
+    return url.replace(subDirRegex, '$1' + subDir + '/');
 }
 
 function getProtectedSlugs() {
@@ -147,7 +149,7 @@ function getAdminUrl() {
 // - secure (optional, default:false) - boolean whether or not to force SSL
 // Returns:
 //  - a URL which always ends with a slash
-function createUrl(urlPath, absolute, secure) {
+function createUrl(urlPath, absolute, secure, trailingSlash) {
     urlPath = urlPath || '/';
     absolute = absolute || false;
     var base;
@@ -159,21 +161,23 @@ function createUrl(urlPath, absolute, secure) {
         base = getSubdir();
     }
 
+    if (trailingSlash) {
+        if (!urlPath.match(/\/$/)) {
+            urlPath += '/';
+        }
+    }
+
     return urlJoin(base, urlPath);
 }
 
 /**
  * creates the url path for a post based on blog timezone and permalink pattern
- *
- * @param {JSON} post
- * @returns {string}
  */
-function urlPathForPost(post) {
-    var output = '',
-        permalinks = settingsCache.get('permalinks'),
-        primaryTagFallback = config.get('routeKeywords').primaryTagFallback,
-        publishedAtMoment = moment.tz(post.published_at || Date.now(), settingsCache.get('active_timezone')),
-        tags = {
+function replacePermalink(permalink, resource) {
+    let output = permalink,
+        primaryTagFallback = 'all',
+        publishedAtMoment = moment.tz(resource.published_at || Date.now(), settingsCache.get('active_timezone')),
+        permalinkLookUp = {
             year: function () {
                 return publishedAtMoment.format('YYYY');
             },
@@ -184,29 +188,26 @@ function urlPathForPost(post) {
                 return publishedAtMoment.format('DD');
             },
             author: function () {
-                return post.author.slug;
+                return resource.primary_author.slug;
+            },
+            primary_author: function () {
+                return resource.primary_author ? resource.primary_author.slug : primaryTagFallback;
             },
             primary_tag: function () {
-                return post.primary_tag ? post.primary_tag.slug : primaryTagFallback;
+                return resource.primary_tag ? resource.primary_tag.slug : primaryTagFallback;
             },
             slug: function () {
-                return post.slug;
+                return resource.slug;
             },
             id: function () {
-                return post.id;
+                return resource.id;
             }
         };
 
-    if (post.page) {
-        output += '/:slug/';
-    } else {
-        output += permalinks;
-    }
-
     // replace tags like :slug or :year with actual values
     output = output.replace(/(:[a-z_]+)/g, function (match) {
-        if (_.has(tags, match.substr(1))) {
-            return tags[match.substr(1)]();
+        if (_.has(permalinkLookUp, match.substr(1))) {
+            return permalinkLookUp[match.substr(1)]();
         }
     });
 
@@ -215,17 +216,13 @@ function urlPathForPost(post) {
 
 // ## urlFor
 // Synchronous url creation for a given context
-// Can generate a url for a named path, given path, or known object (post)
+// Can generate a url for a named path and given path.
 // Determines what sort of context it has been given, and delegates to the correct generation method,
 // Finally passing to createUrl, to ensure any subdirectory is honoured, and the url is absolute if needed
 // Usage:
 // urlFor('home', true) -> http://my-ghost-blog.com/
 // E.g. /blog/ subdir
 // urlFor({relativeUrl: '/my-static-page/'}) -> /blog/my-static-page/
-// E.g. if post object represents welcome post, and slugs are set to standard
-// urlFor('post', {...}) -> /welcome-to-ghost/
-// E.g. if post object represents welcome post, and slugs are set to date
-// urlFor('post', {...}) -> /2014/01/01/welcome-to-ghost/
 // Parameters:
 // - context - a string, or json object describing the context for which you need a url
 // - data (optional) - a json object containing data needed to generate a url
@@ -235,13 +232,12 @@ function urlPathForPost(post) {
 function urlFor(context, data, absolute) {
     var urlPath = '/',
         secure, imagePathRe,
-        knownObjects = ['post', 'tag', 'author', 'image', 'nav'], baseUrl,
+        knownObjects = ['image', 'nav'], baseUrl,
         hostname,
 
         // this will become really big
         knownPaths = {
             home: '/',
-            rss: '/rss/',
             api: API_PATH,
             sitemap_xsl: '/sitemap.xsl'
         };
@@ -258,17 +254,7 @@ function urlFor(context, data, absolute) {
     if (_.isObject(context) && context.relativeUrl) {
         urlPath = context.relativeUrl;
     } else if (_.isString(context) && _.indexOf(knownObjects, context) !== -1) {
-        // trying to create a url for an object
-        if (context === 'post' && data.post) {
-            urlPath = data.post.url;
-            secure = data.secure;
-        } else if (context === 'tag' && data.tag) {
-            urlPath = urlJoin('/', config.get('routeKeywords').tag, data.tag.slug, '/');
-            secure = data.tag.secure;
-        } else if (context === 'author' && data.author) {
-            urlPath = urlJoin('/', config.get('routeKeywords').author, data.author.slug, '/');
-            secure = data.author.secure;
-        } else if (context === 'image' && data.image) {
+        if (context === 'image' && data.image) {
             urlPath = data.image;
             imagePathRe = new RegExp('^' + getSubdir() + '/' + STATIC_IMAGE_URL_PREFIX);
             absolute = imagePathRe.test(data.image) ? absolute : false;
@@ -365,14 +351,99 @@ function redirectToAdmin(status, res, adminPath) {
     return res.redirect(redirectUrl);
 }
 
+/**
+ * Make absolute URLs
+ * @param {string} html
+ * @param {string} siteUrl (blog URL)
+ * @param {string} itemUrl (URL of current context)
+ * @returns {object} htmlContent
+ * @description Takes html, blog url and item url and converts relative url into
+ * absolute urls. Returns an object. The html string can be accessed by calling `html()` on
+ * the variable that takes the result of this function
+ */
+function makeAbsoluteUrls(html, siteUrl, itemUrl) {
+    var htmlContent = cheerio.load(html, {decodeEntities: false});
+
+    // convert relative resource urls to absolute
+    ['href', 'src'].forEach(function forEach(attributeName) {
+        htmlContent('[' + attributeName + ']').each(function each(ix, el) {
+            var baseUrl,
+                attributeValue,
+                parsed;
+
+            el = htmlContent(el);
+
+            attributeValue = el.attr(attributeName);
+
+            // if URL is absolute move on to the next element
+            try {
+                parsed = url.parse(attributeValue);
+
+                if (parsed.protocol) {
+                    return;
+                }
+
+                // Do not convert protocol relative URLs
+                if (attributeValue.lastIndexOf('//', 0) === 0) {
+                    return;
+                }
+            } catch (e) {
+                return;
+            }
+
+            // CASE: don't convert internal links
+            if (attributeValue[0] === '#') {
+                return;
+            }
+            // compose an absolute URL
+
+            // if the relative URL begins with a '/' use the blog URL (including sub-directory)
+            // as the base URL, otherwise use the post's URL.
+            baseUrl = attributeValue[0] === '/' ? siteUrl : itemUrl;
+            attributeValue = urlJoin(baseUrl, attributeValue);
+            el.attr(attributeName, attributeValue);
+        });
+    });
+
+    return htmlContent;
+}
+
+function absoluteToRelative(urlToModify, options) {
+    options = options || {};
+
+    const urlObj = url.parse(urlToModify);
+    const relativePath = urlObj.pathname;
+
+    if (options.withoutSubdirectory) {
+        const subDir = getSubdir();
+
+        if (!subDir) {
+            return relativePath;
+        }
+
+        const subDirRegex = new RegExp('^' + subDir);
+        return relativePath.replace(subDirRegex, '');
+    }
+
+    return relativePath;
+}
+
+function deduplicateDoubleSlashes(url) {
+    return url.replace(/\/\//g, '/');
+}
+
+module.exports.absoluteToRelative = absoluteToRelative;
+module.exports.makeAbsoluteUrls = makeAbsoluteUrls;
 module.exports.getProtectedSlugs = getProtectedSlugs;
 module.exports.getSubdir = getSubdir;
 module.exports.urlJoin = urlJoin;
 module.exports.urlFor = urlFor;
 module.exports.isSSL = isSSL;
-module.exports.urlPathForPost = urlPathForPost;
+module.exports.replacePermalink = replacePermalink;
 module.exports.redirectToAdmin = redirectToAdmin;
 module.exports.redirect301 = redirect301;
+module.exports.createUrl = createUrl;
+module.exports.deduplicateDoubleSlashes = deduplicateDoubleSlashes;
 
 /**
  * If you request **any** image in Ghost, it get's served via

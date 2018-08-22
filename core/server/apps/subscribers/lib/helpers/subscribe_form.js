@@ -5,8 +5,7 @@ var _ = require('lodash'),
     // (Less) dirty requires
     proxy = require('../../../../helpers/proxy'),
     templates = proxy.templates,
-    config = proxy.config,
-    url = proxy.url,
+    urlService = proxy.urlService,
     SafeString = proxy.SafeString,
 
     params = ['error', 'success', 'email'],
@@ -27,19 +26,26 @@ function makeHidden(name, extras) {
  *
  * document.querySelector['.location']['value'] = document.querySelector('.location')['value'] || window.location.href;
  */
-subscribeScript =
-    '<script type="text/javascript">' +
-    '(function(g,h,o,s,t){' +
-    'h[o](\'.location\')[s]=h[o](\'.location\')[s] || g.location.href;' +
-    'h[o](\'.referrer\')[s]=h[o](\'.referrer\')[s] || h.referrer;' +
-    '})(window,document,\'querySelector\',\'value\');' +
-    '</script>';
+subscribeScript = `
+<script>
+    (function(g,h,o,s,t){
+        var buster = function(b,m) {
+            h[o]('input.'+b).forEach(function (i) {
+                i.value=i.value || m;
+            });
+        };
+        buster('location', g.location.href);
+        buster('referrer', h.referrer);
+    })(window,document,'querySelectorAll','value');
+</script>
+`;
 
 // We use the name subscribe_form to match the helper for consistency:
 module.exports = function subscribe_form(options) { // eslint-disable-line camelcase
     var root = options.data.root,
         data = _.merge({}, options.hash, _.pick(root, params), {
-            action: url.urlJoin('/', url.getSubdir(), config.get('routeKeywords').subscribe, '/'),
+            // routeKeywords.subscribe: 'subscribe'
+            action: urlService.utils.urlJoin('/', urlService.utils.getSubdir(), 'subscribe/'),
             script: new SafeString(subscribeScript),
             hidden: new SafeString(
                 makeHidden('confirm') +
