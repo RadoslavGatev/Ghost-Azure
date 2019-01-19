@@ -1,16 +1,16 @@
-var Promise = require('bluebird'),
+const Promise = require('bluebird'),
     ghostBookshelf = require('./base'),
-    common = require('../lib/common'),
-    Subscriber,
+    common = require('../lib/common');
+
+let Subscriber,
     Subscribers;
 
 Subscriber = ghostBookshelf.Model.extend({
     tableName: 'subscribers',
 
     emitChange: function emitChange(event, options) {
-        options = options || {};
-
-        common.events.emit('subscriber' + '.' + event, this, options);
+        const eventToTrigger = 'subscriber' + '.' + event;
+        ghostBookshelf.Model.prototype.emitChange.bind(this)(this, eventToTrigger, options);
     },
 
     defaults: function defaults() {
@@ -27,7 +27,7 @@ Subscriber = ghostBookshelf.Model.extend({
         model.emitChange('edited', options);
     },
 
-    onDestroyed: function onDestroyed(model, response, options) {
+    onDestroyed: function onDestroyed(model, options) {
         model.emitChange('deleted', options);
     }
 }, {
@@ -75,11 +75,11 @@ Subscriber = ghostBookshelf.Model.extend({
     },
 
     // TODO: This is a copy paste of models/user.js!
-    getByEmail: function getByEmail(email, options) {
-        options = options || {};
+    getByEmail: function getByEmail(email, unfilteredOptions) {
+        var options = ghostBookshelf.Model.filterOptions(unfilteredOptions, 'getByEmail');
         options.require = true;
 
-        return Subscribers.forge(options).fetch(options).then(function then(subscribers) {
+        return Subscribers.forge().fetch(options).then(function then(subscribers) {
             var subscriberWithEmail = subscribers.find(function findSubscriber(subscriber) {
                 return subscriber.get('email').toLowerCase() === email.toLowerCase();
             });

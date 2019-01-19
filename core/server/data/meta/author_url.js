@@ -6,11 +6,13 @@ function getAuthorUrl(data, absolute) {
     context = context === 'amp' ? 'post' : context;
 
     if (data.author) {
-        return urlService.utils.urlFor('author', {author: data.author}, absolute);
+        return urlService.getUrlByResourceId(data.author.id, {absolute: absolute, secure: data.author.secure, withSubdirectory: true});
     }
-    if (data[context] && data[context].author) {
-        return urlService.utils.urlFor('author', {author: data[context].author}, absolute);
+
+    if (data[context] && data[context].primary_author) {
+        return urlService.getUrlByResourceId(data[context].primary_author.id, {absolute: absolute, secure: data[context].secure, withSubdirectory: true});
     }
+
     return null;
 }
 

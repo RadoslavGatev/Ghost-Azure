@@ -1,12 +1,12 @@
 var Promise = require('bluebird'),
     _ = require('lodash'),
-    pipeline = require('../utils/pipeline'),
-    mail = require('./../mail'),
-    globalUtils = require('../utils'),
+    pipeline = require('../lib/promise/pipeline'),
+    mail = require('../services/mail'),
     urlService = require('../services/url'),
-    apiUtils = require('./utils'),
+    localUtils = require('./utils'),
     models = require('../models'),
     common = require('../lib/common'),
+    security = require('../lib/security'),
     mailAPI = require('./mail'),
     settingsAPI = require('./settings'),
     docName = 'invites',
@@ -22,9 +22,9 @@ invites = {
         }
 
         tasks = [
-            apiUtils.validate(docName, {opts: apiUtils.browseDefaultOptions}),
-            apiUtils.handlePublicPermissions(docName, 'browse'),
-            apiUtils.convertOptions(allowedIncludes),
+            localUtils.validate(docName, {opts: localUtils.browseDefaultOptions}),
+            localUtils.convertOptions(allowedIncludes),
+            localUtils.handlePublicPermissions(docName, 'browse'),
             modelQuery
         ];
 
@@ -51,9 +51,9 @@ invites = {
         }
 
         tasks = [
-            apiUtils.validate(docName, {attrs: attrs}),
-            apiUtils.handlePublicPermissions(docName, 'read'),
-            apiUtils.convertOptions(allowedIncludes),
+            localUtils.validate(docName, {attrs: attrs}),
+            localUtils.convertOptions(allowedIncludes),
+            localUtils.handlePublicPermissions(docName, 'read'),
             modelQuery
         ];
 
@@ -75,9 +75,9 @@ invites = {
         }
 
         tasks = [
-            apiUtils.validate(docName, {opts: apiUtils.idDefaultOptions}),
-            apiUtils.handlePermissions(docName, 'destroy'),
-            apiUtils.convertOptions(allowedIncludes),
+            localUtils.validate(docName, {opts: localUtils.idDefaultOptions}),
+            localUtils.convertOptions(allowedIncludes),
+            localUtils.handlePermissions(docName, 'destroy'),
             modelQuery
         ];
 
@@ -107,7 +107,7 @@ invites = {
                         invitedByName: loggedInUser.get('name'),
                         invitedByEmail: loggedInUser.get('email'),
                         // @TODO: resetLink sounds weird
-                        resetLink: urlService.utils.urlJoin(adminUrl, 'signup', globalUtils.encodeBase64URLsafe(invite.get('token')), '/')
+                        resetLink: urlService.utils.urlJoin(adminUrl, 'signup', security.url.encodeBase64(invite.get('token')), '/')
                     };
 
                     return mail.utils.generateContent({data: emailData, template: 'invite-user'});
@@ -192,9 +192,9 @@ invites = {
                     allowed = [];
 
                 if (loggedInUserRole === 'Owner' || loggedInUserRole === 'Administrator') {
-                    allowed = ['Administrator', 'Editor', 'Author'];
+                    allowed = ['Administrator', 'Editor', 'Author', 'Contributor'];
                 } else if (loggedInUserRole === 'Editor') {
-                    allowed = ['Author'];
+                    allowed = ['Author', 'Contributor'];
                 }
 
                 if (allowed.indexOf(roleToInvite.get('name')) === -1) {
@@ -221,7 +221,7 @@ invites = {
         }
 
         function fetchLoggedInUser(options) {
-            return models.User.findOne({id: loggedInUser}, _.merge({}, options, {include: ['roles']}))
+            return models.User.findOne({id: loggedInUser}, _.merge({}, _.omit(options, 'data'), {withRelated: ['roles']}))
                 .then(function (user) {
                     if (!user) {
                         return Promise.reject(new common.errors.NotFoundError({message: common.i18n.t('errors.api.users.userNotFound')}));
@@ -233,9 +233,9 @@ invites = {
         }
 
         tasks = [
-            apiUtils.validate(docName, {opts: ['email']}),
-            apiUtils.handlePermissions(docName, 'add'),
-            apiUtils.convertOptions(allowedIncludes),
+            localUtils.validate(docName, {opts: ['email']}),
+            localUtils.convertOptions(allowedIncludes),
+            localUtils.handlePermissions(docName, 'add'),
             fetchLoggedInUser,
             validation,
             checkIfUserExists,

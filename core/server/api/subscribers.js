@@ -2,10 +2,10 @@
 // RESTful API for the Tag resource
 var Promise = require('bluebird'),
     _ = require('lodash'),
-    fs = require('fs'),
-    pipeline = require('../utils/pipeline'),
-    globalUtils = require('../utils'),
-    apiUtils = require('./utils'),
+    fs = require('fs-extra'),
+    pipeline = require('../lib/promise/pipeline'),
+    fsLib = require('../lib/fs'),
+    localUtils = require('./utils'),
     models = require('../models'),
     common = require('../lib/common'),
     docName = 'subscribers',
@@ -14,7 +14,7 @@ var Promise = require('bluebird'),
 /**
  * ### Subscribers API Methods
  *
- * **See:** [API Methods](index.js.html#api%20methods)
+ * **See:** [API Methods](constants.js.html#api%20methods)
  */
 subscribers = {
     /**
@@ -37,8 +37,9 @@ subscribers = {
 
         // Push all of our tasks into a `tasks` array in the correct order
         tasks = [
-            apiUtils.validate(docName, {opts: apiUtils.browseDefaultOptions}),
-            apiUtils.handlePermissions(docName, 'browse'),
+            localUtils.validate(docName, {opts: localUtils.browseDefaultOptions}),
+            localUtils.convertOptions(),
+            localUtils.handlePermissions(docName, 'browse'),
             doQuery
         ];
 
@@ -78,8 +79,9 @@ subscribers = {
 
         // Push all of our tasks into a `tasks` array in the correct order
         tasks = [
-            apiUtils.validate(docName, {attrs: attrs}),
-            apiUtils.handlePermissions(docName, 'read'),
+            localUtils.validate(docName, {attrs: attrs}),
+            localUtils.convertOptions(),
+            localUtils.handlePermissions(docName, 'read'),
             doQuery
         ];
 
@@ -128,8 +130,9 @@ subscribers = {
 
         // Push all of our tasks into a `tasks` array in the correct order
         tasks = [
-            apiUtils.validate(docName),
-            apiUtils.handlePermissions(docName, 'add'),
+            localUtils.validate(docName),
+            localUtils.convertOptions(),
+            localUtils.handlePermissions(docName, 'add'),
             doQuery
         ];
 
@@ -170,8 +173,9 @@ subscribers = {
 
         // Push all of our tasks into a `tasks` array in the correct order
         tasks = [
-            apiUtils.validate(docName, {opts: apiUtils.idDefaultOptions}),
-            apiUtils.handlePermissions(docName, 'edit'),
+            localUtils.validate(docName, {opts: localUtils.idDefaultOptions}),
+            localUtils.convertOptions(),
+            localUtils.handlePermissions(docName, 'edit'),
             doQuery
         ];
 
@@ -223,8 +227,9 @@ subscribers = {
 
         // Push all of our tasks into a `tasks` array in the correct order
         tasks = [
-            apiUtils.validate(docName, {opts: ['id', 'email']}),
-            apiUtils.handlePermissions(docName, 'destroy'),
+            localUtils.validate(docName, {opts: ['id', 'email']}),
+            localUtils.convertOptions(),
+            localUtils.handlePermissions(docName, 'destroy'),
             getSubscriberByEmail,
             doQuery
         ];
@@ -279,7 +284,8 @@ subscribers = {
         }
 
         tasks = [
-            apiUtils.handlePermissions(docName, 'browse'),
+            localUtils.convertOptions(),
+            localUtils.handlePermissions(docName, 'browse'),
             exportSubscribers
         ];
 
@@ -304,7 +310,7 @@ subscribers = {
                 invalid = 0,
                 duplicates = 0;
 
-            return globalUtils.readCSV({
+            return fsLib.readCSV({
                 path: filePath,
                 columnsToExtract: [{name: 'email', lookup: /email/i}]
             }).then(function (result) {
@@ -336,12 +342,13 @@ subscribers = {
                 };
             }).finally(function () {
                 // Remove uploaded file from tmp location
-                return Promise.promisify(fs.unlink)(filePath);
+                return fs.unlink(filePath);
             });
         }
 
         tasks = [
-            apiUtils.handlePermissions(docName, 'add'),
+            localUtils.convertOptions(),
+            localUtils.handlePermissions(docName, 'add'),
             importCSV
         ];
 

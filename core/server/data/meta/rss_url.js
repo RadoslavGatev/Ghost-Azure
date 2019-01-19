@@ -1,7 +1,10 @@
-var urlService = require('../../services/url');
+const routingService = require('../../services/routing');
 
 function getRssUrl(data, absolute) {
-    return urlService.utils.urlFor('rss', {secure: data.secure}, absolute);
+    return routingService.registry.getRssUrl({
+        secure: data.secure,
+        absolute: absolute
+    });
 }
 
 module.exports = getRssUrl;

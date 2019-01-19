@@ -23,24 +23,13 @@ ghost().then(function (ghostServer) {
 
     debug('Starting Ghost');
     // Let Ghost handle starting our server instance.
-    return ghostServer.start(parentApp).then(function afterStart() {
-        common.logging.info('Ghost boot', (Date.now() - startTime) / 1000 + 's');
-
-        // if IPC messaging is enabled, ensure ghost sends message to parent
-        // process on successful start
-        if (process.send) {
-            process.send({started: true});
-        }
-    });
+    return ghostServer.start(parentApp)
+        .then(function afterStart() {
+            common.logging.info('Ghost boot', (Date.now() - startTime) / 1000 + 's');
+        });
 }).catch(function (err) {
-    if (!common.errors.utils.isIgnitionError(err)) {
-        err = new common.errors.GhostError({err: err});
-    }
-
-    if (process.send) {
-        process.send({started: false, error: err.message});
-    }
-
     common.logging.error(err);
-    process.exit(-1);
+    setTimeout(() => {
+        process.exit(-1);
+    }, 100);
 });

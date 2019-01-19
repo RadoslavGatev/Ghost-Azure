@@ -1,144 +1,253 @@
-'use strict';
-
-/**
- * # URL Service
- *
- * This file defines a class of URLService, which serves as a centralised place to handle
- * generating, storing & fetching URLs of all kinds.
- */
-
-const _ = require('lodash'),
-    Promise = require('bluebird'),
-    _debug = require('ghost-ignition').debug._base,
-    debug = _debug('ghost:services:url'),
+const _debug = require('ghost-ignition').debug._base,
+    debug = _debug('ghost:services:url:service'),
+    _ = require('lodash'),
     common = require('../../lib/common'),
-    // TODO: make this dynamic
-    resourceConfig = require('./config.json'),
-    Resource = require('./Resource'),
-    urlCache = require('./cache'),
+    UrlGenerator = require('./UrlGenerator'),
+    Queue = require('./Queue'),
+    Urls = require('./Urls'),
+    Resources = require('./Resources'),
     localUtils = require('./utils');
 
 class UrlService {
-    constructor(options) {
-        this.resources = [];
+    constructor() {
         this.utils = localUtils;
 
-        _.each(resourceConfig, (config) => {
-            this.resources.push(new Resource(config));
-        });
+        this.finished = false;
+        this.urlGenerators = [];
 
-        // You can disable the url preload, in case we encounter a problem with the new url service.
-        if (options.disableUrlPreload) {
+        this.urls = new Urls();
+        this.queue = new Queue();
+        this.resources = new Resources(this.queue);
+
+        this._listeners();
+    }
+
+    _listeners() {
+        /**
+         * The purpose of this event is to notify the url service as soon as a router get's created.
+         */
+        this._onRouterAddedListener = this._onRouterAddedType.bind(this);
+        common.events.on('router.created', this._onRouterAddedListener);
+
+        /**
+         * The queue will notify us if url generation has started/finished.
+         */
+        this._onQueueStartedListener = this._onQueueStarted.bind(this);
+        this.queue.addListener('started', this._onQueueStartedListener);
+
+        this._onQueueEndedListener = this._onQueueEnded.bind(this);
+        this.queue.addListener('ended', this._onQueueEnded.bind(this));
+    }
+
+    _onQueueStarted(event) {
+        if (event === 'init') {
+            this.finished = false;
+        }
+    }
+
+    _onQueueEnded(event) {
+        if (event === 'init') {
+            this.finished = true;
+        }
+    }
+
+    _onRouterAddedType(router) {
+        // CASE: there are router types which do not generate resource urls
+        //       e.g. static route router
+        //       we are listening on the general `router.created` event - every router throws this event
+        if (!router || !router.getPermalinks()) {
             return;
         }
 
-        this.bind();
+        debug('router.created');
 
-        // Hardcoded routes
-        // @TODO figure out how to do this from channel or other config
-        // @TODO get rid of name concept (for compat with sitemaps)
-        UrlService.cacheRoute('/', {name: 'home'});
-
-        // @TODO figure out how to do this from apps
-        // @TODO only do this if subscribe is enabled!
-        UrlService.cacheRoute('/subscribe/', {});
-
-        // Register a listener for server-start to load all the known urls
-        common.events.on('server:start', (() => {
-            debug('URL service, loading all URLS');
-            this.loadResourceUrls();
-        }));
+        let urlGenerator = new UrlGenerator(router, this.queue, this.resources, this.urls, this.urlGenerators.length);
+        this.urlGenerators.push(urlGenerator);
     }
 
-    bind() {
-        const eventHandlers = {
-            add(model, resource) {
-                UrlService.cacheResourceItem(resource, model.toJSON());
-            },
-            update(model, resource) {
-                const newItem = model.toJSON();
-                const oldItem = model.updatedAttributes();
+    /**
+     * You have a url and want to know which the url belongs to.
+     *
+     * It's in theory possible that multiple resources generate the same url,
+     * but they both would serve different content.
+     *
+     * e.g. if we remove the slug uniqueness and you create a static
+     * page and a post with the same slug. And both are served under `/` with the permalink `/:slug/`.
+     *
+     *
+     * Each url is unique and it depends on the hierarchy of router registration is configured.
+     * There is no url collision, everything depends on registration order.
+     *
+     * e.g. posts which live in a collection are stronger than a static page.
+     *
+     * We only return the resource, which would be served.
+     *
+     * @NOTE: only accepts relative urls at the moment.
+     */
+    getResource(url, options) {
+        options = options || {};
 
-                const oldUrl = resource.toUrl(oldItem);
-                const storedData = urlCache.get(oldUrl);
+        let objects = this.urls.getByUrl(url);
 
-                const newUrl = resource.toUrl(newItem);
-                const newData = resource.toData(newItem);
-
-                debug('update', oldUrl, newUrl);
-                if (oldUrl && oldUrl !== newUrl && storedData) {
-                    // CASE: we are updating a cached item and the URL has changed
-                    debug('Changing URL, unset first');
-                    urlCache.unset(oldUrl);
-                }
-
-                // CASE: the URL is either new, or the same, this will create or update
-                urlCache.set(newUrl, newData);
-            },
-
-            remove(model, resource) {
-                const url = resource.toUrl(model.toJSON());
-                urlCache.unset(url);
-            },
-
-            reload(model, resource) {
-                // @TODO: get reload working, so that permalink changes are reflected
-                // NOTE: the current implementation of sitemaps doesn't have this
-                debug('Need to reload all resources: ' + resource.name);
+        if (!objects.length) {
+            if (!this.hasFinished()) {
+                throw new common.errors.InternalServerError({
+                    message: 'UrlService is processing.',
+                    code: 'URLSERVICE_NOT_READY'
+                });
+            } else {
+                return null;
             }
-        };
+        }
 
-        _.each(this.resources, (resource) => {
-            _.each(resource.events, (method, eventName) => {
-                common.events.on(eventName, (model) => {
-                    eventHandlers[method].call(this, model, resource, eventName);
-                });
-            });
-        });
-    }
+        if (objects.length > 1) {
+            objects = _.reduce(objects, (toReturn, object) => {
+                if (!toReturn.length) {
+                    toReturn.push(object);
+                } else {
+                    const i1 = _.findIndex(this.urlGenerators, {uid: toReturn[0].generatorId});
+                    const i2 = _.findIndex(this.urlGenerators, {uid: object.generatorId});
 
-    fetchAll() {
-        return Promise.each(this.resources, (resource) => {
-            return resource.fetchAll();
-        });
-    }
-
-    loadResourceUrls() {
-        debug('load start');
-
-        this.fetchAll()
-            .then(() => {
-                debug('load end, start processing');
-
-                _.each(this.resources, (resource) => {
-                    _.each(resource.items, (item) => {
-                        UrlService.cacheResourceItem(resource, item);
-                    });
-                });
-
-                debug('processing done, url cache built. Number urls', _.size(urlCache.getAll()));
-                // Wrap this in a check, because else this is a HUGE amount of output
-                // To output this, use DEBUG=ghost:*,ghost-url
-                if (_debug.enabled('ghost-url')) {
-                    debug('url-cache', require('util').inspect(urlCache.getAll(), false, null));
+                    if (i2 < i1) {
+                        toReturn = [];
+                        toReturn.push(object);
+                    }
                 }
-            })
-            .catch((err) => {
-                debug('load error', err);
+
+                return toReturn;
+            }, []);
+        }
+
+        if (options.returnEverything) {
+            return objects[0];
+        }
+
+        return objects[0].resource;
+    }
+
+    getResourceById(resourceId) {
+        const object = this.urls.getByResourceId(resourceId);
+
+        if (!object) {
+            throw new common.errors.InternalServerError({
+                message: 'Resource not found.',
+                code: 'URLSERVICE_RESOURCE_NOT_FOUND'
             });
+        }
+
+        return object.resource;
     }
 
-    static cacheResourceItem(resource, item) {
-        const url = resource.toUrl(item);
-        const data = resource.toData(item);
-
-        urlCache.set(url, data);
+    hasFinished() {
+        return this.finished;
     }
 
-    static cacheRoute(relativeUrl, data) {
-        const url = localUtils.urlFor({relativeUrl: relativeUrl});
-        data.static = true;
-        urlCache.set(url, data);
+    /**
+     * Get url by resource id.
+     * e.g. tags, authors, posts, pages
+     *
+     * If we can't find a url for an id, we have to return a url.
+     * There are many components in Ghost which call `getUrlByResourceId` and
+     * based on the return value, they set the resource url somewhere e.g. meta data.
+     * Or if you define no collections in your yaml file and serve a page.
+     * You will see a suggestion of posts, but they all don't belong to a collection.
+     * They would show localhost:2368/null/.
+     */
+    getUrlByResourceId(id, options) {
+        options = options || {};
+
+        const obj = this.urls.getByResourceId(id);
+
+        if (obj) {
+            if (options.absolute) {
+                return this.utils.createUrl(obj.url, options.absolute, options.secure);
+            }
+
+            if (options.withSubdirectory) {
+                return this.utils.createUrl(obj.url, false, options.secure, true);
+            }
+
+            return obj.url;
+        }
+
+        if (options.absolute) {
+            return this.utils.createUrl('/404/', options.absolute, options.secure);
+        }
+
+        if (options.withSubdirectory) {
+            return this.utils.createUrl('/404/', false, options.secure);
+        }
+
+        return '/404/';
+    }
+
+    owns(routerId, url) {
+        debug('owns', routerId, url);
+
+        let urlGenerator;
+
+        this.urlGenerators.every((_urlGenerator) => {
+            if (_urlGenerator.router.identifier === routerId) {
+                urlGenerator = _urlGenerator;
+                return false;
+            }
+
+            return true;
+        });
+
+        if (!urlGenerator) {
+            return false;
+        }
+
+        return urlGenerator.hasUrl(url);
+    }
+
+    getPermalinkByUrl(url, options) {
+        options = options || {};
+
+        const object = this.getResource(url, {returnEverything: true});
+
+        if (!object) {
+            return null;
+        }
+
+        return _.find(this.urlGenerators, {uid: object.generatorId}).router.getPermalinks()
+            .getValue(options);
+    }
+
+    reset() {
+        debug('reset');
+        this.urlGenerators = [];
+
+        this.urls.reset();
+        this.queue.reset();
+        this.resources.reset();
+
+        this._onQueueStartedListener && this.queue.removeListener('started', this._onQueueStartedListener);
+        this._onQueueEndedListener && this.queue.removeListener('ended', this._onQueueEndedListener);
+        this._onRouterAddedListener && common.events.removeListener('router.created', this._onRouterAddedListener);
+    }
+
+    resetGenerators(options = {}) {
+        debug('resetGenerators');
+        this.finished = false;
+        this.urlGenerators = [];
+        this.urls.reset();
+        this.queue.reset();
+
+        if (options.releaseResourcesOnly) {
+            this.resources.releaseAll();
+        } else {
+            this.resources.softReset();
+        }
+    }
+
+    softReset() {
+        debug('softReset');
+        this.finished = false;
+        this.urls.softReset();
+        this.queue.softReset();
+        this.resources.softReset();
     }
 }
 

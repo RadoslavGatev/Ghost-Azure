@@ -2,7 +2,7 @@ var moment = require('moment-timezone'),
     _ = require('lodash'),
     models = require('../../models'),
     common = require('../../lib/common'),
-    sequence = require('../../utils/sequence');
+    sequence = require('../../lib/promise/sequence');
 
 /**
  * WHEN access token is created we will update last_seen for user.
@@ -118,5 +118,41 @@ common.events.on('settings.active_timezone.edited', function (settingModel, opti
                     level: 'critical'
                 }));
             });
+    });
+});
+
+/**
+ * Remove all notifications, which are seen, older than 3 months.
+ * No transaction, because notifications are not sensitive and we would have to add `forUpdate`
+ * to the settings model to create real lock.
+ */
+common.events.on('settings.notifications.edited', function (settingModel) {
+    var allNotifications = JSON.parse(settingModel.attributes.value || []),
+        options = {context: {internal: true}},
+        skip = true;
+
+    allNotifications = allNotifications.filter(function (notification) {
+        // Do not delete the release notification
+        if (notification.hasOwnProperty('custom') && !notification.custom) {
+            return true;
+        }
+
+        if (notification.seen && moment().diff(moment(notification.addedAt), 'month') > 2) {
+            skip = false;
+            return false;
+        }
+
+        return true;
+    });
+
+    if (skip) {
+        return;
+    }
+
+    return models.Settings.edit({
+        key: 'notifications',
+        value: JSON.stringify(allNotifications)
+    }, options).catch(function (err) {
+        common.errors.logError(err);
     });
 });

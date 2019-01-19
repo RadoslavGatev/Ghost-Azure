@@ -6,6 +6,7 @@ var coreHelpers = {},
 
 coreHelpers.asset = require('./asset');
 coreHelpers.author = require('./author');
+coreHelpers.authors = require('./authors');
 coreHelpers.body_class = require('./body_class');
 coreHelpers.content = require('./content');
 coreHelpers.date = require('./date');
@@ -19,6 +20,7 @@ coreHelpers.ghost_head = require('./ghost_head');
 coreHelpers.img_url = require('./img_url');
 coreHelpers.is = require('./is');
 coreHelpers.has = require('./has');
+coreHelpers.lang = require('./lang');
 coreHelpers.meta_description = require('./meta_description');
 coreHelpers.meta_title = require('./meta_title');
 coreHelpers.navigation = require('./navigation');
@@ -29,6 +31,7 @@ coreHelpers.post_class = require('./post_class');
 coreHelpers.prev_post = require('./prev_next');
 coreHelpers.next_post = require('./prev_next');
 coreHelpers.reading_time = require('./reading_time');
+coreHelpers.t = require('./t');
 coreHelpers.tags = require('./tags');
 coreHelpers.title = require('./title');
 coreHelpers.twitter_url = require('./twitter_url');
@@ -38,6 +41,7 @@ registerAllCoreHelpers = function registerAllCoreHelpers() {
     // Register theme helpers
     registerThemeHelper('asset', coreHelpers.asset);
     registerThemeHelper('author', coreHelpers.author);
+    registerThemeHelper('authors', coreHelpers.authors);
     registerThemeHelper('body_class', coreHelpers.body_class);
     registerThemeHelper('content', coreHelpers.content);
     registerThemeHelper('date', coreHelpers.date);
@@ -47,6 +51,7 @@ registerAllCoreHelpers = function registerAllCoreHelpers() {
     registerThemeHelper('has', coreHelpers.has);
     registerThemeHelper('is', coreHelpers.is);
     registerThemeHelper('img_url', coreHelpers.img_url);
+    registerThemeHelper('lang', coreHelpers.lang);
     registerThemeHelper('meta_description', coreHelpers.meta_description);
     registerThemeHelper('meta_title', coreHelpers.meta_title);
     registerThemeHelper('navigation', coreHelpers.navigation);
@@ -55,6 +60,7 @@ registerAllCoreHelpers = function registerAllCoreHelpers() {
     registerThemeHelper('plural', coreHelpers.plural);
     registerThemeHelper('post_class', coreHelpers.post_class);
     registerThemeHelper('reading_time', coreHelpers.reading_time);
+    registerThemeHelper('t', coreHelpers.t);
     registerThemeHelper('tags', coreHelpers.tags);
     registerThemeHelper('title', coreHelpers.title);
     registerThemeHelper('twitter_url', coreHelpers.twitter_url);

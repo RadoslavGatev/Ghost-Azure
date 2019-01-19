@@ -3,5 +3,6 @@ var knexMigrator = new KnexMigrator({
     knexMigratorFilePath: __dirname
 });
 
-knexMigrator.init();
-// knexMigrator.migrate();
+knexMigrator.init().then(function(){
+    knexMigrator.migrate();
+});

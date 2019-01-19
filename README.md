@@ -7,7 +7,7 @@
 </p>
 
 ## Why Ghost-Azure?
-The current version of Ghost is not compatible with Azure App Service. Ghost-Azure is a production-ready template which can be hosted directly on Azure app service. We will try to maintain the ghost version updated. All contributions are welcome.
+The current version of Ghost(1.18.0) is not compatible with Azure app service. Ghost-Azure is a production-ready template which can be hosted directly on Azure app service. We will try to maintain the ghost version updated. All contributions are welcome.
 
 ## Usage
 ### 1. Fork this repository.
@@ -34,5 +34,3 @@ git checkout my_branch
 git pull https://github.com/dmoore44/Ghost-Azure azure
 ```
 
-## Frequently Asked Questions
-https://github.com/dmoore44/Ghost-Azure/wiki/FAQ

@@ -1,19 +1,21 @@
-var Promise = require('bluebird'),
-    _ = require('lodash'),
+const Promise = require('bluebird'),
+    {extend, merge, omit, cloneDeep, assign} = require('lodash'),
     validator = require('validator'),
-    pipeline = require('../utils/pipeline'),
-    mail = require('./../mail'),
-    globalUtils = require('../utils'),
-    urlService = require('../services/url'),
-    apiUtils = require('./utils'),
-    models = require('../models'),
     config = require('../config'),
     common = require('../lib/common'),
+    security = require('../lib/security'),
+    constants = require('../lib/constants'),
+    pipeline = require('../lib/promise/pipeline'),
+    mail = require('../services/mail'),
+    urlService = require('../services/url'),
+    localUtils = require('./utils'),
+    models = require('../models'),
     spamPrevention = require('../web/middleware/api/spam-prevention'),
     mailAPI = require('./mail'),
     settingsAPI = require('./settings'),
-    authentication,
     tokenSecurity = {};
+
+let authentication;
 
 /**
  * Returns setup status
@@ -39,7 +41,7 @@ function assertSetupCompleted(status) {
                 return __;
             }
 
-            var completed = common.i18n.t('errors.api.authentication.setupAlreadyCompleted'),
+            const completed = common.i18n.t('errors.api.authentication.setupAlreadyCompleted'),
                 notCompleted = common.i18n.t('errors.api.authentication.setupMustBeCompleted');
 
             function throwReason(reason) {
@@ -56,11 +58,11 @@ function assertSetupCompleted(status) {
 }
 
 function setupTasks(setupData) {
-    var tasks;
+    let tasks;
 
     function validateData(setupData) {
-        return apiUtils.checkObject(setupData, 'setup').then(function then(checked) {
-            var data = checked.setup[0];
+        return localUtils.checkObject(setupData, 'setup').then(function then(checked) {
+            const data = checked.setup[0];
 
             return {
                 name: data.name,
@@ -73,7 +75,7 @@ function setupTasks(setupData) {
     }
 
     function setupUser(userData) {
-        var context = {context: {internal: true}},
+        const context = {context: {internal: true}},
             User = models.User;
 
         return User.findOne({role: 'Owner', status: 'all'}).then(function then(owner) {
@@ -83,7 +85,7 @@ function setupTasks(setupData) {
                 });
             }
 
-            return User.setup(userData, _.extend({id: owner.id}, context));
+            return User.setup(userData, extend({id: owner.id}, context));
         }).then(function then(user) {
             return {
                 user: user,
@@ -93,10 +95,11 @@ function setupTasks(setupData) {
     }
 
     function doSettings(data) {
-        var user = data.user,
+        const user = data.user,
             blogTitle = data.userData.blogTitle,
-            context = {context: {user: data.user.id}},
-            userSettings;
+            context = {context: {user: data.user.id}};
+
+        let userSettings;
 
         if (!blogTitle || typeof blogTitle !== 'string') {
             return user;
@@ -136,11 +139,11 @@ authentication = {
      * @returns {Promise<Object>} message
      */
     generateResetToken: function generateResetToken(object) {
-        var tasks;
+        let tasks;
 
         function validateRequest(object) {
-            return apiUtils.checkObject(object, 'passwordreset').then(function then(data) {
-                var email = data.passwordreset[0].email;
+            return localUtils.checkObject(object, 'passwordreset').then(function then(data) {
+                const email = data.passwordreset[0].email;
 
                 if (typeof email !== 'string' || !validator.isEmail(email)) {
                     throw new common.errors.BadRequestError({
@@ -153,10 +156,10 @@ authentication = {
         }
 
         function generateToken(email) {
-            var options = {context: {internal: true}},
-                dbHash, token;
+            const options = {context: {internal: true}};
+            let dbHash, token;
 
-            return settingsAPI.read(_.merge({key: 'db_hash'}, options))
+            return settingsAPI.read(merge({key: 'db_hash'}, options))
                 .then(function fetchedSettings(response) {
                     dbHash = response.settings[0].value;
 
@@ -167,8 +170,8 @@ authentication = {
                         throw new common.errors.NotFoundError({message: common.i18n.t('errors.api.users.userNotFound')});
                     }
 
-                    token = globalUtils.tokens.resetToken.generateHash({
-                        expires: Date.now() + globalUtils.ONE_DAY_MS,
+                    token = security.tokens.resetToken.generateHash({
+                        expires: Date.now() + constants.ONE_DAY_MS,
                         email: email,
                         dbHash: dbHash,
                         password: user.get('password')
@@ -182,8 +185,8 @@ authentication = {
         }
 
         function sendResetNotification(data) {
-            var adminUrl = urlService.utils.urlFor('admin', true),
-                resetUrl = urlService.utils.urlJoin(adminUrl, 'reset', globalUtils.encodeBase64URLsafe(data.resetToken), '/');
+            const adminUrl = urlService.utils.urlFor('admin', true),
+                resetUrl = urlService.utils.urlJoin(adminUrl, 'reset', security.url.encodeBase64(data.resetToken), '/');
 
             return mail.utils.generateContent({
                 data: {
@@ -191,7 +194,7 @@ authentication = {
                 },
                 template: 'reset-password'
             }).then(function then(content) {
-                var payload = {
+                const payload = {
                     mail: [{
                         message: {
                             to: data.email,
@@ -233,12 +236,16 @@ authentication = {
      * @returns {Promise<Object>} message
      */
     resetPassword: function resetPassword(object, opts) {
-        var tasks, tokenIsCorrect, dbHash, options = {context: {internal: true}}, tokenParts;
+        let tasks,
+            tokenIsCorrect,
+            dbHash,
+            tokenParts;
+        const options = {context: {internal: true}};
 
         function validateRequest() {
-            return apiUtils.validate('passwordreset')(object, options)
-                .then(function (options) {
-                    var data = options.data.passwordreset[0];
+            return localUtils.validate('passwordreset')(object, options)
+                .then((options) => {
+                    const data = options.data.passwordreset[0];
 
                     if (data.newPassword !== data.ne2Password) {
                         return Promise.reject(new common.errors.ValidationError({
@@ -251,9 +258,9 @@ authentication = {
         }
 
         function extractTokenParts(options) {
-            options.data.passwordreset[0].token = globalUtils.decodeBase64URLsafe(options.data.passwordreset[0].token);
+            options.data.passwordreset[0].token = security.url.decodeBase64(options.data.passwordreset[0].token);
 
-            tokenParts = globalUtils.tokens.resetToken.extract({
+            tokenParts = security.tokens.resetToken.extract({
                 token: options.data.passwordreset[0].token
             });
 
@@ -268,8 +275,8 @@ authentication = {
 
         // @TODO: use brute force middleware (see https://github.com/TryGhost/Ghost/pull/7579)
         function protectBruteForce(options) {
-            if (tokenSecurity[tokenParts.email + '+' + tokenParts.expires] &&
-                tokenSecurity[tokenParts.email + '+' + tokenParts.expires].count >= 10) {
+            if (tokenSecurity[`${tokenParts.email}+${tokenParts.expires}`] &&
+                tokenSecurity[`${tokenParts.email}+${tokenParts.expires}`].count >= 10) {
                 return Promise.reject(new common.errors.NoPermissionError({
                     message: common.i18n.t('errors.models.user.tokenLocked')
                 }));
@@ -279,12 +286,12 @@ authentication = {
         }
 
         function doReset(options) {
-            var data = options.data.passwordreset[0],
+            const data = options.data.passwordreset[0],
                 resetToken = data.token,
                 oldPassword = data.oldPassword,
                 newPassword = data.newPassword;
 
-            return settingsAPI.read(_.merge({key: 'db_hash'}, options))
+            return settingsAPI.read(merge({key: 'db_hash'}, omit(options, 'data')))
                 .then(function fetchedSettings(response) {
                     dbHash = response.settings[0].value;
 
@@ -295,7 +302,7 @@ authentication = {
                         throw new common.errors.NotFoundError({message: common.i18n.t('errors.api.users.userNotFound')});
                     }
 
-                    tokenIsCorrect = globalUtils.tokens.resetToken.compare({
+                    tokenIsCorrect = security.tokens.resetToken.compare({
                         token: resetToken,
                         dbHash: dbHash,
                         password: user.get('password')
@@ -307,7 +314,7 @@ authentication = {
                         }));
                     }
 
-                    spamPrevention.userLogin().reset(opts.ip, tokenParts.email + 'login');
+                    spamPrevention.userLogin().reset(opts.ip, `${tokenParts.email}login`);
 
                     return models.User.changePassword({
                         oldPassword: oldPassword,
@@ -319,10 +326,8 @@ authentication = {
                     updatedUser.set('status', 'active');
                     return updatedUser.save(options);
                 })
-                .catch(common.errors.ValidationError, function (err) {
-                    return Promise.reject(err);
-                })
-                .catch(function (err) {
+                .catch(common.errors.ValidationError, (err) => { return Promise.reject(err); })
+                .catch((err) => {
                     if (common.errors.utils.isIgnitionError(err)) {
                         return Promise.reject(err);
                     }
@@ -356,11 +361,13 @@ authentication = {
      * @returns {Promise<Object>}
      */
     acceptInvitation: function acceptInvitation(invitation) {
-        var tasks, invite, options = {context: {internal: true}};
+        let tasks,
+            invite;
+        const options = {context: {internal: true}};
 
         function validateInvitation(invitation) {
-            return apiUtils.checkObject(invitation, 'invitation')
-                .then(function () {
+            return localUtils.checkObject(invitation, 'invitation')
+                .then(() => {
                     if (!invitation.invitation[0].token) {
                         return Promise.reject(new common.errors.ValidationError({message: common.i18n.t('errors.api.authentication.noTokenProvided')}));
                     }
@@ -382,10 +389,11 @@ authentication = {
         }
 
         function processInvitation(invitation) {
-            var data = invitation.invitation[0], inviteToken = globalUtils.decodeBase64URLsafe(data.token);
+            const data = invitation.invitation[0],
+                inviteToken = security.url.decodeBase64(data.token);
 
             return models.Invite.findOne({token: inviteToken, status: 'sent'}, options)
-                .then(function (_invite) {
+                .then((_invite) => {
                     invite = _invite;
 
                     if (!invite) {
@@ -403,9 +411,7 @@ authentication = {
                         roles: [invite.toJSON().role_id]
                     }, options);
                 })
-                .then(function () {
-                    return invite.destroy(options);
-                });
+                .then(() => { return invite.destroy(options); });
         }
 
         function formatResponse() {
@@ -432,11 +438,11 @@ authentication = {
      * @returns {Promise<Object>} An invitation status
      */
     isInvitation: function isInvitation(options) {
-        var tasks,
-            localOptions = _.cloneDeep(options || {});
+        let tasks;
+        const localOptions = cloneDeep(options || {});
 
         function processArgs(options) {
-            var email = options.email;
+            const email = options.email;
 
             if (typeof email !== 'string' || !validator.isEmail(email)) {
                 throw new common.errors.BadRequestError({
@@ -476,7 +482,7 @@ authentication = {
      * @return {Promise}
      */
     isSetup: function isSetup() {
-        var tasks;
+        let tasks;
 
         function checkSetupStatus() {
             return models.User.isSetup();
@@ -510,14 +516,14 @@ authentication = {
      * @return {Promise<Object>} a user api payload
      */
     setup: function setup(setupDetails) {
-        var tasks;
+        let tasks;
 
         function doSetup(setupDetails) {
             return setupTasks(setupDetails);
         }
 
         function sendNotification(setupUser) {
-            var data = {
+            const data = {
                 ownerEmail: setupUser.email
             };
 
@@ -525,7 +531,7 @@ authentication = {
 
             return mail.utils.generateContent({data: data, template: 'welcome'})
                 .then(function then(content) {
-                    var message = {
+                    const message = {
                             to: setupUser.email,
                             subject: common.i18n.t('common.api.authentication.mail.yourNewGhostBlog'),
                             html: content.html,
@@ -539,7 +545,7 @@ authentication = {
                         };
 
                     mailAPI.send(payload, {context: {internal: true}})
-                        .catch(function (err) {
+                        .catch((err) => {
                             err.context = common.i18n.t('errors.api.authentication.unableToSendWelcomeEmail');
                             common.logging.error(err);
                         });
@@ -568,20 +574,20 @@ authentication = {
      * @return {Promise<Object>} a User API response payload
      */
     updateSetup: function updateSetup(setupDetails, options) {
-        var tasks,
-            localOptions = _.cloneDeep(options || {});
+        let tasks;
+        const localOptions = cloneDeep(options || {});
 
         function processArgs(setupDetails, options) {
             if (!options.context || !options.context.user) {
                 throw new common.errors.NoPermissionError({message: common.i18n.t('errors.api.authentication.notTheBlogOwner')});
             }
 
-            return _.assign({setupDetails: setupDetails}, options);
+            return assign({setupDetails: setupDetails}, options);
         }
 
         function checkPermission(options) {
             return models.User.findOne({role: 'Owner', status: 'all'})
-                .then(function (owner) {
+                .then((owner) => {
                     if (owner.id !== options.context.user) {
                         throw new common.errors.NoPermissionError({message: common.i18n.t('errors.api.authentication.notTheBlogOwner')});
                     }
@@ -612,15 +618,15 @@ authentication = {
      * @return {Promise<Object>} an object containing the revoked token.
      */
     revoke: function revokeToken(tokenDetails, options) {
-        var tasks,
-            localOptions = _.cloneDeep(options || {});
+        let tasks;
+        const localOptions = cloneDeep(options || {});
 
         function processArgs(tokenDetails, options) {
-            return _.assign({}, tokenDetails, options);
+            return assign({}, tokenDetails, options);
         }
 
         function revokeToken(options) {
-            var providers = [
+            const providers = [
                     models.Refreshtoken,
                     models.Accesstoken
                 ],
@@ -629,7 +635,7 @@ authentication = {
             function destroyToken(provider, options, providers) {
                 return provider.destroyByToken(options)
                     .return(response)
-                    .catch(provider.NotFoundError, function () {
+                    .catch(provider.NotFoundError, () => {
                         if (!providers.length) {
                             return {
                                 token: tokenDetails.token,
@@ -639,7 +645,7 @@ authentication = {
 
                         return destroyToken(providers.pop(), options, providers);
                     })
-                    .catch(function () {
+                    .catch(() => {
                         throw new common.errors.TokenRevocationError({
                             message: common.i18n.t('errors.api.authentication.tokenRevocationFailed')
                         });

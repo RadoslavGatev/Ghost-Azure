@@ -1,5 +1,6 @@
 // # API routes
-var debug = require('ghost-ignition').debug('api'),
+const debug = require('ghost-ignition').debug('api'),
+    boolParser = require('express-query-boolean'),
     express = require('express'),
 
     // routes
@@ -18,7 +19,7 @@ var debug = require('ghost-ignition').debug('api'),
 
 module.exports = function setupApiApp() {
     debug('API setup start');
-    var apiApp = express();
+    const apiApp = express();
 
     // @TODO finish refactoring this away.
     apiApp.use(function setIsAdmin(req, res, next) {
@@ -32,6 +33,9 @@ module.exports = function setupApiApp() {
     // Body parsing
     apiApp.use(bodyParser.json({limit: '1mb'}));
     apiApp.use(bodyParser.urlencoded({extended: true, limit: '1mb'}));
+
+    // Query parsing
+    apiApp.use(boolParser());
 
     // send 503 json response in case of maintenance
     apiApp.use(maintenance);

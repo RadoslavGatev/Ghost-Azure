@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="{{lang}}">
 <head>
 
     {{!-- Document Settings --}}
@@ -55,6 +55,18 @@
     </div>
     {{/if}}
 
+    <script>
+        var images = document.querySelectorAll('.kg-gallery-image img');
+        images.forEach(function (image) {
+            var container = image.closest('.kg-gallery-image');
+            var width = image.attributes.width.value;
+            var height = image.attributes.height.value;
+            var ratio = width / height;
+            container.style.flex = ratio + ' 1 0%';
+        })
+    </script>
+
+
     {{!-- jQuery + Fitvids, which makes all video embeds responsive --}}
     <script
         src="https://code.jquery.com/jquery-3.2.1.min.js"
@@ -65,6 +77,9 @@
 
     {{#if pagination.pages}}
     <script>
+        // maxPages is a global variable that is needed to determine
+        // if we need to load more pages for the infinitescroll, or if
+        // we reached the last page already.
         var maxPages = parseInt('{{pagination.pages}}');
     </script>
     <script src="{{asset "js/infinitescroll.js"}}"></script>

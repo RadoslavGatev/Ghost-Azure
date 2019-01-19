@@ -1,22 +1,38 @@
-Copyright (c) 2013-2017 Ghost Foundation
+# Ghost-Azure 
+## Your Ghost blog ready for Azure app service deployment. 
+[![Deploy to Azure](https://azuredeploy.net/deploybutton.png)](https://azuredeploy.net/)
+[![Visualize](http://armviz.io/visualizebutton.png)](http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2Fsolvsoftware%2FGhost-Azure%2Fazure%2Fazuredeploy.json)
+[Deploy to Azure via Portal](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsolvsoftware%2FGhost-Azure%2Fazure%2Fazuredeploy.json)
+<p>
+</p>
 
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without
-restriction, including without limitation the rights to use,
-copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following
-conditions:
+## Why Ghost-Azure?
+The current version of Ghost is not compatible with Azure App Service. Ghost-Azure is a production-ready template which can be hosted directly on Azure app service. We will try to maintain the ghost version updated. All contributions are welcome.
 
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
+## Usage
+### 1. Fork this repository.
+### 2. Branch out from the branch "azure".
+```bash
+git checkout azure
+git checkout -b my_blog
+```
+### 3. Install npm modules.
+```bash
+npm install
+```
+### 4. Initialize your database.
+```bash
+node db.js
+```
+### 5. Customize everything you want in your content folder.
+### 6. Keep your fork up to date(if you want the latest ghost version).
+[https://help.github.com/articles/syncing-a-fork/](https://help.github.com/articles/syncing-a-fork/)
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
+OR
+```bash
+git checkout my_branch
+git pull https://github.com/solvsoftware/Ghost-Azure azure
+```
+
+## Frequently Asked Questions
+https://github.com/solvsoftware/Ghost-Azure/wiki/FAQ

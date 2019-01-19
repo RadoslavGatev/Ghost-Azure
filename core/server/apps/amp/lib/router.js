@@ -1,26 +1,23 @@
-var path = require('path'),
+const path = require('path'),
     express = require('express'),
     ampRouter = express.Router(),
 
     // Dirty requires
     common = require('../../../lib/common'),
-    postLookup = require('../../../controllers/frontend/post-lookup'),
-    renderer = require('../../../controllers/frontend/renderer'),
-
+    urlService = require('../../../services/url'),
+    helpers = require('../../../services/routing/helpers'),
     templateName = 'amp';
 
 function _renderer(req, res, next) {
-    // Note: this is super similar to the config middleware used in channels
-    // @TODO refactor into to something explicit & DRY this up
-    res._route = {
+    res.routerOptions = {
         type: 'custom',
-        templateName: templateName,
-        defaultTemplate: path.resolve(__dirname, 'views', templateName + '.hbs')
+        templates: templateName,
+        defaultTemplate: path.resolve(__dirname, 'views', `${templateName}.hbs`)
     };
 
     // Renderer begin
     // Format data
-    var data = req.body || {};
+    let data = req.body || {};
 
     // CASE: we only support amp pages for posts that are not static pages
     if (!data.post || data.post.page) {
@@ -28,7 +25,7 @@ function _renderer(req, res, next) {
     }
 
     // Render Call
-    return renderer(req, res, data);
+    return helpers.renderer(req, res, data);
 }
 
 // This here is a controller.
@@ -36,8 +33,38 @@ function _renderer(req, res, next) {
 function getPostData(req, res, next) {
     req.body = req.body || {};
 
-    postLookup(res.locals.relativeUrl)
-        .then(function handleResult(result) {
+    const urlWithoutSubdirectoryWithoutAmp = res.locals.relativeUrl.match(/(.*?\/)amp\/?$/)[1];
+
+    /**
+     * @NOTE
+     *
+     * We have to figure out the target permalink, otherwise it would be possible to serve a post
+     * which lives in two collections.
+     *
+     * @TODO:
+     *
+     * This is not optimal and caused by the fact how apps currently work. But apps weren't designed
+     * for dynamic routing.
+     *
+     * I think if the responsible, target router would first take care fetching/determining the post, the
+     * request could then be forwarded to this app. Then we don't have to:
+     *
+     * 1. care about fetching the post
+     * 2. care about if the post can be served
+     * 3. then this app would act like an extension
+     *
+     * The challenge is to design different types of apps e.g. extensions of routers, standalone pages etc.
+     */
+    const permalinks = urlService.getPermalinkByUrl(urlWithoutSubdirectoryWithoutAmp, {withUrlOptions: true});
+
+    if (!permalinks) {
+        return next(new common.errors.NotFoundError({
+            message: common.i18n.t('errors.errors.pageNotFound')
+        }));
+    }
+
+    helpers.postLookup(urlWithoutSubdirectoryWithoutAmp, {permalinks})
+        .then((result) => {
             if (result && result.post) {
                 req.body.post = result.post;
             }

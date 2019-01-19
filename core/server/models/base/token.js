@@ -11,18 +11,11 @@ Basetoken = ghostBookshelf.Model.extend({
 
     client: function client() {
         return this.belongsTo('Client');
-    },
-
-    // override for base function since we don't have
-    // a updated_by field for sessions
-    onSaving: function onSaving() {
-        // Remove any properties which don't belong on the model
-        this.attributes = this.pick(this.permittedAttributes());
     }
-
 }, {
-    destroyAllExpired: function destroyAllExpired(options) {
-        options = this.filterOptions(options, 'destroyAll');
+    destroyAllExpired: function destroyAllExpired(unfilteredOptions) {
+        var options = this.filterOptions(unfilteredOptions, 'destroyAll');
+
         return ghostBookshelf.Collection.forge([], {model: this})
             .query('where', 'expires', '<', Date.now())
             .fetch(options)
@@ -33,12 +26,11 @@ Basetoken = ghostBookshelf.Model.extend({
 
     /**
      * ### destroyByUser
-     * @param  {[type]} options has context and id. Context is the user doing the destroy, id is the user to destroy
+     * @param  {[type]} unfilteredOptions has context and id. Context is the user doing the destroy, id is the user to destroy
      */
-    destroyByUser: function destroyByUser(options) {
-        var userId = options.id;
-
-        options = this.filterOptions(options, 'destroyByUser');
+    destroyByUser: function destroyByUser(unfilteredOptions) {
+        var options = this.filterOptions(unfilteredOptions, 'destroyByUser', {extraAllowedProperties: ['id']}),
+            userId = options.id;
 
         if (userId) {
             return ghostBookshelf.Collection.forge([], {model: this})
@@ -54,12 +46,12 @@ Basetoken = ghostBookshelf.Model.extend({
 
     /**
      * ### destroyByToken
-     * @param  {[type]} options has token where token is the token to destroy
+     * @param  {[type]} unfilteredOptions has token where token is the token to destroy
      */
-    destroyByToken: function destroyByToken(options) {
-        var token = options.token;
+    destroyByToken: function destroyByToken(unfilteredOptions) {
+        var options = this.filterOptions(unfilteredOptions, 'destroyByToken', {extraAllowedProperties: ['token']}),
+            token = options.token;
 
-        options = this.filterOptions(options, 'destroyByUser');
         options.require = true;
 
         return this.forge()

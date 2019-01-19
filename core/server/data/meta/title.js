@@ -1,5 +1,5 @@
 var _ = require('lodash'),
-    settingsCache = require('../../settings/cache');
+    settingsCache = require('../../services/settings/cache');
 
 function getTitle(data, root, options) {
     var title = '',
@@ -12,7 +12,7 @@ function getTitle(data, root, options) {
     options = options ? options : {};
 
     if (pagination && pagination.total > 1) {
-        pageString = ' (Page ' + pagination.page + ')';
+        pageString = _.has(options.hash, 'page') ? options.hash.page.replace('%', pagination.page) : ' (Page ' + pagination.page + ')';
     }
 
     // If there's a specific meta title

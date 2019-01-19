@@ -6,7 +6,7 @@ var fs = require('fs-extra'),
     debug = require('ghost-ignition').debug('custom-redirects'),
     config = require('../../config'),
     common = require('../../lib/common'),
-    globalUtils = require('../../utils'),
+    validation = require('../../data/validation'),
     customRedirectsRouter,
     _private = {};
 
@@ -18,7 +18,7 @@ _private.registerRoutes = function registerRoutes() {
     try {
         var redirects = fs.readFileSync(path.join(config.getContentPath('data'), 'redirects.json'), 'utf-8');
         redirects = JSON.parse(redirects);
-        globalUtils.validateRedirects(redirects);
+        validation.validateRedirects(redirects);
 
         _.each(redirects, function (redirect) {
             /**
@@ -67,7 +67,7 @@ _private.registerRoutes = function registerRoutes() {
 
 /**
  * - you can extend Ghost with a custom redirects file
- * - see https://github.com/TryGhost/Ghost/issues/7707 and https://docs.ghost.org/v1/docs/redirects
+ * - see https://github.com/TryGhost/Ghost/issues/7707 and https://docs.ghost.org/docs/redirects
  * - file loads synchronously, because we need to register the routes before anything else
  */
 exports.use = function use(siteApp) {
