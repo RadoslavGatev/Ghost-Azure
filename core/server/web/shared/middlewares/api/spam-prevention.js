@@ -10,13 +10,16 @@ const spamGlobalBlock = spam.global_block || {};
 const spamGlobalReset = spam.global_reset || {};
 const spamUserReset = spam.user_reset || {};
 const spamUserLogin = spam.user_login || {};
+const spamContentApiKey = spam.content_api_key || {};
 
 let store;
+let memoryStore;
 let privateBlogInstance;
 let globalResetInstance;
 let globalBlockInstance;
 let userLoginInstance;
 let userResetInstance;
+let contentApiKeyInstance;
 
 const spamConfigKeys = ['freeRetries', 'minWait', 'maxWait', 'lifetime'];
 
@@ -38,9 +41,9 @@ const handleStoreError = (err) => {
     err.next(customError);
 };
 
-// This is a global endpoint protection mechanism that will lock an endpoint if there are so many
-// requests from a single IP
-// We allow for a generous number of requests here to prevent communites on the same IP bing barred on account of a single suer
+// This locks a single endpoint based on excessive requests from an IP.
+// Currently only used for auth type methods.
+// We allow for a generous number of requests here to prevent communites on the same IP bing barred on account of a single user
 // Defaults to 50 attempts per hour and locks the endpoint for an hour
 const globalBlock = () => {
     const ExpressBrute = require('express-brute');
@@ -203,10 +206,34 @@ const privateBlog = () => {
     return privateBlogInstance;
 };
 
+const contentApiKey = () => {
+    const ExpressBrute = require('express-brute');
+
+    memoryStore = memoryStore || new ExpressBrute.MemoryStore();
+
+    contentApiKeyInstance = contentApiKeyInstance || new ExpressBrute(memoryStore,
+        extend({
+            attachResetToRequest: true,
+            failCallback(req, res, next) {
+                const err = new common.errors.TooManyRequestsError({
+                    message: common.i18n.t('errors.middleware.spamprevention.tooManyAttempts')
+                });
+
+                common.logging.error(err);
+                return next(err);
+            },
+            handleStoreError: handleStoreError
+        }, pick(spamContentApiKey, spamConfigKeys))
+    );
+
+    return contentApiKeyInstance;
+};
+
 module.exports = {
     globalBlock: globalBlock,
     globalReset: globalReset,
     userLogin: userLogin,
     userReset: userReset,
-    privateBlog: privateBlog
+    privateBlog: privateBlog,
+    contentApiKey: contentApiKey
 };
