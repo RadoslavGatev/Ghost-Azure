@@ -115,7 +115,7 @@ const cacheInvalidationHeader = (req, result) => {
  * @return {String} Resolves to header string
  */
 const locationHeader = (req, result) => {
-    const apiRoot = urlService.utils.urlFor('api', {version: 'deprecated'});
+    const apiRoot = urlService.utils.urlFor('api', {version: 'v0.1'});
     let location,
         newObject,
         statusQuery;
@@ -127,7 +127,11 @@ const locationHeader = (req, result) => {
             location = urlService.utils.urlJoin(apiRoot, 'posts', newObject.id, statusQuery);
         } else if (result.hasOwnProperty('notifications')) {
             newObject = result.notifications[0];
-            location = urlService.utils.urlJoin(apiRoot, 'notifications', newObject.id, '/');
+
+            // CASE: you add one notification, but it's a duplicate, the API will return {notifications: []}
+            if (newObject) {
+                location = urlService.utils.urlJoin(apiRoot, 'notifications', newObject.id, '/');
+            }
         } else if (result.hasOwnProperty('users')) {
             newObject = result.users[0];
             location = urlService.utils.urlJoin(apiRoot, 'users', newObject.id, '/');

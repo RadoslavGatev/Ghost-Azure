@@ -2,12 +2,14 @@ const crypto = require('crypto');
 const ghostBookshelf = require('./base');
 const {Role} = require('./role');
 
+const createSecret = () => crypto.randomBytes(64).toString('hex');
+
 const ApiKey = ghostBookshelf.Model.extend({
     tableName: 'api_keys',
 
     defaults() {
         // 512bit key for HS256 JWT signing
-        const secret = crypto.randomBytes(64).toString('hex');
+        const secret = createSecret();
 
         return {
             secret
@@ -25,7 +27,7 @@ const ApiKey = ghostBookshelf.Model.extend({
         return this.belongsTo('Integration');
     },
 
-    onSaving(/* model, attrs, options */) {
+    onSaving(model, attrs, options) {
         ghostBookshelf.Model.prototype.onSaving.apply(this, arguments);
 
         // enforce roles which are currently hardcoded
@@ -33,7 +35,7 @@ const ApiKey = ghostBookshelf.Model.extend({
         // - content key = no role
         if (this.hasChanged('type') || this.hasChanged('role_id')) {
             if (this.get('type') === 'admin') {
-                return Role.findOne({name: 'Admin Integration'}, {columns: ['id']})
+                return Role.findOne({name: 'Admin Integration'}, Object.assign({}, options, {columns: ['id']}))
                     .then((role) => {
                         this.set('role_id', role.get('id'));
                     });
@@ -43,6 +45,11 @@ const ApiKey = ghostBookshelf.Model.extend({
                 this.set('role_id', null);
             }
         }
+    }
+}, {
+    refreshSecret(data, options) {
+        const secret = createSecret();
+        return this.edit(Object.assign({}, data, {secret}), options);
     }
 });
 

@@ -503,11 +503,15 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
 
         switch (methodName) {
         case 'toJSON':
-            return baseOptions.concat('shallow', 'columns', 'absolute_urls');
+            return baseOptions.concat('shallow', 'columns');
         case 'destroy':
-            return baseOptions.concat(extraOptions, ['id', 'destroyBy']);
+            return baseOptions.concat(extraOptions, ['id', 'destroyBy', 'require']);
         case 'edit':
-            return baseOptions.concat(extraOptions, ['id']);
+            return baseOptions.concat(extraOptions, ['id', 'require']);
+        case 'findOne':
+            return baseOptions.concat(extraOptions, ['require']);
+        case 'findAll':
+            return baseOptions.concat(extraOptions, ['columns']);
         default:
             return baseOptions.concat(extraOptions);
         }
@@ -647,8 +651,14 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
             this.processOptions(options);
         }
 
-        itemCollection.applyDefaultAndCustomFilters(options);
+        // @TODO: we can't use order raw when running migrations (see https://github.com/tgriesser/knex/issues/2763)
+        if (this.orderDefaultRaw && !options.migrating) {
+            itemCollection.query((qb) => {
+                qb.orderByRaw(this.orderDefaultRaw());
+            });
+        }
 
+        itemCollection.applyDefaultAndCustomFilters(options);
         return itemCollection.fetchAll(options).then(function then(result) {
             if (options.withRelated) {
                 _.each(result.models, function each(item) {
@@ -695,7 +705,9 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
         // This applies default properties like 'staticPages' and 'status'
         // And then converts them to 'where' options... this behaviour is effectively deprecated in favour
         // of using filter - it's only be being kept here so that we can transition cleanly.
-        this.processOptions(options);
+        if (this.processOptions) {
+            this.processOptions(options);
+        }
 
         // Add Filter behaviour
         itemCollection.applyDefaultAndCustomFilters(options);
@@ -711,7 +723,7 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
             options.order = this.parseOrderOption(options.order, options.withRelated);
         } else if (this.orderDefaultRaw) {
             options.orderRaw = this.orderDefaultRaw();
-        } else {
+        } else if (this.orderDefaultOptions) {
             options.order = this.orderDefaultOptions();
         }
 

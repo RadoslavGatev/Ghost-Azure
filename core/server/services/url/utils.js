@@ -11,13 +11,19 @@ const moment = require('moment-timezone'),
 
 /**
  * Returns API path combining base path and path for specific version asked or deprecated by default
- * @param {string} version version for which to get the path(stable, actice, deprecated: content, admin), defaults to deprecated:content
+ * @param {Object} options {version} for which to get the path(stable, actice, deprecated),
+ * {type} admin|content: defaults to {version: deprecated, type: content}
  * @return {string} API Path for version
  */
-function getApiPath(version = 'deprecated', admin = false) {
+function getApiPath(options) {
     const apiVersions = config.get('api:versions');
-    let versionType = apiVersions[version] || apiVersions.deprecated;
-    let versionPath = admin ? versionType.admin : versionType.content;
+    let requestedVersion = options.version || 'deprecated';
+    let requestedVersionType = options.type || 'content';
+    let versionData = apiVersions[requestedVersion];
+    if (typeof versionData === 'string') {
+        versionData = apiVersions[versionData];
+    }
+    let versionPath = versionData[requestedVersionType];
     return `${BASE_API_PATH}${versionPath}/`;
 }
 
@@ -313,7 +319,7 @@ function urlFor(context, data, absolute) {
         }
     } else if (context === 'api') {
         urlPath = getAdminUrl() || getBlogUrl();
-        let apiPath = getApiPath('deprecated');
+        let apiPath = getApiPath({version: 'deprecated', type: 'content'});
         // CASE: with or without protocol? If your blog url (or admin url) is configured to http, it's still possible that e.g. nginx allows both https+http.
         // So it depends how you serve your blog. The main focus here is to avoid cors problems.
         // @TODO: rename cors
@@ -324,7 +330,7 @@ function urlFor(context, data, absolute) {
         }
 
         if (data && data.version) {
-            apiPath = getApiPath(data.version, data.admin);
+            apiPath = getApiPath({version: data.version, type: data.versionType});
         }
 
         if (absolute) {
@@ -459,6 +465,7 @@ module.exports.redirect301 = redirect301;
 module.exports.createUrl = createUrl;
 module.exports.deduplicateDoubleSlashes = deduplicateDoubleSlashes;
 module.exports.getApiPath = getApiPath;
+module.exports.getBlogUrl = getBlogUrl;
 
 /**
  * If you request **any** image in Ghost, it get's served via

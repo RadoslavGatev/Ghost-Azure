@@ -158,17 +158,10 @@ var config = require('./core/server/config'),
                     ]
                 },
 
-                // #### All Route tests
-                routes: {
+                // #### All functional tests
+                functional: {
                     src: [
-                        'core/test/functional/routes/**/*_spec.js'
-                    ]
-                },
-
-                // #### All Module tests
-                module: {
-                    src: [
-                        'core/test/functional/module/**/*_spec.js'
+                        'core/test/functional/**/*_spec.js'
                     ]
                 },
 
@@ -251,10 +244,6 @@ var config = require('./core/server/config'),
                             'yarn; git submodule foreach "git checkout master && git pull ' +
                             upstream + ' master"';
                     }
-                },
-
-                dbhealth: {
-                    command: 'knex-migrator health'
                 }
             },
 
@@ -519,7 +508,7 @@ var config = require('./core/server/config'),
         // `grunt test-all` will lint and test your pre-built local Ghost codebase.
         //
         grunt.registerTask('test-all', 'Run all server tests',
-            ['test-routes', 'test-module', 'test-unit', 'test-integration']);
+            ['test-functional', 'test-unit', 'test-integration']);
 
         // ### Lint
         //
@@ -582,11 +571,11 @@ var config = require('./core/server/config'),
         );
 
         // ### Route tests *(sub task)*
-        // `grunt test-routes` will run just the route tests
+        // `grunt test-functional` will run just the route tests
         //
         // If you need to run an individual route test file, you can use the `grunt test:<file_path>` task:
         //
-        // `grunt test:functional/routes/admin_spec.js`
+        // `grunt test:functional/admin_spec.js`
         //
         // Route tests are run with [mocha](http://mochajs.org/) using
         // [should](https://github.com/visionmedia/should.js) and [supertest](https://github.com/visionmedia/supertest)
@@ -598,17 +587,13 @@ var config = require('./core/server/config'),
         // The purpose of the route tests is to ensure that all of the routes (pages, and API requests) in Ghost
         // are working as expected, including checking the headers and status codes received. It is very easy and
         // quick to test many permutations of routes / urls in the system.
-        grunt.registerTask('test-routes', 'Run functional route tests (mocha)',
-            ['test-setup', 'mochacli:routes']
+        grunt.registerTask('test-functional', 'Run functional tests (mocha)',
+            ['test-setup', 'mochacli:functional']
         );
 
-        // ### Module tests *(sub task)*
-        // `grunt test-module` will run just the module tests
-        //
-        // The purpose of the module tests is to ensure that Ghost can be used as an npm module and exposes all
-        // required methods to interact with it.
-        grunt.registerTask('test-module', 'Run functional module tests (mocha)',
-            ['test-setup', 'mochacli:module']
+        // Shortcut
+        grunt.registerTask('test-func', 'Run functional tests (mocha)',
+            ['test-setup', 'mochacli:functional']
         );
 
         // ### Coverage
@@ -726,7 +711,7 @@ var config = require('./core/server/config'),
         // `grunt master` [`upstream` is the default upstream to pull from]
         // `grunt master --upstream=parent`
         grunt.registerTask('master', 'Update your current working folder to latest master.',
-            ['shell:master', 'subgrunt:init', 'shell:dbhealth']
+            ['shell:master', 'subgrunt:init']
         );
 
         // ### Release

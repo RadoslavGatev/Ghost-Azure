@@ -1,4 +1,4 @@
-const debug = require('ghost-ignition').debug('app');
+const debug = require('ghost-ignition').debug('web:parent');
 const express = require('express');
 const config = require('../config');
 const compress = require('compression');
@@ -38,10 +38,9 @@ module.exports = function setupParentApp(options = {}) {
     // Mount the  apps on the parentApp
     // API
     // @TODO: finish refactoring the API app
-    // @TODO: decide what to do with these paths - config defaults? config overrides?
-    parentApp.use(urlUtils.getApiPath('deprecated'), require('./api/v0.1/app')());
-    parentApp.use(urlUtils.getApiPath('active'), require('./api/v2/content/app')());
-    parentApp.use(urlUtils.getApiPath('active', true), require('./api/v2/admin/app')());
+    parentApp.use(urlUtils.getApiPath({version: 'v0.1'}), require('./api/v0.1/app')());
+    parentApp.use(urlUtils.getApiPath({version: 'v2', type: 'content'}), require('./api/v2/content/app')());
+    parentApp.use(urlUtils.getApiPath({version: 'v2', type: 'admin'}), require('./api/v2/admin/app')());
 
     // ADMIN
     parentApp.use('/ghost', require('./admin')());
