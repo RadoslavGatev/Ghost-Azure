@@ -259,6 +259,11 @@ User = ghostBookshelf.Model.extend({
         });
     },
 
+    updateLastSeen: function updateLastSeen() {
+        this.set({last_seen: new Date()});
+        return this.save();
+    },
+
     enforcedFilters: function enforcedFilters(options) {
         if (options.context && options.context.internal) {
             return null;
@@ -273,6 +278,35 @@ User = ghostBookshelf.Model.extend({
         }
 
         return options.context && options.context.public ? null : 'status:[' + allStates.join(',') + ']';
+    },
+
+    /**
+     * You can pass an extra `status=VALUES` field.
+     * Long-Term: We should deprecate these short cuts and force users to use the filter param.
+     */
+    extraFilters: function extraFilters(options) {
+        if (!options.status) {
+            return null;
+        }
+
+        let filter = null;
+
+        // CASE: Check if the incoming status value is valid, otherwise fallback to "active"
+        if (options.status !== 'all') {
+            options.status = allStates.indexOf(options.status) > -1 ? options.status : 'active';
+        }
+
+        if (options.status === 'active') {
+            filter = `status:[${activeStates}]`;
+        } else if (options.status === 'all') {
+            filter = `status:[${allStates}]`;
+        } else {
+            filter = `status:${options.status}`;
+        }
+
+        delete options.status;
+
+        return filter;
     }
 }, {
     orderDefaultOptions: function orderDefaultOptions() {
@@ -281,39 +315,6 @@ User = ghostBookshelf.Model.extend({
             name: 'ASC',
             created_at: 'DESC'
         };
-    },
-
-    /**
-     * @deprecated in favour of filter
-     */
-    processOptions: function processOptions(options) {
-        if (!options.status) {
-            return options;
-        }
-
-        // This is the only place that 'options.where' is set now
-        options.where = {statements: []};
-
-        var value;
-
-        // Filter on the status.  A status of 'all' translates to no filter since we want all statuses
-        if (options.status !== 'all') {
-            // make sure that status is valid
-            options.status = allStates.indexOf(options.status) > -1 ? options.status : 'active';
-        }
-
-        if (options.status === 'active') {
-            value = activeStates;
-        } else if (options.status === 'all') {
-            value = allStates;
-        } else {
-            value = options.status;
-        }
-
-        options.where.statements.push({prop: 'status', op: 'IN', value: value});
-        delete options.status;
-
-        return options;
     },
 
     /**
@@ -756,7 +757,7 @@ User = ghostBookshelf.Model.extend({
         var self = this;
 
         return this.getByEmail(object.email)
-            .then(function then(user) {
+            .then((user) => {
                 if (!user) {
                     throw new common.errors.NotFoundError({
                         message: common.i18n.t('errors.models.user.noUserWithEnteredEmailAddr')
@@ -776,12 +777,15 @@ User = ghostBookshelf.Model.extend({
                 }
 
                 return self.isPasswordCorrect({plainPassword: object.password, hashedPassword: user.get('password')})
-                    .then(function then() {
-                        user.set({status: 'active', last_seen: new Date()});
+                    .then(() => {
+                        return user.updateLastSeen();
+                    })
+                    .then(() => {
+                        user.set({status: 'active'});
                         return user.save();
                     });
             })
-            .catch(function (err) {
+            .catch((err) => {
                 if (err.message === 'NotFound' || err.message === 'EmptyResponse') {
                     throw new common.errors.NotFoundError({
                         message: common.i18n.t('errors.models.user.noUserWithEnteredEmailAddr')
