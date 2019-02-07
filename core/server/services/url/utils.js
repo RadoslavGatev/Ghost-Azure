@@ -6,9 +6,20 @@ const moment = require('moment-timezone'),
     cheerio = require('cheerio'),
     config = require('../../config'),
     settingsCache = require('../settings/cache'),
-    // @TODO: unify this with the path in server/app.js
-    API_PATH = '/ghost/api/v0.1/',
+    BASE_API_PATH = '/ghost/api/',
     STATIC_IMAGE_URL_PREFIX = 'content/images';
+
+/**
+ * Returns API path combining base path and path for specific version asked or stable by default
+ * @param {string} version version for which to get the path(stable, actice, deprecated: content, admin), defaults to stable:content
+ * @return {string} API Path for version
+ */
+function getApiPath(version = 'stable', admin = false) {
+    const apiVersions = config.get('api:versions');
+    let versionType = apiVersions[version] || apiVersions.stable;
+    let versionPath = admin ? versionType.admin : versionType.content;
+    return `${BASE_API_PATH}${versionPath}/`;
+}
 
 /**
  * Returns the base URL of the blog as set in the config.
@@ -65,7 +76,7 @@ function deduplicateSubDir(url) {
     subDir = subDir.replace(/^\/|\/+$/, '');
     // we can have subdirs that match TLDs so we need to restrict matches to
     // duplicates that start with a / or the beginning of the url
-    subDirRegex = new RegExp('(^|\/)' + subDir + '\/' + subDir + '\/');
+    subDirRegex = new RegExp('(^|/)' + subDir + '/' + subDir + '/');
 
     return url.replace(subDirRegex, '$1' + subDir + '/');
 }
@@ -238,7 +249,6 @@ function urlFor(context, data, absolute) {
         // this will become really big
         knownPaths = {
             home: '/',
-            api: API_PATH,
             sitemap_xsl: '/sitemap.xsl'
         };
 
@@ -303,7 +313,7 @@ function urlFor(context, data, absolute) {
         }
     } else if (context === 'api') {
         urlPath = getAdminUrl() || getBlogUrl();
-
+        let apiPath = getApiPath('stable');
         // CASE: with or without protocol? If your blog url (or admin url) is configured to http, it's still possible that e.g. nginx allows both https+http.
         // So it depends how you serve your blog. The main focus here is to avoid cors problems.
         // @TODO: rename cors
@@ -313,10 +323,14 @@ function urlFor(context, data, absolute) {
             }
         }
 
+        if (data && data.version) {
+            apiPath = getApiPath(data.version, data.admin);
+        }
+
         if (absolute) {
-            urlPath = urlPath.replace(/\/$/, '') + API_PATH;
+            urlPath = urlPath.replace(/\/$/, '') + apiPath;
         } else {
-            urlPath = API_PATH;
+            urlPath = apiPath;
         }
     } else if (_.isString(context) && _.indexOf(_.keys(knownPaths), context) !== -1) {
         // trying to create a url for a named path
@@ -325,7 +339,7 @@ function urlFor(context, data, absolute) {
 
     // This url already has a protocol so is likely an external url to be returned
     // or it is an alternative scheme, protocol-less, or an anchor-only path
-    if (urlPath && (urlPath.indexOf('://') !== -1 || urlPath.match(/^(\/\/|#|[a-zA-Z0-9\-]+:)/))) {
+    if (urlPath && (urlPath.indexOf('://') !== -1 || urlPath.match(/^(\/\/|#|[a-zA-Z0-9-]+:)/))) {
         return urlPath;
     }
 

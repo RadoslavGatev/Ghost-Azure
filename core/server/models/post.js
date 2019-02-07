@@ -504,7 +504,7 @@ Post = ghostBookshelf.Model.extend({
             'CASE WHEN posts.status = \'scheduled\' THEN 1 ' +
             'WHEN posts.status = \'draft\' THEN 2 ' +
             'ELSE 3 END ASC,' +
-            'posts.published_at DESC,' +
+            'CASE WHEN posts.status != \'draft\' THEN posts.published_at END DESC,' +
             'posts.updated_at DESC,' +
             'posts.id DESC';
     },
@@ -554,7 +554,7 @@ Post = ghostBookshelf.Model.extend({
      * @return {Array} Keys allowed in the `options` hash of the model's method.
      */
     permittedOptions: function permittedOptions(methodName) {
-        var options = ghostBookshelf.Model.permittedOptions(methodName),
+        var options = ghostBookshelf.Model.permittedOptions.call(this, methodName),
 
             // whitelists for the `options` hash argument on methods, by method name.
             // these are the only options that can be passed to Bookshelf / Knex.

@@ -4,7 +4,7 @@
 // Ghost's JSON API is integral to the workings of Ghost, regardless of whether you want to access data internally,
 // from a theme, an app, or from an external app, you'll use the Ghost JSON API to do so.
 
-var _ = require('lodash'),
+const {isEmpty} = require('lodash'),
     Promise = require('bluebird'),
     models = require('../models'),
     urlService = require('../services/url'),
@@ -29,9 +29,9 @@ var _ = require('lodash'),
     exporter = require('../data/exporter'),
     slack = require('./slack'),
     webhooks = require('./webhooks'),
-    oembed = require('./oembed'),
+    oembed = require('./oembed');
 
-    http,
+let http,
     addHeaders,
     cacheInvalidationHeader,
     locationHeader,
@@ -67,14 +67,15 @@ function isActiveThemeUpdate(method, endpoint, result) {
  * @param {Object} result API method result
  * @return {String} Resolves to header string
  */
-cacheInvalidationHeader = function cacheInvalidationHeader(req, result) {
-    var parsedUrl = req._parsedUrl.pathname.replace(/^\/|\/$/g, '').split('/'),
+cacheInvalidationHeader = (req, result) => {
+    const parsedUrl = req._parsedUrl.pathname.replace(/^\/|\/$/g, '').split('/'),
         method = req.method,
         endpoint = parsedUrl[0],
         subdir = parsedUrl[1],
         jsonResult = result.toJSON ? result.toJSON() : result,
-        INVALIDATE_ALL = '/*',
-        post,
+        INVALIDATE_ALL = '/*';
+
+    let post,
         hasStatusChanged,
         wasPublishedUpdated;
 
@@ -122,16 +123,16 @@ cacheInvalidationHeader = function cacheInvalidationHeader(req, result) {
  * @param {Object} result API method result
  * @return {String} Resolves to header string
  */
-locationHeader = function locationHeader(req, result) {
-    var apiRoot = urlService.utils.urlFor('api'),
-        location,
+locationHeader = (req, result) => {
+    const apiRoot = urlService.utils.urlFor('api', {version: 'stable'});
+    let location,
         newObject,
         statusQuery;
 
     if (req.method === 'POST') {
         if (result.hasOwnProperty('posts')) {
             newObject = result.posts[0];
-            statusQuery = '/?status=' + newObject.status;
+            statusQuery = `/?status=${newObject.status}`;
             location = urlService.utils.urlJoin(apiRoot, 'posts', newObject.id, statusQuery);
         } else if (result.hasOwnProperty('notifications')) {
             newObject = result.notifications[0];
@@ -166,18 +167,18 @@ locationHeader = function locationHeader(req, result) {
  * @return {string}
  */
 
-contentDispositionHeaderExport = function contentDispositionHeaderExport() {
-    return exporter.fileName().then(function then(filename) {
-        return 'Attachment; filename="' + filename + '"';
+contentDispositionHeaderExport = () => {
+    return exporter.fileName().then((filename) => {
+        return `Attachment; filename="${filename}"`;
     });
 };
 
-contentDispositionHeaderSubscribers = function contentDispositionHeaderSubscribers() {
-    var datetime = (new Date()).toJSON().substring(0, 10);
-    return Promise.resolve('Attachment; filename="subscribers.' + datetime + '.csv"');
+contentDispositionHeaderSubscribers = () => {
+    const datetime = (new Date()).toJSON().substring(0, 10);
+    return Promise.resolve(`Attachment; filename="subscribers.${datetime}.csv"`);
 };
 
-contentDispositionHeaderRedirects = function contentDispositionHeaderRedirects() {
+contentDispositionHeaderRedirects = () => {
     return Promise.resolve('Attachment; filename="redirects.json"');
 };
 
@@ -185,8 +186,8 @@ contentDispositionHeaderRoutes = () => {
     return Promise.resolve('Attachment; filename="routes.yaml"');
 };
 
-addHeaders = function addHeaders(apiMethod, req, res, result) {
-    var cacheInvalidation,
+addHeaders = (apiMethod, req, res, result) => {
+    let cacheInvalidation,
         location,
         contentDisposition;
 
@@ -208,7 +209,7 @@ addHeaders = function addHeaders(apiMethod, req, res, result) {
     // Add Export Content-Disposition Header
     if (apiMethod === db.exportContent) {
         contentDisposition = contentDispositionHeaderExport()
-            .then(function addContentDispositionHeaderExport(header) {
+            .then((header) => {
                 res.set({
                     'Content-Disposition': header
                 });
@@ -218,7 +219,7 @@ addHeaders = function addHeaders(apiMethod, req, res, result) {
     // Add Subscribers Content-Disposition Header
     if (apiMethod === subscribers.exportCSV) {
         contentDisposition = contentDispositionHeaderSubscribers()
-            .then(function addContentDispositionHeaderSubscribers(header) {
+            .then((header) => {
                 res.set({
                     'Content-Disposition': header,
                     'Content-Type': 'text/csv'
@@ -229,7 +230,7 @@ addHeaders = function addHeaders(apiMethod, req, res, result) {
     // Add Redirects Content-Disposition Header
     if (apiMethod === redirects.download) {
         contentDisposition = contentDispositionHeaderRedirects()
-            .then(function contentDispositionHeaderRedirects(header) {
+            .then((header) => {
                 res.set({
                     'Content-Disposition': header,
                     'Content-Type': 'application/json',
@@ -263,11 +264,11 @@ addHeaders = function addHeaders(apiMethod, req, res, result) {
  * @param {Function} apiMethod API method to call
  * @return {Function} middleware format function to be called by the route when a matching request is made
  */
-http = function http(apiMethod) {
+http = (apiMethod) => {
     return function apiHandler(req, res, next) {
         // We define 2 properties for using as arguments in API calls:
         let object = req.body,
-            options = _.extend({}, req.file, {ip: req.ip}, req.query, req.params, {
+            options = Object.assign({}, req.file, {ip: req.ip}, req.query, req.params, {
                 context: {
                     // @TODO: forward the client and user obj (options.context.user.id)
                     user: ((req.user && req.user.id) || (req.user && models.User.isExternalUser(req.user.id))) ? req.user.id : null,
@@ -282,15 +283,15 @@ http = function http(apiMethod) {
 
         // If this is a GET, or a DELETE, req.body should be null, so we only have options (route and query params)
         // If this is a PUT, POST, or PATCH, req.body is an object
-        if (_.isEmpty(object)) {
+        if (isEmpty(object)) {
             object = options;
             options = {};
         }
 
-        return apiMethod(object, options).tap(function onSuccess(response) {
+        return apiMethod(object, options).tap((response) => {
             // Add X-Cache-Invalidate, Location, and Content-Disposition headers
             return addHeaders(apiMethod, req, res, (response || {}));
-        }).then(function then(response) {
+        }).then((response) => {
             if (req.method === 'DELETE') {
                 return res.status(204).end();
             }
@@ -303,13 +304,13 @@ http = function http(apiMethod) {
 
             // CASE: api method response wants to handle the express response
             // example: serve files (stream)
-            if (_.isFunction(response)) {
+            if (typeof response === 'function') {
                 return response(req, res, next);
             }
 
             // Send a properly formatting HTTP response containing the data with correct headers
             res.json(response || {});
-        }).catch(function onAPIError(error) {
+        }).catch((error) => {
             // To be handled by the API middleware
             next(error);
         });
