@@ -53,6 +53,7 @@ ghostBookshelf.plugin(plugins.hasPosts);
 ghostBookshelf.plugin('bookshelf-relations', {
     allowedOptions: ['context', 'importing', 'migrating'],
     unsetRelations: true,
+    extendChanged: '_changed',
     hooks: {
         belongsToMany: {
             after: function (existing, targets, options) {
@@ -115,9 +116,13 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
      * If the query runs in a txn, `_previousAttributes` will be empty.
      */
     emitChange: function (model, event, options) {
-        debug(model.tableName, event);
-
         if (!options.transacting) {
+            if (model._changed && !Object.keys(model._changed).length) {
+                return;
+            }
+
+            debug(`event trigger without txn: ${event}`);
+
             return common.events.emit(event, model, options);
         }
 
@@ -137,6 +142,11 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
                 }
 
                 _.each(this.ghostEvents, (ghostEvent) => {
+                    if (model._changed && !Object.keys(model._changed).length) {
+                        return;
+                    }
+
+                    debug(`event: ${ghostEvent}`);
                     common.events.emit(ghostEvent, model, _.omit(options, 'transacting'));
                 });
 
@@ -191,7 +201,7 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
             self.on(eventName, self[functionName]);
         });
 
-        // NOTE: Please keep here. If we don't initialize the parent, bookshelf-relations won't work.
+        // @NOTE: Please keep here. If we don't initialize the parent, bookshelf-relations won't work.
         proto.initialize.call(this);
     },
 
@@ -201,7 +211,6 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
      */
     onValidate: function onValidate(model, columns, options) {
         this.setEmptyValuesToNull();
-
         return validation.validateSchema(this.tableName, this, options);
     },
 
@@ -280,23 +289,27 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
      *
      * @deprecated: x_by fields (https://github.com/TryGhost/Ghost/issues/10286)
      */
-    onUpdating: function onUpdating(newObj, attr, options) {
+    onUpdating: function onUpdating(model, attr, options) {
+        if (this.relationships) {
+            model.changed = _.omit(model.changed, this.relationships);
+        }
+
         if (schema.tables[this.tableName].hasOwnProperty('updated_by')) {
             if (!options.importing && !options.migrating) {
                 this.set('updated_by', this.contextUser(options));
             }
         }
 
-        if (options && options.context && !options.internal && !options.importing) {
+        if (options && options.context && !options.context.internal && !options.importing) {
             if (schema.tables[this.tableName].hasOwnProperty('created_at')) {
-                if (newObj.hasDateChanged('created_at', {beforeWrite: true})) {
-                    newObj.set('created_at', this.previous('created_at'));
+                if (model.hasDateChanged('created_at', {beforeWrite: true})) {
+                    model.set('created_at', this.previous('created_at'));
                 }
             }
 
             if (schema.tables[this.tableName].hasOwnProperty('created_by')) {
-                if (newObj.hasChanged('created_by')) {
-                    newObj.set('created_by', this.previous('created_by'));
+                if (model.hasChanged('created_by')) {
+                    model.set('created_by', this.previous('created_by'));
                 }
             }
         }
@@ -304,13 +317,16 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
         // CASE: do not allow setting only the `updated_at` field, exception: importing
         if (schema.tables[this.tableName].hasOwnProperty('updated_at') && !options.importing) {
             if (options.migrating) {
-                newObj.set('updated_at', newObj.previous('updated_at'));
-            } else if (newObj.hasChanged() && Object.keys(newObj.changed).length === 1 && newObj.changed.updated_at) {
-                newObj.set('updated_at', newObj.previous('updated_at'));
+                model.set('updated_at', model.previous('updated_at'));
+            } else if (Object.keys(model.changed).length === 1 && model.changed.updated_at) {
+                model.set('updated_at', model.previous('updated_at'));
+                delete model.changed.updated_at;
             }
         }
 
-        return Promise.resolve(this.onValidate(newObj, attr, options));
+        model._changed = _.cloneDeep(model.changed);
+
+        return Promise.resolve(this.onValidate(model, attr, options));
     },
 
     /**
@@ -374,20 +390,16 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
         return attrs;
     },
 
-    // Sets given values to `null`
+    getNullableStringProperties() {
+        const table = schema.tables[this.tableName];
+        return Object.keys(table).filter(column => table[column].nullable);
+    },
+
     setEmptyValuesToNull: function setEmptyValuesToNull() {
-        var self = this,
-            attr;
-
-        if (!this.emptyStringProperties) {
-            return;
-        }
-
-        attr = this.emptyStringProperties();
-
-        _.each(attr, function (value) {
-            if (self.get(value) === '') {
-                self.set(value, null);
+        const nullableStringProps = this.getNullableStringProperties();
+        return nullableStringProps.forEach((prop) => {
+            if (this.get(prop) === '') {
+                this.set(prop, null);
             }
         });
     },
@@ -423,7 +435,7 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
              * use ID '1'. This logic exists for a LONG while now. The owner ID only changes from '1' to something else,
              * if you transfer ownership.
              *
-             * @TODO: Update this code section as soon as we have decided between `context.api_key_id` and `context.integration`
+             * @TODO: Update this code section as soon as we have decided between `context.api_key` and `context.integration`
              */
             return ghostBookshelf.Model.internalUser;
         } else if (options.context.internal) {
@@ -519,6 +531,8 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
             return baseOptions.concat(extraOptions, ['require']);
         case 'findAll':
             return baseOptions.concat(extraOptions, ['columns']);
+        case 'findPage':
+            return baseOptions.concat(extraOptions, ['filter', 'order', 'page', 'limit', 'columns']);
         default:
             return baseOptions.concat(extraOptions);
         }

@@ -49,13 +49,6 @@ Tag = ghostBookshelf.Model.extend({
         }
     },
 
-    emptyStringProperties: function emptyStringProperties() {
-        // CASE: the client might send empty image properties with "" instead of setting them to null.
-        // This can cause GQL to fail. We therefore enforce 'null' for empty image properties.
-        // See https://github.com/TryGhost/GQL/issues/24
-        return ['feature_image'];
-    },
-
     posts: function posts() {
         return this.belongsToMany('Post');
     },
@@ -81,7 +74,6 @@ Tag = ghostBookshelf.Model.extend({
             // whitelists for the `options` hash argument on methods, by method name.
             // these are the only options that can be passed to Bookshelf / Knex.
             validOptions = {
-                findPage: ['page', 'limit', 'columns', 'filter', 'order'],
                 findAll: ['columns'],
                 findOne: ['visibility'],
                 destroy: ['destroyAll']

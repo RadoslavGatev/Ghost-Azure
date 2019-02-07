@@ -38,8 +38,9 @@ const mapPost = (model, frame) => {
         date.forPost(jsonModel);
         members.forPost(jsonModel, frame);
         extraAttrs.forPost(frame, model, jsonModel);
-        clean.post(jsonModel);
     }
+
+    clean.post(jsonModel, frame);
 
     if (frame.options && frame.options.withRelated) {
         frame.options.withRelated.forEach((relation) => {
@@ -76,7 +77,27 @@ const mapSettings = (attrs) => {
     return attrs;
 };
 
+const mapIntegration = (model, frame) => {
+    const jsonModel = model.toJSON ? model.toJSON(frame.options) : model;
+
+    if (jsonModel.api_keys) {
+        jsonModel.api_keys.forEach((key) => {
+            if (key.type === 'admin') {
+                key.secret = `${key.id}:${key.secret}`;
+            }
+        });
+    }
+
+    return jsonModel;
+};
+
+const mapImage = (path) => {
+    return url.forImage(path);
+};
+
 module.exports.mapPost = mapPost;
 module.exports.mapUser = mapUser;
 module.exports.mapTag = mapTag;
+module.exports.mapIntegration = mapIntegration;
 module.exports.mapSettings = mapSettings;
+module.exports.mapImage = mapImage;
