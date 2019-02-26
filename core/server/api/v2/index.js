@@ -67,16 +67,12 @@ module.exports = {
         return shared.pipeline(require('./members'), localUtils);
     },
 
-    get upload() {
-        return shared.pipeline(require('./upload'), localUtils);
+    get images() {
+        return shared.pipeline(require('./images'), localUtils);
     },
 
     get tags() {
         return shared.pipeline(require('./tags'), localUtils);
-    },
-
-    get tagsPublic() {
-        return shared.pipeline(require('./tags-public'), localUtils);
     },
 
     get users() {
@@ -95,16 +91,8 @@ module.exports = {
         return shared.pipeline(require('./slack'), localUtils);
     },
 
-    get authors() {
-        return shared.pipeline(require('./authors'), localUtils);
-    },
-
-    get configuration() {
-        return shared.pipeline(require('./configuration'), localUtils);
-    },
-
-    get publicSettings() {
-        return shared.pipeline(require('./settings-public'), localUtils);
+    get config() {
+        return shared.pipeline(require('./config'), localUtils);
     },
 
     get themes() {
@@ -115,7 +103,39 @@ module.exports = {
         return shared.pipeline(require('./actions'), localUtils);
     },
 
+    get site() {
+        return shared.pipeline(require('./site'), localUtils);
+    },
+
     get serializers() {
         return require('./utils/serializers');
+    },
+
+    /**
+     * Content API Controllers
+     *
+     * @NOTE:
+     *
+     * Please create separate controllers for Content & Admin API. The goal is to expose `api.v2.content` and
+     * `api.v2.admin` soon. Need to figure out how serializers & validation works then.
+     */
+    get pagesPublic() {
+        return shared.pipeline(require('./pages-public'), localUtils, 'content');
+    },
+
+    get tagsPublic() {
+        return shared.pipeline(require('./tags-public'), localUtils, 'content');
+    },
+
+    get publicSettings() {
+        return shared.pipeline(require('./settings-public'), localUtils, 'content');
+    },
+
+    get postsPublic() {
+        return shared.pipeline(require('./posts-public'), localUtils, 'content');
+    },
+
+    get authorsPublic() {
+        return shared.pipeline(require('./authors-public'), localUtils, 'content');
     }
 };

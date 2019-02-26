@@ -1,62 +1,69 @@
-const Promise = require('bluebird');
 const common = require('../../lib/common');
 const models = require('../../models');
-const ALLOWED_INCLUDES = ['count.posts'];
+const ALLOWED_INCLUDES = ['tags', 'authors'];
 
 module.exports = {
-    docName: 'authors',
+    docName: 'pages',
 
     browse: {
         options: [
             'include',
             'filter',
             'fields',
+            'formats',
+            'absolute_urls',
+            'page',
             'limit',
-            'status',
             'order',
-            'page'
+            'debug'
         ],
         validation: {
             options: {
                 include: {
                     values: ALLOWED_INCLUDES
+                },
+                formats: {
+                    values: models.Post.allowedFormats
                 }
             }
         },
         permissions: true,
         query(frame) {
-            return models.Author.findPage(frame.options);
+            return models.Post.findPage(frame.options);
         }
     },
 
     read: {
         options: [
             'include',
-            'filter',
-            'fields'
+            'fields',
+            'formats',
+            'debug',
+            'absolute_urls'
         ],
         data: [
             'id',
             'slug',
-            'status',
-            'email',
-            'role'
+            'uuid'
         ],
         validation: {
             options: {
                 include: {
                     values: ALLOWED_INCLUDES
+                },
+                formats: {
+                    values: models.Post.allowedFormats
                 }
             }
         },
         permissions: true,
         query(frame) {
-            return models.Author.findOne(frame.data, frame.options)
+            return models.Post.findOne(frame.data, frame.options)
                 .then((model) => {
                     if (!model) {
-                        return Promise.reject(new common.errors.NotFoundError({
-                            message: common.i18n.t('errors.api.authors.notFound')
-                        }));
+                        throw new common.errors.NotFoundError({
+                            message: common.i18n.t('errors.api.pages.pageNotFound')
+                        });
                     }
 
                     return model;

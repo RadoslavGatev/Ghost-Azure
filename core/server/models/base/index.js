@@ -173,9 +173,7 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
      * If the query runs in a txn, `_previousAttributes` will be empty.
      */
     emitChange: function (model, event, options) {
-        debug(model.tableName, event);
-
-        const _emit = (ghostEvent, model) => {
+        const _emit = (ghostEvent, model, opts) => {
             if (!model.wasChanged()) {
                 return;
             }
@@ -183,7 +181,7 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
             debug(model.tableName, ghostEvent);
 
             // @NOTE: Internal Ghost events. These are very granular e.g. post.published
-            common.events.emit(ghostEvent, model, _.omit(options, 'transacting'));
+            common.events.emit(ghostEvent, model, opts);
         };
 
         if (!options.transacting) {
@@ -205,15 +203,21 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
                     return;
                 }
 
-                _.each(this.ghostEvents, (ghostEvent) => {
-                    _emit(ghostEvent, model, options);
+                _.each(this.ghostEvents, (obj) => {
+                    _emit(obj.event, model, obj.options);
                 });
 
                 delete model.ghostEvents;
             });
         }
 
-        model.ghostEvents.push(event);
+        model.ghostEvents.push({
+            event: event,
+            options: {
+                importing: options.importing,
+                context: options.context
+            }
+        });
     },
 
     // Bookshelf `initialize` - declare a constructor-like method for model creation
@@ -311,13 +315,13 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
     onCreating: function onCreating(model, attr, options) {
         if (schema.tables[this.tableName].hasOwnProperty('created_by')) {
             if (!options.importing || (options.importing && !this.get('created_by'))) {
-                this.set('created_by', this.contextUser(options));
+                this.set('created_by', String(this.contextUser(options)));
             }
         }
 
         if (schema.tables[this.tableName].hasOwnProperty('updated_by')) {
             if (!options.importing) {
-                this.set('updated_by', this.contextUser(options));
+                this.set('updated_by', String(this.contextUser(options)));
             }
         }
 
@@ -377,7 +381,7 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
 
         if (schema.tables[this.tableName].hasOwnProperty('updated_by')) {
             if (!options.importing && !options.migrating) {
-                this.set('updated_by', this.contextUser(options));
+                this.set('updated_by', String(this.contextUser(options)));
             }
         }
 
@@ -390,7 +394,7 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
 
             if (schema.tables[this.tableName].hasOwnProperty('created_by')) {
                 if (model.hasChanged('created_by')) {
-                    model.set('created_by', this.previous('created_by'));
+                    model.set('created_by', String(this.previous('created_by')));
                 }
             }
         }
@@ -595,18 +599,20 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
         const options = ghostBookshelf.Model.filterOptions(unfilteredOptions, 'toJSON');
         options.omitPivot = true;
 
+        // CASE: get JSON of previous attrs
         if (options.previous) {
-            const attrs = {};
-            const relations = {};
+            const clonedModel = _.cloneDeep(this);
+            clonedModel.attributes = this._previousAttributes;
 
-            if (this._previousRelations) {
-                _.each(Object.keys(this._previousRelations), (key) => {
-                    relations[key] = this._previousRelations[key].toJSON();
+            if (this.relationships) {
+                this.relationships.forEach((relation) => {
+                    if (this._previousRelations && this._previousRelations.hasOwnProperty(relation)) {
+                        clonedModel.related(relation).models = this._previousRelations[relation].models;
+                    }
                 });
             }
 
-            Object.assign(attrs, this._previousAttributes, relations);
-            return attrs;
+            return proto.toJSON.call(clonedModel, options);
         }
 
         return proto.toJSON.call(this, options);
@@ -917,9 +923,16 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
      * @return {Promise(ghostBookshelf.Model)} Single Model
      */
     findOne: function findOne(data, unfilteredOptions) {
-        var options = this.filterOptions(unfilteredOptions, 'findOne');
+        const options = this.filterOptions(unfilteredOptions, 'findOne');
         data = this.filterData(data);
-        return this.forge(data).fetch(options);
+        const model = this.forge(data);
+
+        // @NOTE: The API layer decides if this option is allowed
+        if (options.filter) {
+            model.applyDefaultAndCustomFilters(options);
+        }
+
+        return model.fetch(options);
     },
 
     /**
@@ -940,17 +953,26 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
 
         data = this.filterData(data);
 
+        // @NOTE: The API layer decides if this option is allowed
+        if (options.filter) {
+            model.applyDefaultAndCustomFilters(options);
+        }
+
         // We allow you to disable timestamps when run migration, so that the posts `updated_at` value is the same
         if (options.importing) {
             model.hasTimestamps = false;
         }
 
-        return model.fetch(options).then(function then(object) {
-            if (object) {
-                options.method = 'update';
-                return object.save(data, options);
-            }
-        });
+        return model
+            .fetch(options)
+            .then((object) => {
+                if (object) {
+                    options.method = 'update';
+                    return object.save(data, options);
+                }
+
+                throw new common.errors.NotFoundError();
+            });
     },
 
     /**
@@ -987,6 +1009,7 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
      */
     destroy: function destroy(unfilteredOptions) {
         const options = this.filterOptions(unfilteredOptions, 'destroy');
+
         if (!options.destroyBy) {
             options.destroyBy = {
                 id: options.id

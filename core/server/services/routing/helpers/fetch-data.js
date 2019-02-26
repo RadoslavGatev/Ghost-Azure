@@ -4,12 +4,14 @@
  */
 const _ = require('lodash');
 const Promise = require('bluebird');
+const config = require('../../../config');
 
 // The default settings for a default post query
+// @TODO: get rid of this config and use v0.1 or v2 config
 const queryDefaults = {
     type: 'browse',
     resource: 'posts',
-    controller: 'posts',
+    controller: 'postsPublic',
     options: {}
 };
 
@@ -50,8 +52,11 @@ function processQuery(query, slugParam, locals) {
         query.options[name] = _.isString(option) ? option.replace(/%s/g, slugParam) : option;
     });
 
+    if (config.get('enableDeveloperExperiments')) {
+        query.options.context = {member: locals.member};
+    }
     // Return a promise for the api query
-    return api[query.controller][query.type](query.options);
+    return (api[query.controller] || api[query.resource])[query.type](query.options);
 }
 
 /**

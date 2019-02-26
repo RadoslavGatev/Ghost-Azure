@@ -59,8 +59,8 @@ module.exports = {
         return require('./members');
     },
 
-    get upload() {
-        return require('./upload');
+    get images() {
+        return require('./images');
     },
 
     get tags() {
@@ -83,8 +83,8 @@ module.exports = {
         return require('./authors');
     },
 
-    get configuration() {
-        return require('./configuration');
+    get config() {
+        return require('./config');
     },
 
     get themes() {
@@ -93,5 +93,9 @@ module.exports = {
 
     get actions() {
         return require('./actions');
+    },
+
+    get site() {
+        return require('./site');
     }
 };

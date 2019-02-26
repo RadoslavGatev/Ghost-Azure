@@ -92,7 +92,7 @@ const STAGES = {
     }
 };
 
-const pipeline = (apiController, apiUtils) => {
+const pipeline = (apiController, apiUtils, apiType) => {
     const keys = Object.keys(apiController);
 
     // CASE: api controllers are objects with configuration.
@@ -137,6 +137,10 @@ const pipeline = (apiController, apiUtils) => {
                 debug('ctrl function call');
                 return apiImpl(frame);
             }
+
+            frame.apiType = apiType;
+            frame.docName = docName;
+            frame.method = method;
 
             return Promise.resolve()
                 .then(() => {

@@ -33,9 +33,6 @@
                 "featured": {
                     "type": "boolean"
                 },
-                "page": {
-                    "type": "boolean"
-                },
                 "status": {
                     "type": "string",
                     "enum": ["published", "draft", "scheduled"]
@@ -115,6 +112,15 @@
                 "id": {
                     "strip": true
                 },
+                "author": {
+                    "strip": true
+                },
+                "author_id": {
+                    "strip": true
+                },
+                "page": {
+                    "strip": true
+                },
                 "created_at": {
                     "strip": true
                 },
@@ -126,6 +132,21 @@
                 },
                 "published_by": {
                     "strip": true
+                },
+                "url": {
+                    "strip": true
+                },
+                "primary_tag": {
+                    "strip": true
+                },
+                "primary_author": {
+                    "strip": true
+                },
+                "excerpt": {
+                    "strip": true
+                },
+                "plaintext": {
+                    "strip": true
                 }
             }
         },
@@ -133,67 +154,77 @@
             "description": "Authors of the post",
             "type": "array",
             "items": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "maxLength": 24
+                "anyOf": [{
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "string",
+                            "maxLength": 24
+                        },
+                        "slug": {
+                            "type": "string",
+                            "maxLength": 191
+                        },
+                        "email": {
+                            "type": "string",
+                            "maxLength": 191
+                        },
+                        "roles": {
+                            "strip": true
+                        },
+                        "permissions": {
+                            "strip": true
+                        }
                     },
-                    "slug": {
-                        "type": "string",
-                        "maxLength": 191
-                    },
-                    "email": {
-                        "type": "string",
-                        "maxLength": 191
-                    },
-                    "roles": {
-                        "strip": true
-                    },
-                    "permissions": {
-                        "strip": true
-                    }
-                },
-                "anyOf": [
-                    {"required": ["id"]},
-                    {"required": ["slug"]},
-                    {"required": ["email"]}
-                ]
+                    "anyOf": [
+                        {"required": ["id"]},
+                        {"required": ["slug"]},
+                        {"required": ["email"]}
+                    ]
+                }, {
+                    "type": "string",
+                    "maxLength": 191
+                }]
             }
         },
         "post-tags": {
             "description": "Tags of the post",
             "type": "array",
             "items": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "maxLength": 24
+                "anyOf": [{
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "string",
+                            "maxLength": 24
+                        },
+                        "name": {
+                            "type": "string",
+                            "maxLength": 191
+                        },
+                        "slug": {
+                            "type": ["string", "null"],
+                            "maxLength": 191
+                        },
+                        "parent": {
+                            "strip": true
+                        },
+                        "parent_id": {
+                            "strip": true
+                        },
+                        "posts": {
+                            "strip": true
+                        }
                     },
-                    "name": {
-                        "type": "string",
-                        "maxLength": 191
-                    },
-                    "slug": {
-                        "type": ["string", "null"],
-                        "maxLength": 191
-                    },
-                    "parent": {
-                        "strip": true
-                    },
-                    "parent_id": {
-                        "strip": true
-                    },
-                    "posts": {
-                        "strip": true
-                    }
-                },
-                "anyOf": [
-                    {"required": ["id"]},
-                    {"required": ["name"]},
-                    {"required": ["slug"]}
-                ]
+                    "anyOf": [
+                        {"required": ["id"]},
+                        {"required": ["name"]},
+                        {"required": ["slug"]}
+                    ]
+                }, {
+                    "type": "string",
+                    "maxLength": 191
+                }]
             }
         }
     }

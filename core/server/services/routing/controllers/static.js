@@ -1,7 +1,8 @@
 const _ = require('lodash'),
     Promise = require('bluebird'),
     debug = require('ghost-ignition').debug('services:routing:controllers:static'),
-    helpers = require('../helpers');
+    helpers = require('../helpers'),
+    config = require('../../../config');
 
 function processQuery(query, locals) {
     const api = require('../../../api')[locals.apiVersion];
@@ -14,6 +15,14 @@ function processQuery(query, locals) {
     if (_.get(query, 'resource') === 'posts') {
         _.extend(query.options, {
             include: 'author,authors,tags'
+        });
+    }
+
+    if (config.get('enableDeveloperExperiments')) {
+        Object.assign(query.options, {
+            context: {
+                members: locals.member
+            }
         });
     }
 

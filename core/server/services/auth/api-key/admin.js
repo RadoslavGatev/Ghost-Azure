@@ -60,12 +60,12 @@ const authenticate = (req, res, next) => {
         }));
     }
 
-    const apiKeyId = decoded.payload.kid;
+    const apiKeyId = decoded.header.kid;
 
     if (!apiKeyId) {
         return next(new common.errors.BadRequestError({
-            message: common.i18n.t('errors.middleware.auth.adminApiKeyMissing'),
-            code: 'MISSING_ADMIN_API_KEY'
+            message: common.i18n.t('errors.middleware.auth.adminApiKidMissing'),
+            code: 'MISSING_ADMIN_API_KID'
         }));
     }
 
@@ -90,9 +90,10 @@ const authenticate = (req, res, next) => {
         // https://github.com/auth0/node-jsonwebtoken/issues/208#issuecomment-231861138
         const secret = Buffer.from(apiKey.get('secret'), 'hex');
 
-        // ensure the token was meant for this endpoint
+        // @TODO When v3 api hits we should check against the api actually being used
+        // ensure the token was meant for this api
         const options = Object.assign({
-            audience: req.originalUrl
+            audience: '/v2/admin/'
         }, JWT_OPTIONS);
 
         try {

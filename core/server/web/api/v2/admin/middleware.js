@@ -11,15 +11,16 @@ const notImplemented = function (req, res, next) {
     // @NOTE: integrations have limited access for now
     const whitelisted = {
         // @NOTE: stable
+        site: ['GET'],
         posts: ['GET', 'PUT', 'DELETE', 'POST'],
-        tags: ['GET', 'PUT', 'DELETE', 'POST'],
+        pages: ['GET', 'PUT', 'DELETE', 'POST'],
         images: ['POST'],
         // @NOTE: experimental
+        tags: ['GET', 'PUT', 'DELETE', 'POST'],
         users: ['GET'],
         themes: ['POST'],
         subscribers: ['GET', 'PUT', 'DELETE', 'POST'],
-        configuration: ['GET'],
-        actions: ['GET'],
+        config: ['GET'],
         webhooks: ['POST', 'DELETE']
     };
 

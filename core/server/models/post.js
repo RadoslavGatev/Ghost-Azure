@@ -342,8 +342,9 @@ Post = ghostBookshelf.Model.extend({
             this.set('mobiledoc', JSON.stringify(converters.mobiledocConverter.blankStructure()));
         }
 
-        // render mobiledoc to HTML
-        if (this.hasChanged('mobiledoc') || !this.get('html')) {
+        // CASE: mobiledoc has changed, generate html
+        // CASE: html is null, but mobiledoc exists (only important for migrations & importing)
+        if (this.hasChanged('mobiledoc') || (!this.get('html') && (options.migrating || options.importing))) {
             try {
                 this.set('html', converters.mobiledocConverter.render(JSON.parse(this.get('mobiledoc'))));
             } catch (err) {
@@ -388,12 +389,12 @@ Post = ghostBookshelf.Model.extend({
         if (newStatus === 'published' && this.hasChanged('status')) {
             // unless published_by is set and we're importing, set published_by to contextUser
             if (!(this.get('published_by') && options.importing)) {
-                this.set('published_by', this.contextUser(options));
+                this.set('published_by', String(this.contextUser(options)));
             }
         } else {
             // In any other case (except import), `published_by` should not be changed
             if (this.hasChanged('published_by') && !options.importing) {
-                this.set('published_by', this.previous('published_by') || null);
+                this.set('published_by', this.previous('published_by') ? String(this.previous('published_by')) : null);
             }
         }
 
@@ -701,10 +702,11 @@ Post = ghostBookshelf.Model.extend({
             // whitelists for the `options` hash argument on methods, by method name.
             // these are the only options that can be passed to Bookshelf / Knex.
             validOptions = {
-                findOne: ['columns', 'importing', 'withRelated', 'require'],
+                findOne: ['columns', 'importing', 'withRelated', 'require', 'filter'],
                 findPage: ['status', 'staticPages'],
                 findAll: ['columns', 'filter'],
-                destroy: ['destroyAll']
+                destroy: ['destroyAll', 'destroyBy'],
+                edit: ['filter']
             };
 
         // The post model additionally supports having a formats option
@@ -752,10 +754,11 @@ Post = ghostBookshelf.Model.extend({
      * @extends ghostBookshelf.Model.findOne to handle post status
      * **See:** [ghostBookshelf.Model.findOne](base.js.html#Find%20One)
      */
-    findOne: function findOne(data, options) {
-        data = _.defaults(data || {}, {
-            status: 'published'
-        });
+    findOne: function findOne(data = {}, options = {}) {
+        // @TODO: remove when we drop v0.1
+        if (!options.filter && !data.status) {
+            data.status = 'published';
+        }
 
         if (data.status === 'all') {
             delete data.status;

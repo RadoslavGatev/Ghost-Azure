@@ -22,9 +22,8 @@ function hideMembersOnlyContent(attrs, frame) {
         return BLOCK_CONTENT;
     }
 
-    const planRequired = membersService.api.paymentConfigured;
     const memberHasPlan = !!(frame.original.context.member.plans || []).length;
-    if (!planRequired) {
+    if (!membersService.api.isPaymentConfigured()) {
         return PERMIT_CONTENT;
     }
     if (memberHasPlan) {
@@ -47,6 +46,7 @@ const forPost = (attrs, frame) => {
 
         if (!origInclude || !origInclude.includes('tags')) {
             delete attrs.tags;
+            attrs.primary_tag = null;
         }
     }
 

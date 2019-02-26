@@ -5,7 +5,8 @@ const common = require('../../../../../lib/common');
 
 const validate = (schema, definitions, data) => {
     const ajv = new Ajv({
-        allErrors: true
+        allErrors: true,
+        useDefaults: true
     });
 
     stripKeyword(ajv);
@@ -28,6 +29,7 @@ const validate = (schema, definitions, data) => {
             message: common.i18n.t('notices.data.validation.index.schemaValidationFailed', {
                 key: key
             }),
+            property: key,
             errorDetails: validation.errors
         }));
     }

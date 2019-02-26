@@ -65,26 +65,29 @@ const response = {
 module.exports = (event, model) => {
     webhooks.getAll(event)
         .then((webhooks) => {
-            debug(`${webhooks.models.length} webhooks found.`);
+            debug(`${webhooks.models.length} webhooks found for ${event}.`);
 
             _.each(webhooks.models, (webhook) => {
-                const reqPayload = JSON.stringify(payload(webhook.get('event'), model));
-                const url = webhook.get('target_url');
-                const opts = {
-                    body: reqPayload,
-                    headers: {
-                        'Content-Length': Buffer.byteLength(reqPayload),
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 2 * 1000,
-                    retries: 5
-                };
+                payload(webhook.get('event'), model)
+                    .then((payload) => {
+                        const reqPayload = JSON.stringify(payload);
+                        const url = webhook.get('target_url');
+                        const opts = {
+                            body: reqPayload,
+                            headers: {
+                                'Content-Length': Buffer.byteLength(reqPayload),
+                                'Content-Type': 'application/json'
+                            },
+                            timeout: 2 * 1000,
+                            retries: 5
+                        };
 
-                common.logging.info(`Trigger Webhook for  "${webhook.get('event')}" with url "${url}".`);
+                        common.logging.info(`Trigger Webhook for  "${webhook.get('event')}" with url "${url}".`);
 
-                request(url, opts)
-                    .then(response.onSuccess(webhook))
-                    .catch(response.onError(webhook));
+                        request(url, opts)
+                            .then(response.onSuccess(webhook))
+                            .catch(response.onError(webhook));
+                    });
             });
         });
 };

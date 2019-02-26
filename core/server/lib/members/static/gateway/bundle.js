@@ -1,4 +1,4 @@
-/* global window document location fetch */
+/* global atob window document location fetch */
 (function () {
     if (window.parent === window) {
         return;
@@ -23,9 +23,88 @@
         };
     }
 
+    function isTokenExpired(token) {
+        const claims = getClaims(token);
+
+        if (!claims) {
+            return true;
+        }
+
+        const expiry = claims.exp * 1000;
+        const now = Date.now();
+
+        const nearFuture = now + (30 * 1000);
+
+        if (expiry < nearFuture) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function getClaims(token) {
+        try {
+            const [header, claims, signature] = token.split('.'); // eslint-disable-line no-unused-vars
+
+            const parsedClaims = JSON.parse(atob(claims.replace('+', '-').replace('/', '_')));
+
+            return parsedClaims;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function getStoredToken(audience) {
+        const tokenKey = 'members:token:aud:' + audience;
+        const storedToken = storage.getItem(tokenKey);
+        if (isTokenExpired(storedToken)) {
+            const storedTokenKeys = getStoredTokenKeys();
+            storage.setItem('members:tokens', JSON.stringify(storedTokenKeys.filter(key => key !== tokenKey)));
+            storage.removeItem(tokenKey);
+            return null;
+        }
+        return storedToken;
+    }
+
+    function getStoredTokenKeys() {
+        try {
+            return JSON.parse(storage.getItem('members:tokens') || '[]');
+        } catch (e) {
+            storage.removeItem('members:tokens');
+            return [];
+        }
+    }
+
+    function addStoredToken(audience, token) {
+        const storedTokenKeys = getStoredTokenKeys();
+        const tokenKey = 'members:token:aud:' + audience;
+
+        storage.setItem(tokenKey, token);
+        if (!storedTokenKeys.includes(tokenKey)) {
+            storage.setItem('members:tokens', JSON.stringify(storedTokenKeys.concat(tokenKey)));
+        }
+    }
+
+    function clearStorage() {
+        storage.removeItem('signedin');
+        const storedTokenKeys = getStoredTokenKeys();
+
+        storedTokenKeys.forEach(function (key) {
+            storage.removeItem(key);
+        });
+
+        storage.removeItem('members:tokens');
+    }
+
     // @TODO this needs to be configurable
     const membersApi = location.pathname.replace(/\/members\/gateway\/?$/, '/ghost/api/v2/members');
-    function getToken({audience}) {
+    function getToken({audience, fresh}) {
+        const storedToken = getStoredToken(audience);
+
+        if (storedToken && !fresh) {
+            return Promise.resolve(storedToken);
+        }
+
         return fetch(`${membersApi}/token`, {
             method: 'POST',
             headers: {
@@ -44,6 +123,11 @@
             }
             storage.setItem('signedin', true);
             return res.text();
+        }).then(function (token) {
+            if (token) {
+                addStoredToken(audience, token);
+            }
+            return token;
         });
     }
 
@@ -51,10 +135,9 @@
         if (storage.getItem('signedin')) {
             window.parent.postMessage({event: 'signedin'}, origin);
         } else {
-            window.parent.postMessage({event: 'signedout'}, origin);
+            getToken({audience: origin, fresh: true});
         }
 
-        getToken({audience: origin});
         return Promise.resolve();
     });
 
@@ -130,13 +213,13 @@
             })
         }).then((res) => {
             if (res.ok) {
-                storage.removeItem('signedin');
+                clearStorage();
             }
             return res.ok;
         });
     });
 
-    addMethod('requestPasswordReset', function signout({email}) {
+    addMethod('requestPasswordReset', function requestPasswordReset({email}) {
         return fetch(`${membersApi}/request-password-reset`, {
             method: 'POST',
             headers: {
@@ -151,7 +234,7 @@
         });
     });
 
-    addMethod('resetPassword', function signout({token, password}) {
+    addMethod('resetPassword', function resetPassword({token, password}) {
         return fetch(`${membersApi}/reset-password`, {
             method: 'POST',
             headers: {

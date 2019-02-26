@@ -17,13 +17,13 @@ var proxy = require('./proxy'),
 
 /**
  * v0.1: users, posts, tags
- * v2: authors, pages, posts, tagsPublic
+ * v2: authors, pagesPublic, posts, tagsPublic
  *
  * @NOTE: if you use "users" in v2, we should fallback to authors
  */
 const RESOURCES = {
     posts: {
-        alias: 'posts',
+        alias: 'postsPublic',
         resource: 'posts'
     },
     tags: {
@@ -31,15 +31,15 @@ const RESOURCES = {
         resource: 'tags'
     },
     users: {
-        alias: 'authors',
+        alias: 'authorsPublic',
         resource: 'users'
     },
     pages: {
-        alias: 'pages',
+        alias: 'pagesPublic',
         resource: 'posts'
     },
     authors: {
-        alias: 'authors'
+        alias: 'authorsPublic'
     }
 };
 
