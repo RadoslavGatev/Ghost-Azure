@@ -8,7 +8,7 @@ const extraAttrs = require('./extra-attrs');
 const mapUser = (model, frame) => {
     const jsonModel = model.toJSON ? model.toJSON(frame.options) : model;
 
-    url.forUser(model.id, jsonModel);
+    url.forUser(model.id, jsonModel, frame.options);
 
     clean.author(jsonModel, frame);
 
@@ -18,7 +18,7 @@ const mapUser = (model, frame) => {
 const mapTag = (model, frame) => {
     const jsonModel = model.toJSON ? model.toJSON(frame.options) : model;
 
-    url.forTag(model.id, jsonModel);
+    url.forTag(model.id, jsonModel, frame.options);
     clean.tag(jsonModel, frame);
 
     return jsonModel;
@@ -55,9 +55,9 @@ const mapPost = (model, frame) => {
     return jsonModel;
 };
 
-const mapSettings = (attrs) => {
+const mapSettings = (attrs, frame) => {
     url.forSettings(attrs);
-    extraAttrs.forSettings(attrs);
+    extraAttrs.forSettings(attrs, frame);
     return attrs;
 };
 

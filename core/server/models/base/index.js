@@ -687,7 +687,7 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
         case 'edit':
             return baseOptions.concat(extraOptions, ['id', 'require']);
         case 'findOne':
-            return baseOptions.concat(extraOptions, ['require']);
+            return baseOptions.concat(extraOptions, ['columns', 'require']);
         case 'findAll':
             return baseOptions.concat(extraOptions, ['columns']);
         case 'findPage':
@@ -930,6 +930,11 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
         // @NOTE: The API layer decides if this option is allowed
         if (options.filter) {
             model.applyDefaultAndCustomFilters(options);
+        }
+
+        // Ensure only valid fields/columns are added to query
+        if (options.columns) {
+            options.columns = _.intersection(options.columns, this.prototype.permittedAttributes());
         }
 
         return model.fetch(options);
