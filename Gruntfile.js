@@ -198,6 +198,12 @@ const configureGrunt = function (grunt) {
                     }
                 },
                 stderr: function (chunk) {
+                    // ember-data 3.6.0-3.7.0 outputs a "Circular dependency" warning which we want to ignore
+                    // TODO: remove after upgrading to ember-data 3.8.0 which already filters the output
+                    if (chunk.indexOf('Circular dependency') > -1) {
+                        return;
+                    }
+
                     hasBuiltClient = true;
                     grunt.log.error(chunk);
                 }
@@ -215,7 +221,10 @@ const configureGrunt = function (grunt) {
                     var upstream = grunt.option('upstream') || process.env.GHOST_UPSTREAM || 'upstream';
                     grunt.log.writeln('Pulling down the latest master from ' + upstream);
                     return `
-                        if ! git diff --exit-code --quiet; then
+                        git submodule sync
+                        git submodule update
+
+                        if ! git diff --exit-code --quiet --ignore-submodules=untracked; then
                             echo "Working directory is not clean, do you have uncommited changes? Please commit, stash or discard changes to continue."
                             exit 1
                         fi
