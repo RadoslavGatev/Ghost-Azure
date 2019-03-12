@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const url = require('./utils/url');
 
 module.exports = {
     read(apiConfig, frame) {
@@ -25,8 +26,16 @@ module.exports = {
                 setting.value = JSON.stringify(setting.value);
             }
 
+            // @TODO: handle these transformations in a centralised API place (these rules should apply for ALL resources)
+
+            // CASE: Ensure we won't forward strings, otherwise model events or model interactions can fail
             if (setting.value === '0' || setting.value === '1') {
                 setting.value = !!+setting.value;
+            }
+
+            // CASE: Ensure we won't forward strings, otherwise model events or model interactions can fail
+            if (setting.value === 'false' || setting.value === 'true') {
+                setting.value = setting.value === 'true';
             }
 
             if (setting.key === 'codeinjection_head') {
@@ -36,6 +45,17 @@ module.exports = {
             if (setting.key === 'codeinjection_foot') {
                 setting.key = 'ghost_foot';
             }
+
+            if (['cover_image', 'icon', 'logo'].includes(setting.key)) {
+                setting = url.forSetting(setting);
+            }
         });
+
+        // CASE: deprecated, won't accept
+        const index = _.findIndex(frame.data.settings, {key: 'force_i18n'});
+
+        if (index !== -1) {
+            frame.data.settings.splice(index, 1);
+        }
     }
 };

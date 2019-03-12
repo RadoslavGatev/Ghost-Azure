@@ -100,22 +100,28 @@ Settings = ghostBookshelf.Model.extend({
             });
     },
 
+    format() {
+        const attrs = ghostBookshelf.Model.prototype.format.apply(this, arguments);
+
+        // @NOTE: type TEXT will transform boolean to "0"
+        if (_.isBoolean(attrs.value)) {
+            attrs.value = attrs.value.toString();
+        }
+
+        return attrs;
+    },
+
     parse() {
         const attrs = ghostBookshelf.Model.prototype.parse.apply(this, arguments);
 
         // transform "0" to false
         // transform "false" to false
-        // transform "null" to null
         if (attrs.value === '0' || attrs.value === '1') {
             attrs.value = !!+attrs.value;
         }
 
         if (attrs.value === 'false' || attrs.value === 'true') {
             attrs.value = JSON.parse(attrs.value);
-        }
-
-        if (attrs.value === 'null') {
-            attrs.value = null;
         }
 
         return attrs;
