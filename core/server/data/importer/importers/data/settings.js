@@ -38,6 +38,29 @@ class SettingsImporter extends BaseImporter {
             });
         }
 
+        const activeApps = _.find(this.dataToImport, {key: 'active_apps'});
+        const installedApps = _.find(this.dataToImport, {key: 'installed_apps'});
+
+        const hasValueEntries = (setting = {}) => {
+            try {
+                return JSON.parse(setting.value || '[]').length !== 0;
+            } catch (e) {
+                return false;
+            }
+        };
+
+        if (hasValueEntries(activeApps) || hasValueEntries(installedApps)) {
+            this.problems.push({
+                message: 'Old settings for apps were not imported',
+                help: this.modelName,
+                context: JSON.stringify({activeApps, installedApps})
+            });
+        }
+
+        this.dataToImport = _.filter(this.dataToImport, (data) => {
+            return data.key !== 'active_apps' && data.key !== 'installed_apps';
+        });
+
         const permalinks = _.find(this.dataToImport, {key: 'permalinks'});
 
         if (permalinks) {

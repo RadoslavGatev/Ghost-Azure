@@ -58,6 +58,7 @@ function getSubscription(stripe, member) {
         return {
             validUntil: subscription.current_period_end,
             plan: plan.nickname,
+            amount: plan.amount,
             status: subscription.status
         };
     }).catch(() => {
@@ -118,6 +119,22 @@ function createCreator(resource, getAttrs) {
     };
 }
 
+function createRemover(resource, get, generateHashSeed) {
+    return function remove(stripe, object, ...rest) {
+        return get(stripe, object, generateHashSeed(object, ...rest)).then((res) => {
+            return stripe[resource].del(res.id).then((result) => {
+                return result;
+            }, (err) => {
+                throw err;
+            });
+        }).catch((err) => {
+            if (err.code !== 'resource_missing') {
+                throw err;
+            }
+        });
+    };
+}
+
 function createEnsurer(get, create, generateHashSeed) {
     return function ensure(stripe, object, ...rest) {
         return get(stripe, object, generateHashSeed(object, ...rest))
@@ -134,9 +151,10 @@ function createEnsurer(get, create, generateHashSeed) {
 function createApi(resource, validResult, getAttrs, generateHashSeed) {
     const get = createGetter(resource, validResult);
     const create = createCreator(resource, getAttrs);
+    const remove = createRemover(resource, get, generateHashSeed);
     const ensure = createEnsurer(get, create, generateHashSeed);
 
     return {
-        get, create, ensure
+        get, create, remove, ensure
     };
 }
