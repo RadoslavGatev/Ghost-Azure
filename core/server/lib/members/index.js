@@ -14,10 +14,10 @@ module.exports = function MembersApi({
         privateKey,
         publicKey,
         sessionSecret,
-        ssoOrigin
+        ssoOrigin,
+        accessControl
     },
     paymentConfig,
-    validateAudience,
     createMember,
     validateMember,
     updateMember,
@@ -53,6 +53,20 @@ module.exports = function MembersApi({
     /* session */
     const {getCookie, setCookie, removeCookie} = Cookies(sessionSecret);
 
+    function validateAccess({audience, origin}) {
+        const audienceLookup = accessControl[origin] || {
+            [origin]: accessControl['*']
+        };
+
+        const tokenSettings = audienceLookup[audience];
+
+        if (tokenSettings) {
+            return Promise.resolve(tokenSettings);
+        }
+
+        return Promise.reject();
+    }
+
     /* token */
     apiRouter.post('/token', getData('audience'), (req, res) => {
         const {signedin} = getCookie(req);
@@ -65,19 +79,16 @@ module.exports = function MembersApi({
 
         const {audience, origin} = req.data;
 
-        validateAudience({audience, origin, id: signedin})
-            .then(() => {
-                return users.get({id: signedin});
+        validateAccess({audience, origin})
+            .then(({tokenLength}) => {
+                return users.get({id: signedin})
+                    .then(member => encodeToken({
+                        sub: member.id,
+                        plans: member.subscriptions.map(sub => sub.plan),
+                        exp: tokenLength,
+                        aud: audience
+                    }));
             })
-            .then(member => encodeToken({
-                sub: member.id,
-                plans: member.subscriptions.map(sub => sub.plan),
-                exp: member.subscriptions
-                    .map(sub => sub.validUntil)
-                    .reduce((a, b) => Math.min(a, b),
-                        Math.floor((Date.now() / 1000) + (60 * 60 * 24 * 30))),
-                aud: audience
-            }))
             .then(token => res.end(token))
             .catch(handleError(403, res));
     });
@@ -89,9 +100,10 @@ module.exports = function MembersApi({
                     return subscriptions.getPublicConfig(adapter);
                 }));
             })
-            .then(data => res.json({
-                paymentConfig: data,
-                siteConfig: siteConfig
+            .then(paymentConfig => res.json({
+                paymentConfig,
+                issuer,
+                siteConfig
             }))
             .catch(handleError(500, res));
     });
@@ -106,7 +118,7 @@ module.exports = function MembersApi({
     }
 
     /* subscriptions */
-    apiRouter.post('/subscription', getData('adapter', 'plan', 'stripeToken'), ssoOriginCheck, (req, res) => {
+    apiRouter.post('/subscription', getData('adapter', 'plan', 'stripeToken', {name: 'coupon', required: false}), ssoOriginCheck, (req, res) => {
         const {signedin} = getCookie(req);
         if (!signedin) {
             res.writeHead(401, {
@@ -115,7 +127,7 @@ module.exports = function MembersApi({
             return res.end();
         }
 
-        const {plan, adapter, stripeToken} = req.data;
+        const {plan, adapter, stripeToken, coupon} = req.data;
 
         subscriptions.getAdapters()
             .then((adapters) => {
@@ -128,7 +140,8 @@ module.exports = function MembersApi({
                 return subscriptions.createSubscription(member, {
                     adapter,
                     plan,
-                    stripeToken
+                    stripeToken,
+                    coupon
                 });
             })
             .then(() => {
@@ -195,9 +208,19 @@ module.exports = function MembersApi({
     /* http */
     const staticRouter = Router();
     staticRouter.use('/static', static(require('path').join(__dirname, './static/auth/dist')));
-    staticRouter.use('/gateway', static(require('path').join(__dirname, './static/gateway')));
+    staticRouter.get('/gateway', (req, res) => {
+        res.status(200).send(`
+            <script>
+                window.membersApiUrl = "${issuer}";
+            </script>
+            <script src="bundle.js"></script>
+        `);
+    });
+    staticRouter.get('/bundle.js', (req, res) => {
+        res.status(200).sendFile(require('path').join(__dirname, './static/gateway/bundle.js'));
+    });
     staticRouter.get('/*', (req, res) => {
-        res.sendFile(require('path').join(__dirname, './static/auth/dist/index.html'));
+        res.status(200).sendFile(require('path').join(__dirname, './static/auth/dist/index.html'));
     });
 
     /* http */
@@ -210,14 +233,23 @@ module.exports = function MembersApi({
         });
     });
 
-    function httpHandler(req, res, next) {
-        return router.handle(req, res, next);
-    }
-
-    httpHandler.staticRouter = staticRouter;
-    httpHandler.apiRouter = apiRouter;
-    httpHandler.memberUserObject = users;
-    httpHandler.reconfigureSettings = function (data) {
+    const apiInstance = {
+        staticRouter,
+        apiRouter
+    };
+    apiInstance.members = users;
+    apiInstance.getPublicConfig = function () {
+        return Promise.resolve({
+            publicKey,
+            issuer
+        });
+    };
+    apiInstance.getMember = function (id, token) {
+        return decodeToken(token).then(() => {
+            return users.get({id});
+        });
+    };
+    apiInstance.reconfigureSettings = function (data) {
         subscriptions = new Subscriptions(data.paymentConfig);
         users = Users({
             subscriptions,
@@ -233,5 +265,5 @@ module.exports = function MembersApi({
         siteConfig = data.siteConfig;
     };
 
-    return httpHandler;
+    return apiInstance;
 };

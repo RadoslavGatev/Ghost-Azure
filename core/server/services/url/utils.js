@@ -393,6 +393,7 @@ function redirectToAdmin(status, res, adminPath) {
  * the variable that takes the result of this function
  */
 function makeAbsoluteUrls(html, siteUrl, itemUrl, options = {assetsOnly: false}) {
+    html = html || '';
     const htmlContent = cheerio.load(html, {decodeEntities: false});
     const staticImageUrlPrefixRegex = new RegExp(STATIC_IMAGE_URL_PREFIX);
 
@@ -488,6 +489,7 @@ module.exports.deduplicateDoubleSlashes = deduplicateDoubleSlashes;
 module.exports.getApiPath = getApiPath;
 module.exports.getVersionPath = getVersionPath;
 module.exports.getBlogUrl = getBlogUrl;
+module.exports.getSiteUrl = getBlogUrl;
 
 /**
  * If you request **any** image in Ghost, it get's served via

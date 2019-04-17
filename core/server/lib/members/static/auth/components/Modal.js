@@ -4,6 +4,7 @@ import Pages from './Pages';
 
 import SigninPage from '../pages/SigninPage';
 import SignupPage from '../pages/SignupPage';
+import SignupCompletePage from '../pages/SignupCompletePage';
 import RequestPasswordResetPage from '../pages/RequestPasswordResetPage';
 import PasswordResetSentPage from '../pages/PasswordResetSentPage';
 import ResetPasswordPage from '../pages/ResetPasswordPage';
@@ -16,6 +17,8 @@ export default class Modal extends Component {
         super();
         this.state = {
             error: null,
+            showLoggedIn: false,
+            showSpinner: false,
             containerClass: 'gm-page-overlay'
         }
     }
@@ -43,23 +46,27 @@ export default class Modal extends Component {
         });
     }
 
-    renderSignupPage({error, stripeConfig, members, signup, closeModal, siteConfig}) {
+    renderSignupPage({error, stripeConfig, members, signup, closeModal, siteConfig, showSpinner}) {
 
         if (stripeConfig) {
-            const createAccountWithSubscription = (data) => members.signup(data).then((success) => {
-                members.createSubscription(data).then((success) => {
-                    this.close();
+            const createAccountWithSubscription = (data) => {
+                this.setState({showSpinner: true});
+                return members.signup(data).then((success) => {
+                    return members.createSubscription(data).then((success) => {
+                        this.setState({showSpinner: false});
+                        window.location.hash = 'signup-complete';
+                    }, (error) => {
+                        this.setState({ error: "Unable to confirm payment", showSpinner: false });
+                    });
                 }, (error) => {
-                    this.setState({ error: "Unable to confirm payment" });
-                });
-            }, (error) => {
-                this.setState({ error: "Unable to signup" });
-            });
-            return <StripeSubscribePage stripeConfig={stripeConfig} error={error} hash="signup" handleSubmit={createAccountWithSubscription} handleClose={closeModal} siteConfig={siteConfig} />
+                    this.setState({ error: "Unable to signup", showSpinner: false });
+                })
+            };
+            return <StripeSubscribePage stripeConfig={stripeConfig} error={error} hash="signup" handleSubmit={createAccountWithSubscription} handleClose={closeModal} siteConfig={siteConfig} showSpinner={showSpinner} />
 
         }
         return (
-            <SignupPage error={error} hash="signup" handleSubmit={signup} handleClose={closeModal} />
+            <SignupPage error={error} hash="signup" handleSubmit={signup} handleClose={closeModal} showSpinner={showSpinner} />
         );
     }
 
@@ -71,19 +78,40 @@ export default class Modal extends Component {
             members.createSubscription(data)
         );
         const stripeConfig = paymentConfig && paymentConfig.find(({adapter}) => adapter === 'stripe');
-        return <StripeUpgradePage frameLocation={props.frameLocation} stripeConfig={stripeConfig} error={error} hash="upgrade" handleSubmit={createSubscription} handleClose={closeModal}/>
+        return <StripeUpgradePage stripeConfig={stripeConfig} error={error} hash="upgrade" handleSubmit={createSubscription} handleClose={closeModal}/>
 
     }
 
     render(props, state) {
-        const { containerClass, error, loadingConfig, paymentConfig, siteConfig } = state;
+        const { containerClass, error, loadingConfig, paymentConfig, siteConfig, showLoggedIn, showSpinner } = state;
         const { members } = this.context;
 
         const closeModal = () => this.close();
         const clearError = () => this.setState({ error: null });
 
-        const signin = (data) => this.handleAction(members.signin(data));
-        const signup = (data) => this.handleAction(members.signup(data));
+        const signup = (data) => {
+            this.setState({showSpinner: true});
+            return members.signup(data).then((success) => {
+                this.setState({showSpinner: false});
+                window.location.hash = 'signup-complete';
+            }, (error) => {
+                this.setState({ error, showSpinner: false });
+            })
+        };
+
+        // const signin = (data) => this.handleAction(members.signin(data));
+        const signin = (data) => members.signin(data).then((success) => {
+            const clearShowLoggedIn = () => {
+                this.setState({showLoggedIn: false});
+                this.close();
+            }
+            this.setState({showLoggedIn: true}, () => {
+                window.setTimeout(clearShowLoggedIn, 5000)
+            });
+        }, (error) => {
+            this.setState({ error });
+        });
+
         const requestReset = (data) => members.requestPasswordReset(data).then((success) => {
             window.location.hash = 'password-reset-sent';
         }, (error) => {
@@ -101,10 +129,11 @@ export default class Modal extends Component {
         }
         return (
             <Pages className={containerClass} onChange={clearError} onClick={closeModal} stripeConfig={stripeConfig} siteConfig={siteConfig}>
-                <SigninPage error={error} hash="" handleSubmit={signup} />
-                <SigninPage error={error} hash="signin" handleSubmit={signin} />
-                {this.renderSignupPage({error, stripeConfig, members, signup, closeModal, siteConfig})}
+                <SigninPage error={error} hash="" handleSubmit={signup} showLoggedIn={showLoggedIn} />
+                <SigninPage error={error} hash="signin" handleSubmit={signin} showLoggedIn={showLoggedIn} />
+                {this.renderSignupPage({ error, stripeConfig, members, signup, closeModal, siteConfig, showSpinner})}
                 {this.renderUpgradePage(props, state)}
+                <SignupCompletePage error={ error } hash="signup-complete" handleSubmit={ closeModal } siteConfig={ siteConfig } />
                 <RequestPasswordResetPage error={error} hash="request-password-reset" handleSubmit={requestReset} />
                 <PasswordResetSentPage error={ error } hash="password-reset-sent" handleSubmit={closeModal} />
                 <ResetPasswordPage error={error} hash="reset-password" handleSubmit={resetPassword} />

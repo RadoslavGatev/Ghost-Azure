@@ -1,6 +1,6 @@
 {
   "name": "ghost",
-  "version": "2.20.0",
+  "version": "2.20.1",
   "description": "The professional publishing platform",
   "author": "Ghost Foundation",
   "homepage": "https://ghost.org",
@@ -39,7 +39,8 @@
   },
   "dependencies": {
     "@nexes/nql": "0.2.1",
-    "@tryghost/helpers": "1.1.1",
+    "@tryghost/helpers": "1.1.2",
+    "@tryghost/members-ssr": "^0.1.1",
     "ajv": "6.8.1",
     "amperize": "0.3.8",
     "analytics-node": "3.3.0",

@@ -5,10 +5,16 @@ import FormSubmit from '../components/FormSubmit';
 import FormHeaderCTA from '../components/FormHeaderCTA';
 import NameInput from '../components/NameInput';
 import EmailInput from '../components/EmailInput';
+import CouponInput from '../components/CouponInput';
 import PasswordInput from '../components/PasswordInput';
 import CheckoutForm from '../components/CheckoutForm';
 import Form from '../components/Form';
 
+const getCouponData = frameLocation => {
+    const params = new URLSearchParams(frameLocation.query);
+    const coupon = params.get('coupon') || '';
+    return { coupon };
+};
 
 class PaymentForm extends Component {
 
@@ -16,7 +22,7 @@ class PaymentForm extends Component {
         super(props);
     }
 
-    handleSubmit = ({ name, email, password, plan }) => {
+    handleSubmit = ({ name, email, password, plan, coupon }) => {
         // Within the context of `Elements`, this call to createToken knows which Element to
         // tokenize, since there's only one in this group.
         plan = this.props.selectedPlan ? this.props.selectedPlan.name : "";
@@ -25,23 +31,26 @@ class PaymentForm extends Component {
                 adapter: 'stripe',
                 plan: plan,
                 stripeToken: token.id,
-                name, email, password
+                name, email, password, coupon
             });
         });
     };
 
-    onClick = () => {
-        this.props.stripe.createToken({ name: name });
-    }
-
-    render() {
+    render({frameLocation}) {
+        let label = this.props.showSpinner ? (
+            (
+                <span><span class="gm-spinner"></span> Signing up... </span>
+            )
+        ) : "Confirm payment";
+        const { coupon } = getCouponData(frameLocation);
         return (
-            <Form bindTo="request-password-reset" onSubmit={(data) => this.handleSubmit(data)}>
+            <Form includeData={getCouponData(frameLocation)} bindTo="request-password-reset" onSubmit={(data) => this.handleSubmit(data)}>
                 <NameInput bindTo="name" className="first" />
                 <EmailInput bindTo="email" />
                 <PasswordInput bindTo="password" />
+                { coupon ? <CouponInput disabled={true} bindTo="coupon" /> : '' }
                 <CheckoutForm />
-                <FormSubmit label="Confirm payment" onClick={() => this.onClick()}/>
+                <FormSubmit label={label} />
             </Form>
         );
     }
@@ -104,7 +113,7 @@ export default class StripePaymentPage extends Component {
         )
     }
 
-    render({ error, handleSubmit, stripeConfig, siteConfig }) {
+    render({ error, handleSubmit, stripeConfig, siteConfig, showSpinner, frameLocation }) {
         const publicKey = stripeConfig.config.publicKey || '';
         let iconUrl = siteConfig && siteConfig.icon;
         let title = (siteConfig && siteConfig.title) || "Ghost Publication";
@@ -114,12 +123,12 @@ export default class StripePaymentPage extends Component {
         } : {};
         return (
             <div class="gm-subscribe-page">
+                <FormHeader title="Subscribe" error={ error } errorText={ error } />
                 <div className="gm-subscribe-form-wrapper">
                     <div className="gm-modal-form gm-subscribe-form">
-                        <FormHeader title="Subscribe" error={ error } errorText={ error } />
                         <StripeProvider apiKey={publicKey}>
                             <Elements>
-                                <PaymentFormWrapped handleSubmit={handleSubmit} publicKey={publicKey} selectedPlan={this.state.selectedPlan} />
+                                <PaymentFormWrapped handleSubmit={handleSubmit} frameLocation={frameLocation} publicKey={publicKey} selectedPlan={this.state.selectedPlan} showSpinner={showSpinner} />
                             </Elements>
                         </StripeProvider>
                         <div className="flex justify-center mt4">

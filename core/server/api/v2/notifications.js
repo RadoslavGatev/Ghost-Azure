@@ -30,12 +30,25 @@ module.exports = {
             allNotifications = _.orderBy(allNotifications, 'addedAt', 'desc');
 
             allNotifications = allNotifications.filter((notification) => {
-                // CASE: do not return old release notification
-                if (!notification.custom && notification.message) {
-                    const notificationVersion = notification.message.match(/(\d+\.)(\d+\.)(\d+)/),
-                        blogVersion = ghostVersion.full.match(/^(\d+\.)(\d+\.)(\d+)/);
+                // NOTE: Filtering by version below is just a patch for bigger problem - notifications are not removed
+                //       after Ghost update. Logic below should be removed when Ghost upgrade detection
+                //       is done (https://github.com/TryGhost/Ghost/issues/10236) and notifications are
+                //       be removed permanently on upgrade event.
+                const ghost20RegEx = /Ghost 2.0 is now available/gi;
 
-                    if (notificationVersion && blogVersion && semver.gt(notificationVersion[0], blogVersion[0])) {
+                // CASE: do not return old release notification
+                if (notification.message && (!notification.custom || notification.message.match(ghost20RegEx))) {
+                    let notificationVersion = notification.message.match(/(\d+\.)(\d+\.)(\d+)/);
+
+                    if (notification.message.match(ghost20RegEx)) {
+                        notificationVersion = '2.0.0';
+                    } else if (notificationVersion){
+                        notificationVersion = notificationVersion[0];
+                    }
+
+                    const blogVersion = ghostVersion.full.match(/^(\d+\.)(\d+\.)(\d+)/);
+
+                    if (notificationVersion && blogVersion && semver.gt(notificationVersion, blogVersion[0])) {
                         return true;
                     } else {
                         return false;
