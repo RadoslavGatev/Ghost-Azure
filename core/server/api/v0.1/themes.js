@@ -54,11 +54,11 @@ themes = {
                 if (!loadedTheme) {
                     return Promise.reject(new common.errors.ValidationError({
                         message: common.i18n.t('notices.data.validation.index.themeCannotBeActivated', {themeName: themeName}),
-                        context: 'active_theme'
+                        errorDetails: newSettings
                     }));
                 }
 
-                return themeUtils.validate.check(loadedTheme);
+                return themeUtils.validate.checkSafe(loadedTheme);
             })
             // Update setting
             .then((_checkedTheme) => {
@@ -100,7 +100,7 @@ themes = {
             .handlePermissions('themes', 'add')(options)
             // Validation
             .then(() => {
-                return themeUtils.validate.check(zip, true);
+                return themeUtils.validate.checkSafe(zip, true);
             })
             // More validation (existence check)
             .then((_checkedTheme) => {

@@ -45,11 +45,11 @@ module.exports = {
             if (!loadedTheme) {
                 return Promise.reject(new common.errors.ValidationError({
                     message: common.i18n.t('notices.data.validation.index.themeCannotBeActivated', {themeName: themeName}),
-                    context: 'active_theme'
+                    errorDetails: newSettings
                 }));
             }
 
-            return themeService.validate.check(loadedTheme)
+            return themeService.validate.checkSafe(loadedTheme)
                 .then((_checkedTheme) => {
                     checkedTheme = _checkedTheme;
 
@@ -89,7 +89,7 @@ module.exports = {
                 });
             }
 
-            return themeService.validate.check(zip, true)
+            return themeService.validate.checkSafe(zip, true)
                 .then((_checkedTheme) => {
                     checkedTheme = _checkedTheme;
 
