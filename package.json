@@ -1,6 +1,6 @@
 {
   "name": "ghost",
-  "version": "2.21.0",
+  "version": "2.21.1",
   "description": "The professional publishing platform",
   "author": "Ghost Foundation",
   "homepage": "https://ghost.org",
@@ -31,7 +31,8 @@
     "lint:test": "eslint -c core/test/.eslintrc.json --ignore-path core/test/.eslintignore 'core/test/**/*.js'",
     "lint": "yarn lint:server && yarn lint:test",
     "posttest": "yarn lint",
-    "fixmodulenotdefined": "yarn cache clean && cd core/client && rm -rf node_modules tmp dist && yarn && cd ../../"
+    "fixmodulenotdefined": "yarn cache clean && cd core/client && rm -rf node_modules tmp dist && yarn && cd ../../",
+    "postinstall": "cp node_modules/@tryghost/members-theme-bindings/build/members-theme-bindings.js core/server/public/"
   },
   "engines": {
     "node": "^10.13.0",
@@ -41,6 +42,7 @@
     "@nexes/nql": "0.2.1",
     "@tryghost/helpers": "1.1.2",
     "@tryghost/members-ssr": "^0.1.1",
+    "@tryghost/members-theme-bindings": "^0.1.0",
     "ajv": "6.8.1",
     "amperize": "0.3.8",
     "analytics-node": "3.3.0",
