@@ -1,6 +1,6 @@
 {
   "name": "ghost",
-  "version": "2.23.1",
+  "version": "2.23.2",
   "description": "The professional publishing platform",
   "author": "Ghost Foundation",
   "homepage": "https://ghost.org",
@@ -122,7 +122,7 @@
     "applicationinsights": "^1.0.0"
   },
   "optionalDependencies": {
-    "@tryghost/html-to-mobiledoc": "0.4.0",
+    "@tryghost/html-to-mobiledoc": "0.4.1",
     "sharp": "0.21.3",
     "sqlite3": "4.0.6"
   },
