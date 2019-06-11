@@ -19,7 +19,6 @@ module.exports = {
 
     // TODO: Expose less of the API to make this safe
     api: require('../api'),
-    models: require('../models'),
 
     // TODO: Only expose "get"
     settingsCache: settingsCache,
@@ -58,7 +57,7 @@ module.exports = {
     templates: require('./template'),
 
     // Various utils, needs cleaning up / simplifying
-    socialUrls: require('../lib/social/urls'),
+    socialUrls: require('@tryghost/social-urls'),
     blogIcon: require('../lib/image/blog-icon'),
     urlService: require('../services/url'),
     localUtils: require('./utils')
