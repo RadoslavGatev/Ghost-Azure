@@ -1372,7 +1372,9 @@ e.default=i}),define("ghost-admin/routes/tags/index",["exports","ghost-admin/rou
 var s=t.default.extend({mediaQueries:Ember.inject.service(),beforeModel(){let e=this.modelFor("tags").get("firstObject")
 this._super(...arguments),e&&!this.get("mediaQueries.maxWidth600")&&this.transitionTo("tags.tag",e)}})
 e.default=s}),define("ghost-admin/routes/tags/new",["exports","ghost-admin/routes/authenticated"],function(e,t){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
-var s=t.default.extend({controllerName:"tags.tag",model(){return this.store.createRecord("tag")},renderTemplate(){this.render("tags.tag")},deactivate(){this._super(...arguments),this.set("controller.model",null)}})
+var s=t.default.extend({controllerName:"tags.tag",model(){return this.store.createRecord("tag")},renderTemplate(){this.render("tags.tag")},deactivate(){this._super(...arguments)
+let{controller:e}=this
+e.model.rollbackAttributes(),e.set("model",null)}})
 e.default=s}),define("ghost-admin/routes/tags/tag",["exports","ghost-admin/routes/authenticated"],function(e,t){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
 var s=t.default.extend({model(e){return this.store.queryRecord("tag",{slug:e.tag_slug})},serialize:e=>({tag_slug:e.get("slug")}),setupController(e,t){this._super(...arguments),this.controllerFor("tags").scrollTagIntoView(t)},deactivate(){this._super(...arguments),this.set("controller.model",null)}})
 e.default=s}),define("ghost-admin/serializers/api-key",["exports","ghost-admin/serializers/application"],function(e,t){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
