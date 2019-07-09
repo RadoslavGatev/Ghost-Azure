@@ -116,8 +116,21 @@ const siteOrigin = doBlock(() => {
     return `${protocol}//${host}`;
 });
 
-const contentApiUrl = urlUtils.urlFor('api', {version: 'v2', type: 'content'}, true);
-const membersApiUrl = urlUtils.urlFor('api', {version: 'v2', type: 'members'}, true);
+const adminOrigin = doBlock(() => {
+    const {protocol, host} = url.parse(urlUtils.urlFor('admin', true));
+    return `${protocol}//${host}`;
+});
+
+const getApiUrl = ({version, type}) => {
+    const {href} = new url.URL(
+        urlUtils.getApiPath({version, type}),
+        urlUtils.urlFor('admin', true)
+    );
+    return href;
+};
+
+const contentApiUrl = getApiUrl({version: 'v2', type: 'content'});
+const membersApiUrl = getApiUrl({version: 'v2', type: 'members'});
 
 const accessControl = {
     [siteOrigin]: {
@@ -172,7 +185,7 @@ const getSiteConfig = () => {
 const membersApiInstance = MembersApi({
     authConfig: {
         issuer: membersApiUrl,
-        ssoOrigin: siteOrigin,
+        ssoOrigin: adminOrigin,
         publicKey: settingsCache.get('members_public_key'),
         privateKey: settingsCache.get('members_private_key'),
         sessionSecret: settingsCache.get('members_session_secret'),
