@@ -1,64 +1,123 @@
-var fs = require('fs-extra'),
-    os = require('os'),
-    path = require('path'),
-    Promise = require('bluebird'),
-    config = require('../../../server/config'),
-    security = require('../../../server/lib/security'),
-    fsLib = require('../../../server/lib/fs'),
-    LocalFileStorage = require('../../../server/adapters/storage/LocalFileStorage');
+const fs = require('fs-extra');
 
-/**
- * @TODO: combine with loader.js?
- */
-class ThemeStorage extends LocalFileStorage {
-    constructor() {
-        super();
+const activate = require('./activate');
+const validate = require('./validate');
+const list = require('./list');
+const ThemeStorage = require('./ThemeStorage');
+const themeLoader = require('./loader');
+const toJSON = require('./to-json');
 
-        this.storagePath = config.getContentPath('themes');
-    }
+const settingsCache = require('../../../server/services/settings/cache');
+const common = require('../../../server/lib/common');
+const debug = require('ghost-ignition').debug('api:themes');
 
-    getTargetDir() {
-        return this.storagePath;
-    }
+let themeStorage;
 
-    serve(options) {
-        var self = this;
+const getStorage = () => {
+    themeStorage = themeStorage || new ThemeStorage();
 
-        return function downloadTheme(req, res, next) {
-            var themeName = options.name,
-                themePath = path.join(self.storagePath, themeName),
-                zipName = themeName + '.zip',
-                // store this in a unique temporary folder
-                zipBasePath = path.join(os.tmpdir(), security.identifier.uid(10)),
-                zipPath = path.join(zipBasePath, zipName),
-                stream;
+    return themeStorage;
+};
 
-            fs.ensureDir(zipBasePath)
-                .then(function () {
-                    return Promise.promisify(fsLib.zipFolder)(themePath, zipPath);
-                })
-                .then(function (length) {
-                    res.set({
-                        'Content-disposition': 'attachment; filename={themeName}.zip'.replace('{themeName}', themeName),
-                        'Content-Type': 'application/zip',
-                        'Content-Length': length
-                    });
+module.exports = {
+    getZip: (themeName) => {
+        const theme = list.get(themeName);
 
-                    stream = fs.createReadStream(zipPath);
-                    stream.pipe(res);
-                })
-                .catch(function (err) {
-                    next(err);
-                })
-                .finally(function () {
-                    return fs.remove(zipBasePath);
+        if (!theme) {
+            return Promise.reject(new common.errors.BadRequestError({
+                message: common.i18n.t('errors.api.themes.invalidThemeName')
+            }));
+        }
+
+        return getStorage().serve({
+            name: themeName
+        });
+    },
+    setFromZip: (zip) => {
+        const shortName = getStorage().getSanitizedFileName(zip.name.split('.zip')[0]);
+
+        // check if zip name is casper.zip
+        if (zip.name === 'casper.zip') {
+            throw new common.errors.ValidationError({
+                message: common.i18n.t('errors.api.themes.overrideCasper')
+            });
+        }
+
+        let checkedTheme;
+
+        return validate.checkSafe(zip, true)
+            .then((_checkedTheme) => {
+                checkedTheme = _checkedTheme;
+
+                return getStorage().exists(shortName);
+            })
+            .then((themeExists) => {
+                // CASE: delete existing theme
+                if (themeExists) {
+                    return getStorage().delete(shortName);
+                }
+            })
+            .then(() => {
+                // CASE: store extracted theme
+                return getStorage().save({
+                    name: shortName,
+                    path: checkedTheme.path
                 });
-        };
-    }
+            })
+            .then(() => {
+                // CASE: loads the theme from the fs & sets the theme on the themeList
+                return themeLoader.loadOneTheme(shortName);
+            })
+            .then((loadedTheme) => {
+                const overrideTheme = (shortName === settingsCache.get('active_theme'));
+                // CASE: if this is the active theme, we are overriding
+                if (overrideTheme) {
+                    debug('Activating theme (method C, on API "override")', shortName);
+                    activate(loadedTheme, checkedTheme);
+                }
 
-    delete(fileName) {
-        return fs.remove(path.join(this.storagePath, fileName));
-    }
-}
+                // @TODO: unify the name across gscan and Ghost!
+                return {
+                    themeOverridden: overrideTheme,
+                    theme: toJSON(shortName, checkedTheme)
+                };
+            })
+            .finally(() => {
+                // @TODO: we should probably do this as part of saving the theme
+                // CASE: remove extracted dir from gscan
+                // happens in background
+                if (checkedTheme) {
+                    fs.remove(checkedTheme.path)
+                        .catch((err) => {
+                            common.logging.error(new common.errors.GhostError({err: err}));
+                        });
+                }
+            });
+    },
+    destroy: function (themeName) {
+        if (themeName === 'casper') {
+            throw new common.errors.ValidationError({
+                message: common.i18n.t('errors.api.themes.destroyCasper')
+            });
+        }
 
-module.exports = ThemeStorage;
+        if (themeName === settingsCache.get('active_theme')) {
+            throw new common.errors.ValidationError({
+                message: common.i18n.t('errors.api.themes.destroyActive')
+            });
+        }
+
+        const theme = list.get(themeName);
+
+        if (!theme) {
+            throw new common.errors.NotFoundError({
+                message: common.i18n.t('errors.api.themes.themeDoesNotExist')
+            });
+        }
+
+        return getStorage().delete(themeName)
+            .then(() => {
+                list.del(themeName);
+            });
+    }
+};
