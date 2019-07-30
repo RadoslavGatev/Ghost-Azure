@@ -121,10 +121,10 @@
     mkdirp "0.5.0"
     yauzl "2.4.1"
 
-"@tryghost/helpers@1.1.6":
-  version "1.1.6"
-  resolved "https://registry.yarnpkg.com/@tryghost/helpers/-/helpers-1.1.6.tgz#70b48f2155a31aeb0ced6ed830c1134d11467f32"
-  integrity sha512-If1j4u9FGMy0RvcJpdpYFq7iwi56AXRUCV4Xob7QfH0eov2zirXdcjyStBlTsrVUB0nBj3w172S3TQNh0B2B+Q==
+"@tryghost/helpers@1.1.7":
+  version "1.1.7"
+  resolved "https://registry.yarnpkg.com/@tryghost/helpers/-/helpers-1.1.7.tgz#3c2c67f4b57162f273bbc2884ec450f746f7fc15"
+  integrity sha512-in0E3+Qy7osyX7+65Y0PJliq4wxKazBVKDn1i8P34mcMUYeZ4HtCofi+TJOClCjeJQtSZsPcq4lb1Y7YvOydnQ==
   dependencies:
     lodash-es "^4.17.11"
 
@@ -242,10 +242,10 @@
     chalk "^2.4.1"
     sywac "^1.2.1"
 
-"@tryghost/social-urls@0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@tryghost/social-urls/-/social-urls-0.1.0.tgz#5e41d2108674e420d9e92d5fc6296e185838eadb"
-  integrity sha512-aBJvQmKDtEZ9nqOcl+jGOnmXndK1qjtIp1p3ExVS/XpzmRApvxBn5ImcIX1rZ8eiyOk0GU4DygerxpKKBE5ARw==
+"@tryghost/social-urls@0.1.1":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@tryghost/social-urls/-/social-urls-0.1.1.tgz#41f377f05821205f768a1ab176bdb6c653166901"
+  integrity sha512-1NwBShArc5azfJSBUUKNFZjCGqaaOCJudAz3Z2HUCK62OwFYVCQwXQM6h9hgf5PJT3c7XBi1YHAF6AAuHPHADQ==
   dependencies:
     bluebird "3.5.5"
     ghost-ignition "3.1.0"
@@ -258,10 +258,10 @@
   dependencies:
     unidecode "^0.1.8"
 
-"@tryghost/url-utils@0.1.2":
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/@tryghost/url-utils/-/url-utils-0.1.2.tgz#8224a80d69a78a8b178e14219f64ec0d32676166"
-  integrity sha512-kj2kHzkAmwL3trVaL90C/c6DdVYAtJ3KdMRB7V1JkBKL6VJJUuoBte2AR9FBbR429vRngoySzCt8jyYOfuQsKQ==
+"@tryghost/url-utils@0.1.4":
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/@tryghost/url-utils/-/url-utils-0.1.4.tgz#52e93092bb5f830fb3afc770c5d708b781b936ca"
+  integrity sha512-1PIIIlDvQmJXS8fM5QLbKp0Xdx3M4Hk53AzskRQWlYiK6BISX5U+4LxwzRg+rWQHhUltMQuQk00DWOZwoe4Ajg==
   dependencies:
     cheerio "0.22.0"
     lodash "4.17.11"
@@ -3370,10 +3370,10 @@ grunt@1.0.4:
     path-is-absolute "~1.0.0"
     rimraf "~2.6.2"
 
-gscan@2.6.4:
-  version "2.6.4"
-  resolved "https://registry.yarnpkg.com/gscan/-/gscan-2.6.4.tgz#d3488390b511306ce1f719912508bbe179d78af0"
-  integrity sha512-KBf7VjMaolrsxdoeNF7QcdD3Of6+dmz2ucZMM9XU9kibIEp3RqX0GPgJ0Cu0QkyNKSyKZ6CrsEZyk0sJvzBVRw==
+gscan@2.6.6:
+  version "2.6.6"
+  resolved "https://registry.yarnpkg.com/gscan/-/gscan-2.6.6.tgz#c02e976dfe69150cb564237b321c7331313c4eed"
+  integrity sha512-tfyx5H9XW4PQ8kHrVzi6vHxxqYyJTqF6Kl/Z4gaHtFXZf1tsciZI3XroKlyKuTenKkAuHp4i8ymrOx92vLuf8Q==
   dependencies:
     "@tryghost/extract-zip" "1.6.6"
     "@tryghost/pretty-cli" "1.2.1"
@@ -3765,23 +3765,23 @@ interpret@~1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/interpret/-/interpret-1.1.0.tgz#7ed1b1410c6a0e0f78cf95d3b8440c63f78b8614"
 
-intl-format-cache@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/intl-format-cache/-/intl-format-cache-4.1.0.tgz#be7ee36a6985a866dabcf359837b8cf7d7e3d1c1"
-  integrity sha512-R0l9+Cvn+1mB/vZOeSHgRTU6BEmxLJ6w3E4gBSQVK+oJx6BgTm3zWOcLz948KczB22aCe9bTATb4EAeEdbdYjg==
+intl-format-cache@^4.1.2:
+  version "4.1.3"
+  resolved "https://registry.yarnpkg.com/intl-format-cache/-/intl-format-cache-4.1.3.tgz#384f43617e0ac0605306ddf02899f190cab84b88"
+  integrity sha512-nh/HKx3vIKYC4wsQfwKxMedXuSiXZwVCtsmGPPgVTfl26CB30fkgJi3ZChxwZNdBqYpcmf+gdj8QgXWmdRBiOg==
 
-intl-messageformat-parser@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/intl-messageformat-parser/-/intl-messageformat-parser-2.1.0.tgz#5a3b877e5201ea2f57cddb52ddb17e0d96a54005"
-  integrity sha512-4W5XzVzZDr5ybwfu5VkQqwJauUkI2V/sQzigyzdsEZ41q5wFLxgVwVXWtSio1mckiNsK92UH9OQMV2wjz/jdmw==
+intl-messageformat-parser@^2.1.2:
+  version "2.1.3"
+  resolved "https://registry.yarnpkg.com/intl-messageformat-parser/-/intl-messageformat-parser-2.1.3.tgz#c918e36a08bd7ff01349d8ea3736262c986aaeb1"
+  integrity sha512-YOP2GuQ8Y+f3j2Vti1/abcozYlkv/WsIffsRP8cgtN4Oha5hjhNnucxzyfmeAoDgDHw4s/lNyLylB01369a5lg==
 
-intl-messageformat@5.1.0:
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/intl-messageformat/-/intl-messageformat-5.1.0.tgz#a621984ebdb1db7bb5b04c72ef9a4aeea73ca521"
-  integrity sha512-wlwXz3BrPw2Kk8qPfmfTJC4WHiKpa/JI9O9pPbknJhfC7KhD1xegwnX39DwNM70ZUnuN0hxzcUECYcF+lv5MFQ==
+intl-messageformat@5.1.2:
+  version "5.1.2"
+  resolved "https://registry.yarnpkg.com/intl-messageformat/-/intl-messageformat-5.1.2.tgz#93f4ad88bba0631764de897190ca9d54dff65f20"
+  integrity sha512-0xoKREoM5r64m76xsaGZpCmKYTPfHCUwmRFZ1/R5qp0uJdtJxPlUqfAXYLyBgosKKwWX3GY6I+aHvMsY9Lq6ng==
   dependencies:
-    intl-format-cache "^4.1.0"
-    intl-messageformat-parser "^2.1.0"
+    intl-format-cache "^4.1.2"
+    intl-messageformat-parser "^2.1.2"
 
 intl@1.2.5:
   version "1.2.5"
@@ -4328,10 +4328,10 @@ knex-migrator@3.3.2:
     mysql "^2.16.0"
     sqlite3 "^4.0.6"
 
-knex@0.19.0:
-  version "0.19.0"
-  resolved "https://registry.yarnpkg.com/knex/-/knex-0.19.0.tgz#3c0383e70f01b35836079b8ef837fc6566c1aab3"
-  integrity sha512-4acpjPAugogM5KmffJ6wG2e9nrmDq6Xg4tWk0pEHJKfAnqBefMPD0Si9oA2aYzg3Fsfey5FvZYXEDNBsNHeVkw==
+knex@0.19.1:
+  version "0.19.1"
+  resolved "https://registry.yarnpkg.com/knex/-/knex-0.19.1.tgz#a73b88697fe0d8ed1d7520d8ce390728444508f2"
+  integrity sha512-Y25eu5xMv8h/2/98YQqGMPzzo0AYs/HluST6BR8vkGfRyhme0A51jyCde4y4QInJo2GokrUzrXqlKDqqERg+nQ==
   dependencies:
     bluebird "^3.5.5"
     colorette "1.0.8"
@@ -4341,7 +4341,7 @@ knex@0.19.0:
     inherits "~2.0.4"
     interpret "^1.2.0"
     liftoff "3.1.0"
-    lodash "^4.17.14"
+    lodash "^4.17.15"
     mkdirp "^0.5.1"
     pg-connection-string "2.0.0"
     tarn "^2.0.0"
@@ -4623,7 +4623,7 @@ lodash@4.17.11, lodash@^4.13.1, lodash@^4.14.2, lodash@^4.16.4, lodash@^4.17.10,
   version "4.17.11"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.11.tgz#b39ea6229ef607ecd89e2c8df12536891cac9b8d"
 
-lodash@4.17.15:
+lodash@4.17.15, lodash@^4.17.15:
   version "4.17.15"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.15.tgz#b447f6670a0455bbfeedd11392eff330ea097548"
   integrity sha512-8xOcRHvCjnocdS5cpwXQXVzmmh5e5+saE2QGoeQmbKmRS6J3VQppPOIt0MnmE+4xlZoumy0GPG0D0MVIQbNA1A==
@@ -7101,9 +7101,10 @@ simple-get@^3.0.3:
     once "^1.3.1"
     simple-concat "^1.0.0"
 
-simple-html-tokenizer@0.5.7:
-  version "0.5.7"
-  resolved "https://registry.yarnpkg.com/simple-html-tokenizer/-/simple-html-tokenizer-0.5.7.tgz#8eca336ecfbe2b3c6166cbb31b2682088de79f40"
+simple-html-tokenizer@0.5.8:
+  version "0.5.8"
+  resolved "https://registry.yarnpkg.com/simple-html-tokenizer/-/simple-html-tokenizer-0.5.8.tgz#3417382f75954ee34515cc4fd32d9918e693f173"
+  integrity sha512-0Sq4FvLlQEQODVA6PH2MIrc7tzYO0KT2HzzwvaVLYClWgIsuvaNUOrhrAvTi1pZHrcq7GDB4WiI3ukjqBMxcGQ==
 
 simple-swizzle@^0.2.2:
   version "0.2.2"
