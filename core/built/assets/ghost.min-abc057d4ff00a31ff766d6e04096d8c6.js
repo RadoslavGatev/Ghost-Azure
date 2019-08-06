@@ -501,7 +501,8 @@ return this.uploadUrls[n]=c,this.onUploadSuccess(c),!0}catch(l){let e=l.payload.
 e||(e=l.message)
 let n={message:e,context:t,fileName:s.name}
 this.errors.pushObject(n),this.onUploadFailure(n)}}).maxConcurrency(2).enqueue(),_getFormData(e){let t=new FormData
-return t.append(this.paramName,e,e.name),Object.keys(this.paramsHash||{}).forEach(e=>{t.append(e,this.paramsHash[e])}),t},_updateProgress(){let e=this._uploadTrackers,t=e.reduce((e,t)=>e+t.get("total"),0),s=e.reduce((e,t)=>e+t.get("loaded"),0)
+return t.append(this.paramName,e,e.name),Object.keys(this.paramsHash||{}).forEach(e=>{t.append(e,this.paramsHash[e])}),t},_updateProgress(){if(this.isDestroyed||this.isDestroying)return
+let e=this._uploadTrackers,t=e.reduce((e,t)=>e+t.get("total"),0),s=e.reduce((e,t)=>e+t.get("loaded"),0)
 if(this.set("totalSize",t),this.set("uploadedSize",s),0===t||0===s)return
 let n=Math.round(s/t*100)
 this.set("uploadPercentage",n)},_reset(){this.set("errors",[]),this.set("totalSize",0),this.set("uploadedSize",0),this.set("uploadPercentage",0),this.set("uploadUrls",[]),this._uploadTrackers=[]}})
@@ -2015,4 +2016,4 @@ var n=t.default.create({properties:["name","event","targetUrl"],name(e){Ember.is
 e.default=n}),define("ghost-admin/views/application",["exports"],function(e){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
 var t=Ember.Component.extend({})
 e.default=t}),define("ghost-admin/config/environment",[],function(){try{var e="ghost-admin/config/environment",t=document.querySelector('meta[name="'+e+'"]').getAttribute("content"),s={default:JSON.parse(decodeURIComponent(t))}
-return Object.defineProperty(s,"__esModule",{value:!0}),s}catch(n){throw new Error('Could not read config from meta tag with name "'+e+'".')}}),runningTests||require("ghost-admin/app").default.create({version:"2.26",name:"ghost-admin"})
+return Object.defineProperty(s,"__esModule",{value:!0}),s}catch(n){throw new Error('Could not read config from meta tag with name "'+e+'".')}}),runningTests||require("ghost-admin/app").default.create({version:"2.27",name:"ghost-admin"})
