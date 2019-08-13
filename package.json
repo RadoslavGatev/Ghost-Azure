@@ -1,6 +1,6 @@
 {
   "name": "ghost",
-  "version": "2.27.0",
+  "version": "2.28.0",
   "description": "The professional publishing platform",
   "author": "Ghost Foundation",
   "homepage": "https://ghost.org",
@@ -28,8 +28,9 @@
     "ci:regression": "grunt test-regression --verbose",
     "setup": "yarn install && knex-migrator init && grunt symlink && grunt init || true",
     "lint:server": "eslint --ignore-path .eslintignore 'core/server/**/*.js' 'core/*.js' '*.js'",
+    "lint:frontend": "eslint --ignore-path .eslintignore 'core/frontend/**/*.js'",
     "lint:test": "eslint -c core/test/.eslintrc.json --ignore-path core/test/.eslintignore 'core/test/**/*.js'",
-    "lint": "yarn lint:server && yarn lint:test",
+    "lint": "yarn lint:server && yarn lint:frontend && yarn lint:test",
     "posttest": "yarn lint",
     "fixmodulenotdefined": "yarn cache clean && cd core/client && rm -rf node_modules tmp dist && yarn && cd ../../",
     "postinstall": "cpy node_modules/@tryghost/members-theme-bindings/build/members-theme-bindings.js core/server/public/"
@@ -39,7 +40,7 @@
     "cli": "^1.9.0"
   },
   "dependencies": {
-    "@nexes/nql": "0.2.2",
+    "@nexes/nql": "0.3.0",
     "@tryghost/helpers": "1.1.7",
     "@tryghost/members-api": "0.3.0",
     "@tryghost/members-auth-pages": "1.1.0",
@@ -47,7 +48,7 @@
     "@tryghost/members-theme-bindings": "0.2.3",
     "@tryghost/social-urls": "0.1.1",
     "@tryghost/string": "^0.1.3",
-    "@tryghost/url-utils": "0.1.4",
+    "@tryghost/url-utils": "0.2.0",
     "ajv": "6.10.2",
     "amperize": "0.6.0",
     "analytics-node": "3.3.0",
@@ -106,6 +107,7 @@
     "netjet": "1.3.0",
     "node-jose": "1.1.3",
     "nodemailer": "0.7.1",
+    "nql-map-key-values": "./core/shared/nql-map-key-values",
     "oauth2orize": "1.11.0",
     "oembed-parser": "1.2.2",
     "passport": "0.4.0",
@@ -150,7 +152,7 @@
     "mocha": "6.1.4",
     "mock-knex": "0.4.6",
     "nock": "10.0.6",
-    "proxyquire": "2.1.1",
+    "proxyquire": "2.1.2",
     "rewire": "4.0.1",
     "should": "13.2.3",
     "should-http": "0.1.1",
