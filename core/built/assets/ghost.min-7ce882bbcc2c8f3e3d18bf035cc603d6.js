@@ -2015,4 +2015,4 @@ var n=t.default.create({properties:["name","event","targetUrl"],name(e){Ember.is
 e.default=n}),define("ghost-admin/views/application",["exports"],function(e){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
 var t=Ember.Component.extend({})
 e.default=t}),define("ghost-admin/config/environment",[],function(){try{var e="ghost-admin/config/environment",t=document.querySelector('meta[name="'+e+'"]').getAttribute("content"),s={default:JSON.parse(decodeURIComponent(t))}
-return Object.defineProperty(s,"__esModule",{value:!0}),s}catch(n){throw new Error('Could not read config from meta tag with name "'+e+'".')}}),runningTests||require("ghost-admin/app").default.create({version:"2.28",name:"ghost-admin"})
+return Object.defineProperty(s,"__esModule",{value:!0}),s}catch(n){throw new Error('Could not read config from meta tag with name "'+e+'".')}}),runningTests||require("ghost-admin/app").default.create({version:"2.29",name:"ghost-admin"})
