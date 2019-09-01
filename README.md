@@ -8,28 +8,3 @@
 
 ## Why Ghost-Azure?
 The current version of Ghost(1.18.0) is not compatible with Azure app service. Ghost-Azure is a production-ready template which can be hosted directly on Azure app service. We will try to maintain the ghost version updated. All contributions are welcome.
-
-## Usage
-### 1. Fork this repository.
-### 2. Branch out from the branch "azure".
-```bash
-git checkout azure
-git checkout -b my_blog
-```
-### 3. Install npm modules.
-```bash
-npm install
-```
-### 4. Initialize your database.
-```bash
-node db.js
-```
-### 5. Customize everything you want in your content folder.
-### 6. Keep your fork up to date(if you want the latest ghost version).
-[https://help.github.com/articles/syncing-a-fork/](https://help.github.com/articles/syncing-a-fork/)
-
-OR
-```bash
-git checkout my_branch
-git pull https://github.com/solvsoftware/Ghost-Azure azure
-```
