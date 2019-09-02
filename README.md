@@ -4,6 +4,7 @@ Straight out of the box, the current 1.x and 2.x versions of Ghost aren't compat
 
 ## Demo
 [![Status of Demo deployment](https://vsrm.dev.azure.com/RG-GitHub/_apis/public/Release/badge/72c85fbd-8b34-4db0-8be1-f1a286cc4d59/3/4)](https://dev.azure.com/RG-GitHub/Ghost-Azure/_release?definitionId=3)
+
 You can play with the demo web app: https://ghost-azure-demo.azurewebsites.net. Just give it some time to warm up.
 
 ## Installation methods
