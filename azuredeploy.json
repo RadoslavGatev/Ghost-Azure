@@ -117,7 +117,7 @@
             "mail__options__auth__user": "[parameters('Email Username')]",
             "mail__options__auth__pass": "[parameters('Email Password')]",
             "mail__from": "[parameters('Email From Address')]",
-            "WEBSITE_NODE_DEFAULT_VERSION": "10.14.1",
+            "WEBSITE_NODE_DEFAULT_VERSION": "10.16.3",
             "APPINSIGHTS_INSTRUMENTATION_KEY": "[reference(concat('Microsoft.Insights/components/', variables('appInsightsName'))).InstrumentationKey]"
           }
         },
