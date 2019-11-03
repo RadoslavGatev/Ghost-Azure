@@ -27,7 +27,7 @@ module.exports = {
             maxlength: 50,
             nullable: false,
             defaultTo: 'public',
-            validations: {isIn: [['public']]}
+            validations: {isIn: [['public', 'members', 'paid']]}
         },
         meta_title: {type: 'string', maxlength: 2000, nullable: true, validations: {isLength: {max: 300}}},
         meta_description: {type: 'string', maxlength: 2000, nullable: true, validations: {isLength: {max: 500}}},
@@ -385,6 +385,16 @@ module.exports = {
     members: {
         id: {type: 'string', maxlength: 24, nullable: false, primary: true},
         email: {type: 'string', maxlength: 191, nullable: false, unique: true, validations: {isEmail: true}},
+        name: {type: 'string', maxlength: 191, nullable: true},
+        created_at: {type: 'dateTime', nullable: false},
+        created_by: {type: 'string', maxlength: 24, nullable: false},
+        updated_at: {type: 'dateTime', nullable: true},
+        updated_by: {type: 'string', maxlength: 24, nullable: true}
+    },
+    members_stripe_customers: {
+        id: {type: 'string', maxlength: 24, nullable: false, primary: true},
+        member_id: {type: 'string', maxlength: 24, nullable: false, unique: false},
+        customer_id: {type: 'string', maxlength: 255, nullable: false, unique: true},
         created_at: {type: 'dateTime', nullable: false},
         created_by: {type: 'string', maxlength: 24, nullable: false},
         updated_at: {type: 'dateTime', nullable: true},
