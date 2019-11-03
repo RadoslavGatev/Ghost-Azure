@@ -1,40 +1,54 @@
-const url = require('url');
+const {URL} = require('url');
 const settingsCache = require('../settings/cache');
 const urlUtils = require('../../lib/url-utils');
 const MembersApi = require('@tryghost/members-api');
 const common = require('../../lib/common');
-const models = require('../../models');
+const ghostVersion = require('../../lib/ghost-version');
 const mail = require('../mail');
-const blogIcon = require('../../lib/image/blog-icon');
-const doBlock = fn => fn();
+const models = require('../../models');
 
-function createMember({name, email, password}) {
+function createMember({email, name}) {
     return models.Member.add({
-        name,
         email,
-        password
-    }).then((member) => {
-        return member.toJSON();
-    });
-}
-
-function updateMember(member, newData) {
-    return models.Member.findOne(member, {
-        require: true
-    }).then(({id}) => {
-        return models.Member.edit(newData, {id});
+        name
     }).then((member) => {
         return member.toJSON();
     });
 }
 
 function getMember(data, options = {}) {
-    return models.Member.findOne(data, Object.assign({require: true}, options)).then((model) => {
+    if (!data.email && !data.id) {
+        return Promise.resolve(null);
+    }
+    return models.Member.findOne(data, options).then((model) => {
         if (!model) {
             return null;
         }
         return model.toJSON(options);
     });
+}
+
+async function setMemberMetadata(member, module, metadata) {
+    if (module !== 'stripe') {
+        return;
+    }
+    await models.Member.edit({
+        stripe_customers: metadata
+    }, {id: member.id, withRelated: ['stripe_customers']});
+    return;
+}
+
+async function getMemberMetadata(member, module) {
+    if (module !== 'stripe') {
+        return;
+    }
+    const model = await models.Member.where({id: member.id}).fetch({withRelated: ['stripe_customers']});
+    const metadata = await model.related('stripe_customers');
+    return metadata.toJSON();
+}
+
+function updateMember({name}, options) {
+    return models.Member.edit({name}, options);
 }
 
 function deleteMember(options) {
@@ -57,156 +71,115 @@ function listMembers(options) {
     });
 }
 
-function validateMember({email, password}) {
-    return models.Member.findOne({email}, {
-        require: true
-    }).then((member) => {
-        return member.comparePassword(password).then((res) => {
-            if (!res) {
-                throw new Error('Password is incorrect');
-            }
-            return member;
-        });
-    }).then((member) => {
-        return member.toJSON();
-    });
-}
-
-function getSubscriptionSettings() {
-    let membersSettings = settingsCache.get('members_subscription_settings');
-    if (!membersSettings) {
-        membersSettings = {
-            isPaid: false,
-            paymentProcessors: [{
-                adapter: 'stripe',
-                config: {
-                    secret_token: '',
-                    public_token: '',
-                    product: {
-                        name: 'Ghost Subscription'
-                    },
-                    plans: [
-                        {
-                            name: 'Monthly',
-                            currency: 'usd',
-                            interval: 'month',
-                            amount: ''
-                        },
-                        {
-                            name: 'Yearly',
-                            currency: 'usd',
-                            interval: 'year',
-                            amount: ''
-                        }
-                    ]
-                }
-            }]
-        };
-    }
-    if (!membersSettings.isPaid) {
-        membersSettings.paymentProcessors = [];
-    }
-    return membersSettings;
-}
-
-const siteUrl = urlUtils.getSiteUrl();
-const siteOrigin = doBlock(() => {
-    const {protocol, host} = url.parse(siteUrl);
-    return `${protocol}//${host}`;
-});
-
-const adminOrigin = doBlock(() => {
-    const {protocol, host} = url.parse(urlUtils.urlFor('admin', true));
-    return `${protocol}//${host}`;
-});
-
 const getApiUrl = ({version, type}) => {
-    const {href} = new url.URL(
+    const {href} = new URL(
         urlUtils.getApiPath({version, type}),
         urlUtils.urlFor('admin', true)
     );
     return href;
 };
 
-const contentApiUrl = getApiUrl({version: 'v2', type: 'content'});
+const siteUrl = urlUtils.getSiteUrl();
 const membersApiUrl = getApiUrl({version: 'v2', type: 'members'});
 
-const accessControl = {
-    [siteOrigin]: {
-        [contentApiUrl]: {
-            tokenLength: '20m'
-        },
-        [membersApiUrl]: {
-            tokenLength: '180d'
-        }
-    },
-    '*': {
-        tokenLength: '20m'
+const ghostMailer = new mail.GhostMailer();
+
+function getStripePaymentConfig() {
+    const subscriptionSettings = settingsCache.get('members_subscription_settings');
+
+    const stripePaymentProcessor = subscriptionSettings.paymentProcessors.find(
+        paymentProcessor => paymentProcessor.adapter === 'stripe'
+    );
+
+    if (!stripePaymentProcessor || !stripePaymentProcessor.config) {
+        return null;
     }
-};
 
-const sendEmail = (function createSendEmail(mailer) {
-    return function sendEmail(member, {token}) {
-        if (!(mailer instanceof mail.GhostMailer)) {
-            mailer = new mail.GhostMailer();
-        }
-        const message = {
-            to: member.email,
-            subject: 'Reset password',
-            html: `
-            Hi ${member.name},
+    const webhookHandlerUrl = new URL('/members/webhooks/stripe', siteUrl);
 
-            To reset your password, click the following link and follow the instructions:
+    const checkoutSuccessUrl = new URL(siteUrl);
+    checkoutSuccessUrl.searchParams.set('stripe', 'success');
+    const checkoutCancelUrl = new URL(siteUrl);
+    checkoutCancelUrl.searchParams.set('stripe', 'cancel');
 
-            ${siteUrl}#reset-password?token=${token}
-
-            If you didn't request a password change, just ignore this email.
-            `
-        };
-
-        /* eslint-disable */
-        // @TODO remove this
-        console.log(message.html);
-        /* eslint-enable */
-        return mailer.send(message).catch((err) => {
-            return Promise.reject(err);
-        });
-    };
-})();
-
-const getSiteConfig = () => {
     return {
-        title: settingsCache.get('title') ? settingsCache.get('title').replace(/"/g, '\\"') : 'Publication',
-        icon: blogIcon.getIconUrl()
+        publicKey: stripePaymentProcessor.config.public_token,
+        secretKey: stripePaymentProcessor.config.secret_token,
+        checkoutSuccessUrl: checkoutSuccessUrl.href,
+        checkoutCancelUrl: checkoutCancelUrl.href,
+        webhookHandlerUrl: webhookHandlerUrl.href,
+        product: stripePaymentProcessor.config.product,
+        plans: stripePaymentProcessor.config.plans,
+        appInfo: {
+            name: 'Ghost',
+            partner_id: 'pp_partner_DKmRVtTs4j9pwZ',
+            version: ghostVersion.original,
+            url: 'https://ghost.org/'
+        }
     };
-};
+}
 
 module.exports = createApiInstance;
 
 function createApiInstance() {
     const membersApiInstance = MembersApi({
-        authConfig: {
+        tokenConfig: {
             issuer: membersApiUrl,
-            ssoOrigin: adminOrigin,
             publicKey: settingsCache.get('members_public_key'),
-            privateKey: settingsCache.get('members_private_key'),
-            sessionSecret: settingsCache.get('members_session_secret'),
-            accessControl
+            privateKey: settingsCache.get('members_private_key')
+        },
+        auth: {
+            getSigninURL(token, type) {
+                const signinURL = new URL(siteUrl);
+                signinURL.searchParams.set('token', token);
+                signinURL.searchParams.set('action', type);
+                return signinURL.href;
+            }
+        },
+        mail: {
+            transporter: {
+                sendMail(message) {
+                    if (process.env.NODE_ENV !== 'production') {
+                        common.logging.warn(message.text);
+                    }
+                    return ghostMailer.send(Object.assign({subject: 'Signin'}, message));
+                }
+            },
+            getText(url, type) {
+                switch (type) {
+                case 'subscribe':
+                    return `Click here to confirm your subscription ${url}`;
+                case 'signup':
+                    return `Click here to confirm your email address and sign up ${url}`;
+                case 'signin':
+                default:
+                    return `Click here to sign in ${url}`;
+                }
+            },
+            getHTML(url, type) {
+                switch (type) {
+                case 'subscribe':
+                    return `<a href="${url}">Click here to confirm your subscription</a>`;
+                case 'signup':
+                    return `<a href="${url}">Click here to confirm your email address and sign up</a>`;
+                case 'signin':
+                default:
+                    return `<a href="${url}">Click here to sign in</a>`;
+                }
+            }
         },
         paymentConfig: {
-            processors: getSubscriptionSettings().paymentProcessors
+            stripe: getStripePaymentConfig()
         },
-        siteConfig: getSiteConfig(),
+        setMemberMetadata,
+        getMemberMetadata,
         createMember,
+        updateMember,
         getMember,
         deleteMember,
         listMembers,
-        validateMember,
-        updateMember,
-        sendEmail
+        logger: common.logging
     });
-
-    membersApiInstance.setLogger(common.logging);
 
     return membersApiInstance;
 }
