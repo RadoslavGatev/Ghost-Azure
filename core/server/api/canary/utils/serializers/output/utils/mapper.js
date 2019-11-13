@@ -2,7 +2,7 @@ const _ = require('lodash');
 const utils = require('../../../index');
 const url = require('./url');
 const date = require('./date');
-const members = require('./members');
+const gating = require('./post-gating');
 const clean = require('./clean');
 const extraAttrs = require('./extra-attrs');
 const postsMetaSchema = require('../../../../../../data/schema').tables.posts_meta;
@@ -43,7 +43,7 @@ const mapPost = (model, frame) => {
             jsonModel.page = true;
         }
         date.forPost(jsonModel);
-        members.forPost(jsonModel, frame);
+        gating.forPost(jsonModel, frame);
     }
 
     clean.post(jsonModel, frame);
@@ -119,6 +119,11 @@ const mapAction = (model, frame) => {
     return attrs;
 };
 
+const mapMember = (model, frame) => {
+    const jsonModel = model.toJSON ? model.toJSON(frame.options) : model;
+    return jsonModel;
+};
+
 module.exports.mapPost = mapPost;
 module.exports.mapUser = mapUser;
 module.exports.mapTag = mapTag;
@@ -126,3 +131,4 @@ module.exports.mapIntegration = mapIntegration;
 module.exports.mapSettings = mapSettings;
 module.exports.mapImage = mapImage;
 module.exports.mapAction = mapAction;
+module.exports.mapMember = mapMember;
