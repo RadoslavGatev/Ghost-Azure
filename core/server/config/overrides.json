@@ -20,17 +20,12 @@
         ]
     },
     "slugs": {
-        "reserved": [],
         "protected": ["ghost", "rss", "amp"]
     },
     "uploads": {
         "members": {
             "extensions": [".csv"],
-            "contentTypes": ["text/csv", "application/csv", "application/octet-stream"]
-        },
-        "members": {
-            "extensions": [".csv"],
-            "contentTypes": ["text/csv", "application/csv", "application/octet-stream"]
+            "contentTypes": ["text/csv", "application/csv", "application/octet-stream", "application/vnd.ms-excel"]
         },
         "images": {
             "extensions": [".jpg", ".jpeg", ".gif", ".png", ".svg", ".svgz", ".ico"],
