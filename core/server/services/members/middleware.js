@@ -4,7 +4,7 @@ const shared = require('../../web/shared');
 const labsService = require('../labs');
 const membersService = require('./index');
 
-const login = async function (req, res) {
+const getIdentityToken = async function (req, res) {
     try {
         const token = await membersService.ssr.getIdentityTokenForMemberFromSession(req, res);
         res.writeHead(200);
@@ -16,7 +16,7 @@ const login = async function (req, res) {
     }
 };
 
-const logout = async function (req, res) {
+const deleteSession = async function (req, res) {
     try {
         await membersService.ssr.deleteSession(req, res);
         res.writeHead(204);
@@ -77,18 +77,18 @@ module.exports = {
             constants.ONE_HOUR_S
         )
     ],
-    authentication: [
+    createSessionFromToken: [
         getMemberDataFromSession,
         exchangeTokenForSession,
         decorateResponse
     ],
-    login: [
+    getIdentityToken: [
         shared.middlewares.labs.members,
-        login
+        getIdentityToken
     ],
-    logout: [
+    deleteSession: [
         shared.middlewares.labs.members,
-        logout
+        deleteSession
     ],
     stripeWebhooks: [
         shared.middlewares.labs.members,
