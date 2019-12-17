@@ -2,13 +2,15 @@ const debug = require('ghost-ignition').debug('services:routing:bootstrap');
 const _ = require('lodash');
 const common = require('../../../server/lib/common');
 const settingsService = require('../settings');
-const themeService = require('../themes');
 const StaticRoutesRouter = require('./StaticRoutesRouter');
 const StaticPagesRouter = require('./StaticPagesRouter');
 const CollectionRouter = require('./CollectionRouter');
 const TaxonomyRouter = require('./TaxonomyRouter');
 const PreviewRouter = require('./PreviewRouter');
 const ParentRouter = require('./ParentRouter');
+const UnsubscribeRouter = require('./UnsubscribeRouter');
+
+const defaultApiVersion = 'v3';
 
 const registry = require('./registry');
 let siteRouter;
@@ -38,7 +40,8 @@ module.exports.init = (options = {start: false}) => {
     registry.setRouter('siteRouter', siteRouter);
 
     if (options.start) {
-        this.start();
+        let apiVersion = _.isBoolean(options.start) ? defaultApiVersion : options.start;
+        this.start(apiVersion);
     }
 
     return siteRouter.router();
@@ -50,19 +53,21 @@ module.exports.init = (options = {start: false}) => {
  * The routers are created in a specific order. This order defines who can get a resource first or
  * who can dominant other routers.
  *
- * 1. Preview Router: Is the strongest and is an inbuilt feature, which you can never override.
+ * 1. Preview + Unsubscribe Routers: Strongest inbuilt features, which you can never override.
  * 2. Static Routes: Very strong, because you can override any urls and redirect to a static route.
  * 3. Taxonomies: Stronger than collections, because it's an inbuilt feature.
  * 4. Collections
  * 5. Static Pages: Weaker than collections, because we first try to find a post slug and fallback to lookup a static page.
  * 6. Apps: Weakest
  */
-module.exports.start = () => {
-    const apiVersion = themeService.getApiVersion();
+module.exports.start = (apiVersion) => {
     const RESOURCE_CONFIG = require(`./config/${apiVersion}`);
 
-    const previewRouter = new PreviewRouter(RESOURCE_CONFIG);
+    const unsubscribeRouter = new UnsubscribeRouter();
+    siteRouter.mountRouter(unsubscribeRouter.router());
+    registry.setRouter('unsubscribeRouter', unsubscribeRouter);
 
+    const previewRouter = new PreviewRouter(RESOURCE_CONFIG);
     siteRouter.mountRouter(previewRouter.router());
     registry.setRouter('previewRouter', previewRouter);
 

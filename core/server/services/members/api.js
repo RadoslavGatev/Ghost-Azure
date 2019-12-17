@@ -1,37 +1,12 @@
-const crypto = require('crypto');
-const {URL} = require('url');
 const settingsCache = require('../settings/cache');
-const urlUtils = require('../../lib/url-utils');
 const MembersApi = require('@tryghost/members-api');
 const common = require('../../lib/common');
-const ghostVersion = require('../../lib/ghost-version');
 const mail = require('../mail');
 const models = require('../../models');
 const signinEmail = require('./emails/signin');
 const signupEmail = require('./emails/signup');
 const subscribeEmail = require('./emails/subscribe');
-
-async function createMember({email, name, note}, options = {}) {
-    const model = await models.Member.add({
-        email,
-        name: name || null,
-        note: note || null
-    });
-    const member = model.toJSON(options);
-    return member;
-}
-
-async function getMember(data, options = {}) {
-    if (!data.email && !data.id) {
-        return Promise.resolve(null);
-    }
-    const model = await models.Member.findOne(data, options);
-    if (!model) {
-        return null;
-    }
-    const member = model.toJSON(options);
-    return member;
-}
+const config = require('./config');
 
 async function setMetadata(module, metadata) {
     if (module !== 'stripe') {
@@ -75,132 +50,17 @@ async function getMetadata(module, member) {
     };
 }
 
-async function updateMember({name, note}, options = {}) {
-    const model = await models.Member.edit({
-        name: name || null,
-        note: note || null
-    }, options);
-
-    const member = model.toJSON(options);
-    return member;
-}
-
-function deleteMember(options) {
-    options = options || {};
-    return models.Member.destroy(options).catch(models.Member.NotFoundError, () => {
-        throw new common.errors.NotFoundError({
-            message: common.i18n.t('errors.api.resource.resourceNotFound', {
-                resource: 'Member'
-            })
-        });
-    });
-}
-
-function listMembers(options) {
-    return models.Member.findPage(options).then((models) => {
-        return {
-            members: models.data.map(model => model.toJSON(options)),
-            meta: models.meta
-        };
-    });
-}
-
-const getApiUrl = ({version, type}) => {
-    const {href} = new URL(
-        urlUtils.getApiPath({version, type}),
-        urlUtils.urlFor('admin', true)
-    );
-    return href;
-};
-
-const siteUrl = urlUtils.getSiteUrl();
-const membersApiUrl = getApiUrl({version: 'v2', type: 'members'});
-
 const ghostMailer = new mail.GhostMailer();
-
-function getStripePaymentConfig() {
-    const subscriptionSettings = settingsCache.get('members_subscription_settings');
-
-    const stripePaymentProcessor = subscriptionSettings.paymentProcessors.find(
-        paymentProcessor => paymentProcessor.adapter === 'stripe'
-    );
-
-    if (!stripePaymentProcessor || !stripePaymentProcessor.config) {
-        return null;
-    }
-
-    if (!stripePaymentProcessor.config.public_token || !stripePaymentProcessor.config.secret_token) {
-        return null;
-    }
-
-    const webhookHandlerUrl = new URL('/members/webhooks/stripe', siteUrl);
-
-    const checkoutSuccessUrl = new URL(siteUrl);
-    checkoutSuccessUrl.searchParams.set('stripe', 'success');
-    const checkoutCancelUrl = new URL(siteUrl);
-    checkoutCancelUrl.searchParams.set('stripe', 'cancel');
-
-    return {
-        publicKey: stripePaymentProcessor.config.public_token,
-        secretKey: stripePaymentProcessor.config.secret_token,
-        checkoutSuccessUrl: checkoutSuccessUrl.href,
-        checkoutCancelUrl: checkoutCancelUrl.href,
-        webhookHandlerUrl: webhookHandlerUrl.href,
-        product: stripePaymentProcessor.config.product,
-        plans: stripePaymentProcessor.config.plans,
-        appInfo: {
-            name: 'Ghost',
-            partner_id: 'pp_partner_DKmRVtTs4j9pwZ',
-            version: ghostVersion.original,
-            url: 'https://ghost.org/'
-        }
-    };
-}
-
-function getAuthSecret() {
-    const hexSecret = settingsCache.get('members_email_auth_secret');
-    if (!hexSecret) {
-        common.logging.warn('Could not find members_email_auth_secret, using dynamically generated secret');
-        return crypto.randomBytes(64);
-    }
-    const secret = Buffer.from(hexSecret, 'hex');
-    if (secret.length < 64) {
-        common.logging.warn('members_email_auth_secret not large enough (64 bytes), using dynamically generated secret');
-        return crypto.randomBytes(64);
-    }
-    return secret;
-}
-
-function getAllowSelfSignup() {
-    const subscriptionSettings = settingsCache.get('members_subscription_settings');
-    return subscriptionSettings.allowSelfSignup;
-}
-
-// NOTE: the function is an exact duplicate of one in GhostMailer should be extracted
-//       into a common lib once it needs to be reused anywhere else again
-function getDomain() {
-    const domain = urlUtils.urlFor('home', true).match(new RegExp('^https?://([^/:?#]+)(?:[/:?#]|$)', 'i'));
-    return domain && domain[1];
-}
 
 module.exports = createApiInstance;
 
 function createApiInstance() {
     const membersApiInstance = MembersApi({
-        tokenConfig: {
-            issuer: membersApiUrl,
-            publicKey: settingsCache.get('members_public_key'),
-            privateKey: settingsCache.get('members_private_key')
-        },
+        tokenConfig: config.getTokenConfig(),
         auth: {
-            getSigninURL(token, type) {
-                const signinURL = new URL(siteUrl);
-                signinURL.searchParams.set('token', token);
-                signinURL.searchParams.set('action', type);
-                return signinURL.href;
-            },
-            allowSelfSignup: getAllowSelfSignup(),
-            secret: getAuthSecret()
+            getSigninURL: config.getSigninURL,
+            allowSelfSignup: config.getAllowSelfSignup(),
+            secret: config.getAuthSecret()
         },
         mail: {
             transporter: {
@@ -209,15 +69,10 @@ function createApiInstance() {
                         common.logging.warn(message.text);
                     }
                     let msg = Object.assign({
+                        from: config.getEmailFromAddress(),
                         subject: 'Signin',
                         forceTextContent: true
                     }, message);
-                    const subscriptionSettings = settingsCache.get('members_subscription_settings');
-
-                    if (subscriptionSettings && subscriptionSettings.fromAddress) {
-                        let from = `${subscriptionSettings.fromAddress}@${getDomain()}`;
-                        msg = Object.assign({from: from}, msg);
-                    }
 
                     return ghostMailer.send(msg);
                 }
@@ -308,15 +163,11 @@ function createApiInstance() {
             }
         },
         paymentConfig: {
-            stripe: getStripePaymentConfig()
+            stripe: config.getStripePaymentConfig()
         },
         setMetadata,
         getMetadata,
-        createMember,
-        updateMember,
-        getMember,
-        deleteMember,
-        listMembers,
+        memberModel: models.Member,
         logger: common.logging
     });
 
