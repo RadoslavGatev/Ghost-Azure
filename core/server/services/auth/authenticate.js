@@ -1,10 +1,12 @@
-var passport = require('passport'),
-    authUtils = require('./utils'),
-    models = require('../../models'),
-    common = require('../../lib/common'),
-    authenticate;
+const passport = require('passport');
+const authUtils = require('./utils');
+const models = require('../../models');
+const common = require('../../lib/common');
+const session = require('./session');
+const apiKeyAuth = require('./api-key');
+const members = require('./members');
 
-authenticate = {
+const authenticate = {
     // ### Authenticate Client Middleware
     authenticateClient: function authenticateClient(req, res, next) {
         /**
@@ -40,7 +42,7 @@ authenticate = {
             return next(new common.errors.UnauthorizedError({
                 message: common.i18n.t('errors.middleware.auth.accessDenied'),
                 context: common.i18n.t('errors.middleware.auth.clientCredentialsNotProvided'),
-                help: common.i18n.t('errors.middleware.auth.forInformationRead', {url: 'https://api.ghost.org/v1.22.0/docs/client-authentication'})
+                help: common.i18n.t('errors.middleware.auth.forInformationRead', {url: 'https://ghost.org/faq/upgrade-to-ghost-2-0/'})
             }));
         }
 
@@ -58,7 +60,7 @@ authenticate = {
                     return next(new common.errors.UnauthorizedError({
                         message: common.i18n.t('errors.middleware.auth.accessDenied'),
                         context: common.i18n.t('errors.middleware.auth.clientCredentialsNotValid'),
-                        help: common.i18n.t('errors.middleware.auth.forInformationRead', {url: 'https://api.ghost.org/v1.22.0/docs/client-authentication'})
+                        help: common.i18n.t('errors.middleware.auth.forInformationRead', {url: 'https://ghost.org/faq/upgrade-to-ghost-2-0/'})
                     }));
                 }
 
@@ -98,7 +100,11 @@ authenticate = {
                 }));
             }
         )(req, res, next);
-    }
+    },
+
+    authenticateAdminApi: [apiKeyAuth.admin.authenticate, session.authenticate],
+
+    authenticateContentApi: [apiKeyAuth.content.authenticateContentApiKey, members.authenticateMembersToken]
 };
 
 module.exports = authenticate;

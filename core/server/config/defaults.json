@@ -19,6 +19,10 @@
     "scheduling": {
         "active": "SchedulingDefault"
     },
+    "members": {
+        "contentApiAccess": [],
+        "paymentProcessors": []
+    },
     "logging": {
         "level": "info",
         "rotation": {
@@ -26,7 +30,11 @@
             "period": "1d",
             "count": 10
         },
-        "transports": ["stdout"]
+        "transports": ["stdout"],
+        "slowHelper": {
+            "level": "warn",
+            "threshold": 200
+        }
     },
     "spam": {
         "user_login": {
@@ -57,6 +65,12 @@
             "maxWait": 3600000,
             "lifetime": 3600,
             "freeRetries":99
+        },
+        "content_api_key": {
+            "minWait": 3600000,
+            "maxWait": 86400000,
+            "lifetime": 3600,
+            "freeRetries": 99
         }
     },
     "caching": {
@@ -78,5 +92,12 @@
         "robotstxt": {
             "maxAge": 3600000
         }
-    }
+    },
+    "imageOptimization": {
+        "resize": true
+    },
+    "compress": true,
+    "preloadHeaders": false,
+    "adminFrameProtection": true,
+    "sendWelcomeEmail": true
 }
