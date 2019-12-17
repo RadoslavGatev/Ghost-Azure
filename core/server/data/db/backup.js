@@ -5,14 +5,14 @@ var fs = require('fs-extra'),
     Promise = require('bluebird'),
     config = require('../../config'),
     common = require('../../lib/common'),
-    urlUtils = require('../../lib/url-utils'),
-    exporter = require('../exporter'),
+    urlService = require('../../services/url'),
+    exporter = require('../export'),
 
     writeExportFile,
     backup;
 
 writeExportFile = function writeExportFile(exportResult) {
-    var filename = path.resolve(urlUtils.urlJoin(config.get('paths').contentPath, 'data', exportResult.filename));
+    var filename = path.resolve(urlService.utils.urlJoin(config.get('paths').contentPath, 'data', exportResult.filename));
 
     return fs.writeFile(filename, JSON.stringify(exportResult.data)).return(filename);
 };

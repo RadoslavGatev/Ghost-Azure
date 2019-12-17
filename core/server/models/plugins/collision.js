@@ -46,33 +46,30 @@ module.exports = function (Bookshelf) {
              * HTML is always auto generated, ignore.
              */
             parentSync.update = function update() {
-                return originalUpdateSync.apply(this, arguments)
-                    .then((response) => {
-                        const changed = _.omit(self._changed, [
-                            'created_at', 'updated_at', 'author_id', 'id',
-                            'published_by', 'updated_by', 'html', 'plaintext'
-                        ]);
+                var changed = _.omit(self.changed, [
+                        'created_at', 'updated_at', 'author_id', 'id',
+                        'published_by', 'updated_by', 'html', 'plaintext'
+                    ]),
+                    clientUpdatedAt = moment(self.clientData.updated_at || self.serverData.updated_at || new Date()),
+                    serverUpdatedAt = moment(self.serverData.updated_at || clientUpdatedAt);
 
-                        const clientUpdatedAt = moment(self.clientData.updated_at || self.serverData.updated_at || new Date());
-                        const serverUpdatedAt = moment(self.serverData.updated_at || clientUpdatedAt);
-
-                        if (Object.keys(changed).length) {
-                            if (clientUpdatedAt.diff(serverUpdatedAt) !== 0) {
-                                // @NOTE: This will rollback the update. We cannot know if relations were updated before doing the update.
-                                return Promise.reject(new common.errors.UpdateCollisionError({
-                                    message: 'Saving failed! Someone else is editing this post.',
-                                    code: 'UPDATE_COLLISION',
-                                    level: 'critical',
-                                    errorDetails: {
-                                        clientUpdatedAt: self.clientData.updated_at,
-                                        serverUpdatedAt: self.serverData.updated_at
-                                    }
-                                }));
+                if (Object.keys(changed).length) {
+                    if (clientUpdatedAt.diff(serverUpdatedAt) !== 0) {
+                        // @TODO: Remove later. We want to figure out how many people experience the error in which context.
+                        return Promise.reject(new common.errors.UpdateCollisionError({
+                            message: 'Saving failed! Someone else is editing this post.',
+                            code: 'UPDATE_COLLISION',
+                            level: 'critical',
+                            context: {
+                                clientUpdatedAt: self.clientData.updated_at,
+                                serverUpdatedAt: self.serverData.updated_at,
+                                changed: changed
                             }
-                        }
+                        }));
+                    }
+                }
 
-                        return response;
-                    });
+                return originalUpdateSync.apply(this, arguments);
             };
 
             return parentSync;

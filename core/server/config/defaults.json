@@ -4,9 +4,6 @@
         "host": "127.0.0.1",
         "port": 2368
     },
-    "admin": {
-        "redirects": true
-    },
     "updateCheck": {
         "url": "https://updates.ghost.org",
         "forceUpdate": false
@@ -22,10 +19,6 @@
     "scheduling": {
         "active": "SchedulingDefault"
     },
-    "members": {
-        "contentApiAccess": [],
-        "paymentProcessors": []
-    },
     "logging": {
         "level": "info",
         "rotation": {
@@ -33,11 +26,7 @@
             "period": "1d",
             "count": 10
         },
-        "transports": ["stdout"],
-        "slowHelper": {
-            "level": "warn",
-            "threshold": 200
-        }
+        "transports": ["stdout"]
     },
     "spam": {
         "user_login": {
@@ -68,12 +57,6 @@
             "maxWait": 3600000,
             "lifetime": 3600,
             "freeRetries":99
-        },
-        "content_api_key": {
-            "minWait": 3600000,
-            "maxWait": 86400000,
-            "lifetime": 3600,
-            "freeRetries": 99
         }
     },
     "caching": {
@@ -95,12 +78,5 @@
         "robotstxt": {
             "maxAge": 3600000
         }
-    },
-    "imageOptimization": {
-        "resize": true
-    },
-    "compress": true,
-    "preloadHeaders": false,
-    "adminFrameProtection": true,
-    "sendWelcomeEmail": true
+    }
 }

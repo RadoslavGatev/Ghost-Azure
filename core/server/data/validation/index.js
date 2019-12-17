@@ -6,11 +6,12 @@ var schema = require('../schema').tables,
     Promise = require('bluebird'),
     common = require('../../lib/common'),
     settingsCache = require('../../services/settings/cache'),
-    urlUtils = require('../../lib/url-utils'),
+    urlService = require('../../services/url'),
 
     validatePassword,
     validateSchema,
     validateSettings,
+    validateRedirects,
     validate;
 
 function assertString(input) {
@@ -95,7 +96,7 @@ validator.extend('isSlug', function isSlug(str) {
 validatePassword = function validatePassword(password, email, blogTitle) {
     var validationResult = {isValid: true},
         disallowedPasswords = ['password', 'ghost', 'passw0rd'],
-        blogUrl = urlUtils.urlFor('home', true),
+        blogUrl = urlService.utils.urlFor('home', true),
         badPasswords = [
             '1234567890',
             'qwertyuiop',
@@ -190,9 +191,9 @@ validateSchema = function validateSchema(tableName, model, options) {
         }
 
         // check nullable
-        if (Object.prototype.hasOwnProperty.call(schema[tableName][columnKey], 'nullable') &&
+        if (schema[tableName][columnKey].hasOwnProperty('nullable') &&
             schema[tableName][columnKey].nullable !== true &&
-            !Object.prototype.hasOwnProperty.call(schema[tableName][columnKey], 'defaultTo')
+            !schema[tableName][columnKey].hasOwnProperty('defaultTo')
         ) {
             if (validator.empty(strVal)) {
                 message = common.i18n.t('notices.data.validation.index.valueCannotBeBlank', {
@@ -207,7 +208,7 @@ validateSchema = function validateSchema(tableName, model, options) {
         }
 
         // validate boolean columns
-        if (Object.prototype.hasOwnProperty.call(schema[tableName][columnKey], 'type')
+        if (schema[tableName][columnKey].hasOwnProperty('type')
             && schema[tableName][columnKey].type === 'bool') {
             if (!(validator.isBoolean(strVal) || validator.empty(strVal))) {
                 message = common.i18n.t('notices.data.validation.index.valueMustBeBoolean', {
@@ -229,7 +230,7 @@ validateSchema = function validateSchema(tableName, model, options) {
         // TODO: check if mandatory values should be enforced
         if (model.get(columnKey) !== null && model.get(columnKey) !== undefined) {
             // check length
-            if (Object.prototype.hasOwnProperty.call(schema[tableName][columnKey], 'maxlength')) {
+            if (schema[tableName][columnKey].hasOwnProperty('maxlength')) {
                 if (!validator.isLength(strVal, 0, schema[tableName][columnKey].maxlength)) {
                     message = common.i18n.t('notices.data.validation.index.valueExceedsMaxLength',
                         {
@@ -245,12 +246,12 @@ validateSchema = function validateSchema(tableName, model, options) {
             }
 
             // check validations objects
-            if (Object.prototype.hasOwnProperty.call(schema[tableName][columnKey], 'validations')) {
+            if (schema[tableName][columnKey].hasOwnProperty('validations')) {
                 validationErrors = validationErrors.concat(validate(strVal, columnKey, schema[tableName][columnKey].validations, tableName));
             }
 
             // check type
-            if (Object.prototype.hasOwnProperty.call(schema[tableName][columnKey], 'type')) {
+            if (schema[tableName][columnKey].hasOwnProperty('type')) {
                 if (schema[tableName][columnKey].type === 'integer' && !validator.isInt(strVal)) {
                     message = common.i18n.t('notices.data.validation.index.valueIsNotInteger', {
                         tableName: tableName,
@@ -345,8 +346,7 @@ validate = function validate(value, key, validations, tableName) {
             }
 
             validationErrors.push(new common.errors.ValidationError({
-                message: translation,
-                context: `${tableName}.${key}`
+                message: translation
             }));
         }
 
@@ -356,10 +356,34 @@ validate = function validate(value, key, validations, tableName) {
     return validationErrors;
 };
 
+/**
+ * Redirects are file based at the moment, but they will live in the database in the future.
+ * See V2 of https://github.com/TryGhost/Ghost/issues/7707.
+ */
+validateRedirects = function validateRedirects(redirects) {
+    if (!_.isArray(redirects)) {
+        throw new common.errors.ValidationError({
+            message: common.i18n.t('errors.utils.redirectsWrongFormat'),
+            help: 'https://docs.ghost.org/v1/docs/redirects'
+        });
+    }
+
+    _.each(redirects, function (redirect) {
+        if (!redirect.from || !redirect.to) {
+            throw new common.errors.ValidationError({
+                message: common.i18n.t('errors.utils.redirectsWrongFormat'),
+                context: redirect,
+                help: 'https://docs.ghost.org/v1/docs/redirects'
+            });
+        }
+    });
+};
+
 module.exports = {
     validate: validate,
     validator: validator,
     validatePassword: validatePassword,
     validateSchema: validateSchema,
-    validateSettings: validateSettings
+    validateSettings: validateSettings,
+    validateRedirects: validateRedirects
 };

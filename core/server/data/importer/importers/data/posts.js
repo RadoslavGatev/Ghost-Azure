@@ -1,21 +1,22 @@
-const debug = require('ghost-ignition').debug('importer:posts');
-const _ = require('lodash');
-const uuid = require('uuid');
-const BaseImporter = require('./base');
-const converters = require('../../../../lib/mobiledoc/converters');
-const validation = require('../../../validation');
-const postsMetaSchema = require('../../../schema').tables.posts_meta;
-const metaAttrs = _.keys(_.omit(postsMetaSchema, ['id']));
+const debug = require('ghost-ignition').debug('importer:posts'),
+    _ = require('lodash'),
+    uuid = require('uuid'),
+    BaseImporter = require('./base'),
+    validation = require('../../../validation');
 
 class PostsImporter extends BaseImporter {
     constructor(allDataFromFile) {
         super(allDataFromFile, {
             modelName: 'Post',
             dataKeyToImport: 'posts',
-            requiredFromFile: ['posts', 'tags', 'posts_tags', 'posts_authors', 'posts_meta'],
+            requiredFromFile: ['posts', 'tags', 'posts_tags', 'posts_authors'],
             requiredImportedData: ['tags'],
             requiredExistingData: ['tags']
         });
+
+        this.legacyKeys = {
+            image: 'feature_image'
+        };
     }
 
     sanitizeAttributes() {
@@ -23,28 +24,6 @@ class PostsImporter extends BaseImporter {
             if (!validation.validator.isUUID(obj.uuid || '')) {
                 obj.uuid = uuid.v4();
             }
-
-            // we used to have post.page=true/false
-            // we now have post.type='page'/'post'
-            // give precedence to post.type if both are present
-            if (_.has(obj, 'page')) {
-                if (_.isEmpty(obj.type)) {
-                    obj.type = obj.page ? 'page' : 'post';
-                }
-                delete obj.page;
-            }
-        });
-    }
-
-    /**
-     * Sanitizes post metadata, picking data from sepearate table(for >= v3) or post itself(for < v3)
-     */
-    sanitizePostsMeta(model) {
-        let postsMetaFromFile = _.find(this.requiredFromFile.posts_meta, {post_id: model.id}) || _.pick(model, metaAttrs);
-        let postsMetaData = Object.assign({}, _.mapValues(postsMetaSchema, () => null), postsMetaFromFile);
-        model.posts_meta = postsMetaData;
-        _.each(metaAttrs, (attr) => {
-            delete model[attr];
         });
     }
 
@@ -124,11 +103,7 @@ class PostsImporter extends BaseImporter {
 
                 // CASE: search through imported data.
                 // EDGE CASE: uppercase tag slug was imported and auto modified
-                let importedObject = null;
-
-                if (objectInFile.id) {
-                    importedObject = _.find(this.requiredImportedData[tableName], {originalId: objectInFile.id});
-                }
+                let importedObject = _.find(this.requiredImportedData[tableName], {originalSlug: objectInFile.slug});
 
                 if (importedObject) {
                     this.dataToImport[postIndex][targetProperty][index].id = importedObject.id;
@@ -171,61 +146,55 @@ class PostsImporter extends BaseImporter {
 
     beforeImport() {
         debug('beforeImport');
+        let mobileDocContent;
 
         this.sanitizeAttributes();
         this.addNestedRelations();
 
+        // Remove legacy field language
+        this.dataToImport = _.filter(this.dataToImport, (data) => {
+            return _.omit(data, 'language');
+        });
+
+        this.dataToImport = this.dataToImport.map(this.legacyMapper);
+
+        // For legacy imports/custom imports with only html we can parse the markdown or html into a mobile doc card
+        // For now we can hardcode the version
         _.each(this.dataToImport, (model) => {
-            // NOTE: we remember the original post id for disqus
+            if (!model.mobiledoc) {
+                if (model.markdown && model.markdown.length > 0) {
+                    mobileDocContent = model.markdown;
+                } else if (model.html && model.html.length > 0) {
+                    mobileDocContent = model.html;
+                } else {
+                    // Set mobileDocContent to null else it will affect empty posts
+                    mobileDocContent = null;
+                }
+                if (mobileDocContent) {
+                    model.mobiledoc = JSON.stringify({
+                        version: '0.3.1',
+                        markups: [],
+                        atoms: [],
+                        cards: [['card-markdown', {cardName: 'card-markdown', markdown: mobileDocContent}]],
+                        sections: [[10, 0]]
+                    });
+                }
+            }
+
+            // NOTE: we remember the old post id for disqus
+            // We also check if amp already exists to prevent
+            // overwriting any comment ids from a 1.0 export
             // (see https://github.com/TryGhost/Ghost/issues/8963)
-
-            // CASE 1: you import a 1.0 export (amp field contains the correct disqus id)
-            // CASE 2: you import a 2.0 export (we have to ensure we use the original post id as disqus id)
-            if (model.id && model.amp) {
-                model.comment_id = model.amp;
-                delete model.amp;
-            } else {
-                if (!model.comment_id) {
-                    model.comment_id = model.id;
-                }
+            if (model.id && !model.amp) {
+                model.amp = model.id.toString();
             }
-
-            // CASE 1: you are importing old editor posts
-            // CASE 2: you are importing Koenig Beta posts
-            // CASE 3: you are importing Koenig 2.0 posts
-            if (model.mobiledoc || (model.mobiledoc && model.html && model.html.match(/^<div class="kg-card-markdown">/))) {
-                let mobiledoc;
-
-                try {
-                    mobiledoc = JSON.parse(model.mobiledoc);
-
-                    if (!mobiledoc.cards || !_.isArray(mobiledoc.cards)) {
-                        model.mobiledoc = converters.mobiledocConverter.blankStructure();
-                        mobiledoc = model.mobiledoc;
-                    }
-                } catch (err) {
-                    mobiledoc = converters.mobiledocConverter.blankStructure();
-                }
-
-                mobiledoc.cards.forEach((card) => {
-                    // Koenig Beta = imageStyle, Ghost 2.0 Koenig = cardWidth
-                    if (card[0] === 'image' && card[1].imageStyle) {
-                        card[1].cardWidth = card[1].imageStyle;
-                        delete card[1].imageStyle;
-                    }
-                });
-
-                model.mobiledoc = JSON.stringify(mobiledoc);
-                model.html = converters.mobiledocConverter.render(JSON.parse(model.mobiledoc));
-            }
-            this.sanitizePostsMeta(model);
         });
 
         // NOTE: We only support removing duplicate posts within the file to import.
         // For any further future duplication detection, see https://github.com/TryGhost/Ghost/issues/8717.
         let slugs = [];
         this.dataToImport = _.filter(this.dataToImport, (post) => {
-            if (!!post.slug && slugs.indexOf(post.slug) !== -1) {
+            if (slugs.indexOf(post.slug) !== -1) {
                 this.problems.push({
                     message: 'Entry was not imported and ignored. Detected duplicated entry.',
                     help: this.modelName,

@@ -5,14 +5,15 @@ var _ = require('lodash'),
     schema = require('./schema'),
     clients = require('./clients');
 
-function addTableColumn(tableName, table, columnName, columnSpec = schema[tableName][columnName]) {
-    var column;
+function addTableColumn(tableName, table, columnName) {
+    var column,
+        columnSpec = schema[tableName][columnName];
 
     // creation distinguishes between text with fieldtype, string with maxlength and all others
-    if (columnSpec.type === 'text' && Object.prototype.hasOwnProperty.call(columnSpec, 'fieldtype')) {
+    if (columnSpec.type === 'text' && columnSpec.hasOwnProperty('fieldtype')) {
         column = table[columnSpec.type](columnName, columnSpec.fieldtype);
     } else if (columnSpec.type === 'string') {
-        if (Object.prototype.hasOwnProperty.call(columnSpec, 'maxlength')) {
+        if (columnSpec.hasOwnProperty('maxlength')) {
             column = table[columnSpec.type](columnName, columnSpec.maxlength);
         } else {
             column = table[columnSpec.type](columnName, 191);
@@ -21,35 +22,32 @@ function addTableColumn(tableName, table, columnName, columnSpec = schema[tableN
         column = table[columnSpec.type](columnName);
     }
 
-    if (Object.prototype.hasOwnProperty.call(columnSpec, 'nullable') && columnSpec.nullable === true) {
+    if (columnSpec.hasOwnProperty('nullable') && columnSpec.nullable === true) {
         column.nullable();
     } else {
         column.nullable(false);
     }
-    if (Object.prototype.hasOwnProperty.call(columnSpec, 'primary') && columnSpec.primary === true) {
+    if (columnSpec.hasOwnProperty('primary') && columnSpec.primary === true) {
         column.primary();
     }
-    if (Object.prototype.hasOwnProperty.call(columnSpec, 'unique') && columnSpec.unique) {
+    if (columnSpec.hasOwnProperty('unique') && columnSpec.unique) {
         column.unique();
     }
-    if (Object.prototype.hasOwnProperty.call(columnSpec, 'unsigned') && columnSpec.unsigned) {
+    if (columnSpec.hasOwnProperty('unsigned') && columnSpec.unsigned) {
         column.unsigned();
     }
-    if (Object.prototype.hasOwnProperty.call(columnSpec, 'references')) {
+    if (columnSpec.hasOwnProperty('references')) {
         // check if table exists?
         column.references(columnSpec.references);
     }
-    if (Object.prototype.hasOwnProperty.call(columnSpec, 'defaultTo')) {
+    if (columnSpec.hasOwnProperty('defaultTo')) {
         column.defaultTo(columnSpec.defaultTo);
-    }
-    if (Object.prototype.hasOwnProperty.call(columnSpec, 'index') && columnSpec.index === true) {
-        column.index();
     }
 }
 
-function addColumn(tableName, column, transaction, columnSpec) {
+function addColumn(tableName, column, transaction) {
     return (transaction || db.knex).schema.table(tableName, function (table) {
-        addTableColumn(tableName, table, column, columnSpec);
+        addTableColumn(tableName, table, column);
     });
 }
 
@@ -133,40 +131,6 @@ function checkTables(transaction) {
     }
 }
 
-const createLog = type => msg => common.logging[type](msg);
-
-function createColumnMigration(...migrations) {
-    async function runColumnMigration(conn, migration) {
-        const {
-            table,
-            column,
-            dbIsInCorrectState,
-            operation,
-            operationVerb,
-            columnDefinition
-        } = migration;
-
-        const hasColumn = await conn.schema.hasColumn(table, column);
-        const isInCorrectState = dbIsInCorrectState(hasColumn);
-
-        const log = createLog(isInCorrectState ? 'warn' : 'info');
-
-        log(`${operationVerb} ${table}.${column}`);
-
-        if (!isInCorrectState) {
-            await operation(table, column, conn, columnDefinition);
-        }
-    }
-
-    return async function columnMigration(options) {
-        const conn = options.transacting || options.connection;
-
-        for (const migration of migrations) {
-            await runColumnMigration(conn, migration);
-        }
-    };
-}
-
 module.exports = {
     checkTables: checkTables,
     createTable: createTable,
@@ -177,6 +141,5 @@ module.exports = {
     dropUnique: dropUnique,
     addColumn: addColumn,
     dropColumn: dropColumn,
-    getColumns: getColumns,
-    createColumnMigration
+    getColumns: getColumns
 };

@@ -15,7 +15,7 @@
                     "checkEmailForInstructions": "Check your email for further instructions.",
                     "passwordChanged": "Password changed successfully.",
                     "invitationAccepted": "Invitation accepted.",
-                    "yourNewGhostBlog": "Your New Ghost Site"
+                    "yourNewGhostBlog": "Your New Ghost Blog"
                 }
             },
             "mail": {
@@ -26,24 +26,42 @@
                     "invitedByName": "{invitedByName} has invited you to join {blogName}"
                 }
             },
-            "actions": {
-                "images": {
-                    "upload": "upload image"
-                }
+            "clients": {
+                "clientNotFound": "Client not found"
             }
         }
     },
     "errors": {
         "apps": {
+            "failedToParseActiveAppsSettings": {
+                "error": "Failed to parse active_apps setting value: {message}",
+                "context": "Your apps will not be loaded.",
+                "help": "Check your settings table for typos in the active_apps value. It should look like: [\"app-1\", \"app2\"] (double quotes required)."
+            },
             "appWillNotBeLoaded": {
                 "error": "The app will not be loaded",
                 "help": "Check with the app creator, or read the app documentation for more details on app requirements"
             },
+            "permissionsErrorLoadingApp": {
+                "error": "Error loading app named {name}; problem reading permissions: {message}"
+            },
+            "noInstallMethodLoadingApp": {
+                "error": "Error loading app named {name}; no install() method defined."
+            },
             "noActivateMethodLoadingApp": {
                 "error": "Error loading app named {name}; no activate() method defined."
             },
+            "accessResourceWithoutPermission": {
+                "error": "The App \"{name}\" attempted to perform an action or access a resource ({perm}.{method}) without permission."
+            },
             "mustProvideAppName": {
                 "error": "Must provide an app name for api context"
+            },
+            "mustProvideAppPermissions": {
+                "error": "Must provide app permissions"
+            },
+            "unsafeAppRequire": {
+                "error": "Unsafe App require: {msg}"
             }
         },
         "middleware": {
@@ -51,26 +69,17 @@
                 "versionMismatch": "Client request for {clientVersion} does not match server version {serverVersion}."
             },
             "auth": {
+                "clientAuthenticationFailed": "Client Authentication Failed",
                 "clientCredentialsNotProvided": "Client credentials were not provided",
                 "clientCredentialsNotValid": "Client credentials were not valid",
                 "forInformationRead": "For information on how to fix this, please read {url}.",
-                "unknownOrigin": "Could not determine origin of request. Please ensure an Origin or Referrer header is present.",
-                "mismatchedOrigin": "Request made from incorrect origin. Expected '{expected}' received '{actual}'.",
-                "missingUserIDForSession": "Cannot create session without user id.",
                 "accessDenied": "Access denied.",
-                "pleaseSignIn": "Please Sign In",
-                "authorizationFailed": "Authorization failed",
-                "missingContentMemberOrIntegration": "Unable to determine the authenticated member or integration. Check the supplied Content API Key and ensure cookies are being passed through if member auth is failing.",
-                "missingAdminUserOrIntegration": "Unable to determine the authenticated user or integration. Check that cookies are being passed through if using session authentication.",
-                "adminApiKeyMissing": "Admin API Token missing kid header claim.",
-                "unknownAdminApiKey": "Unknown Admin API Key",
-                "unknownContentApiKey": "Unknown Content API Key",
-                "adminApiKidMissing": "Admin API kid missing.",
-                "invalidApiKeyType": "Invalid API Key type",
-                "invalidRequest": "Invalid Request",
-                "invalidToken": "Invalid token",
-                "invalidTokenWithMessage": "Invalid token: {message}",
-                "incorrectAuthHeaderFormat": "Authorization header format is \"Authorization: Ghost [token]\""
+                "pleaseSignIn": "Please Sign In"
+            },
+            "oauth": {
+                "invalidClient": "Invalid client.",
+                "invalidRefreshToken": "Invalid refresh token.",
+                "refreshTokenExpired": "Refresh token expired."
             },
             "privateblogging": {
                 "wrongPassword": "Wrong password"
@@ -114,9 +123,6 @@
             },
             "blogIcon": {
                 "error": "Could not fetch icon dimensions."
-            },
-            "images": {
-                "invalidDimensions": "Could not fetch image dimensions."
             },
             "redirectsWrongFormat": "Incorrect redirects file format."
         },
@@ -165,8 +171,8 @@
             }
         },
         "general": {
-            "maintenance": "Site is currently undergoing maintenance, please wait a moment then retry.",
-            "maintenanceUrlService": "Site is starting up, please wait a moment then retry.",
+            "maintenance": "Ghost is currently undergoing maintenance, please wait a moment then retry.",
+            "maintenanceUrlService": "Ghost is starting up, please wait a moment then retry.",
             "requiredOnFuture": "This will be required in future. Please see {link}",
             "internalError": "Something went wrong.",
             "jsonParse": "Could not parse JSON: {context}."
@@ -196,10 +202,7 @@
             "reason": " Reason: {reason}."
         },
         "models": {
-            "general": {
-                "sql": "Could not understand request."
-            },
-            "invite": {
+            "subscriber": {
                 "notEnoughPermission": "You do not have permission to perform this action"
             },
             "post": {
@@ -249,15 +252,7 @@
                 "userNotFound": "User not found",
                 "ownerNotFound": "Owner not found",
                 "onlyOwnerCanTransferOwnerRole": "Only owners are able to transfer the owner role.",
-                "onlyAdmCanBeAssignedOwnerRole": "Only administrators can be assigned the owner role.",
-                "onlyActiveAdmCanBeAssignedOwnerRole": "Only active administrators can be assigned the owner role."
-            },
-            "api_key": {
-                "apiKeyNotFound": "API Key not found"
-            },
-            "email": {
-                "emailNotFound": "Email not found.",
-                "retryNotAllowed": "Only failed emails can be retried"
+                "onlyAdmCanBeAssignedOwnerRole": "Only administrators can be assigned the owner role."
             },
             "base": {
                 "index": {
@@ -287,7 +282,7 @@
         },
         "updateCheck": {
             "checkingForUpdatesFailed": {
-                "error": "Checking for updates failed, your site will continue to function.",
+                "error": "Checking for updates failed, your blog will continue to function.",
                 "help": "If you get this error repeatedly, please seek help from {url}."
             },
             "unableToDecodeUpdateResponse": {
@@ -296,8 +291,7 @@
         },
         "api": {
             "common": {
-                "invalidTokenStructure": "Invalid token structure",
-                "notImplemented": "The server does not support the functionality required to fulfill the request."
+                "invalidTokenStructure": "Invalid token structure"
             },
             "authentication": {
                 "setupUnableToRun": "Database missing fixture data. Please reset database and try again.",
@@ -308,13 +302,16 @@
                 "noNameProvided": "No name provided.",
                 "invalidEmailReceived": "The server did not receive a valid email",
                 "setupAlreadyCompleted": "Setup has already been completed.",
-                "unableToSendWelcomeEmail": "Unable to send welcome email, your site will continue to function.",
+                "unableToSendWelcomeEmail": "Unable to send welcome email, your blog will continue to function.",
                 "checkEmailConfigInstructions": "Please see {url} for instructions on configuring email.",
                 "notLoggedIn": "You are not logged in.",
-                "notTheBlogOwner": "You are not the site owner.",
+                "notTheBlogOwner": "You are not the blog owner.",
                 "invalidTokenTypeHint": "Invalid token_type_hint given.",
                 "invalidTokenProvided": "Invalid token provided",
                 "tokenRevocationFailed": "Token revocation failed"
+            },
+            "clients": {
+                "clientNotFound": "Client not found."
             },
             "configuration": {
                 "invalidKey": "Invalid key"
@@ -339,12 +336,6 @@
             "posts": {
                 "postNotFound": "Post not found."
             },
-            "authors": {
-                "notFound": "Author not found."
-            },
-            "pages": {
-                "pageNotFound": "Page not found."
-            },
             "job": {
                 "notFound": "Job not found.",
                 "publishInThePast": "Use the force flag to publish a post in the past."
@@ -352,13 +343,6 @@
             "redirects": {
                 "missingFile": "Please select a JSON file.",
                 "invalidFile": "Please select a valid JSON file to import."
-            },
-            "resource": {
-                "resourceNotFound": "{resource} not found."
-            },
-            "routes": {
-                "missingFile": "Please select a YAML file.",
-                "invalidFile": "Please select a valid YAML file to import."
             },
             "settings": {
                 "problemFindingSetting": "Problem finding setting: {key}",
@@ -377,9 +361,11 @@
                 "couldNotGenerateSlug": "Could not generate slug.",
                 "unknownSlugType": "Unknown slug type '{type}'."
             },
-            "members": {
-                "memberNotFound": "Member not found.",
-                "memberAlreadyExists": "Email address is already member."
+            "subscribers": {
+                "missingFile": "Please select a csv.",
+                "invalidFile": "Please select a valid CSV file to import.",
+                "subscriberNotFound": "Subscriber not found.",
+                "subscriberAlreadyExists": "Email address is already subscribed."
             },
             "tags": {
                 "tagNotFound": "Tag not found."
@@ -398,12 +384,11 @@
             },
             "images": {
                 "missingFile": "Please select an image.",
-                "invalidFile": "Please select a valid image.",
-                "isNotSquare": "Please select a valid image file with square dimensions."
+                "invalidFile": "Please select a valid image."
             },
             "icons": {
                 "missingFile": "Please select an icon.",
-                "invalidFile": "Icon must be a square .ico or .png file between 60px – 1,000px, under 100kb.",
+                "invalidFile": "Blog icon must be a square .ico or .png file between 60px – 1,000px, under 100kb.",
                 "couldNotGetSize": "Couldn/'t get icon dimensions"
             },
             "users": {
@@ -438,34 +423,11 @@
                 "notAllowedToInvite": "Not allowed to invite this role."
             },
             "webhooks": {
-                "webhookAlreadyExists": "Target URL has already been used for this event."
+                "webhookAlreadyExists": "A webhook for requested event with supplied target_url already exists."
             },
             "oembed": {
                 "noUrlProvided": "No url provided.",
                 "unknownProvider": "No provider found for supplied URL."
-            },
-            "userMessages": {
-                "InternalServerError": "Internal server error, cannot {action}.",
-                "IncorrectUsageError": "Incorrect usage error, cannot {action}.",
-                "NotFoundError": "Resource not found error, cannot {action}.",
-                "BadRequestError": "Request not understood error, cannot {action}.",
-                "UnauthorizedError": "Authorisation error, cannot {action}.",
-                "NoPermissionError": "Permission error, cannot {action}.",
-                "ValidationError": "Validation error, cannot {action}.",
-                "UnsupportedMediaTypeError": "Unsupported media error, cannot {action}.",
-                "TooManyRequestsError": "Too many requests error, cannot {action}.",
-                "MaintenanceError": "Server down for maintenance, cannot {action}.",
-                "MethodNotAllowedError": "Method not allowed, cannot {action}.",
-                "RequestEntityTooLargeError": "Request too large, cannot {action}.",
-                "TokenRevocationError": "Token is not available, cannot {action}.",
-                "VersionMismatchError": "Version mismatch error, cannot {action}.",
-                "DataExportError": "Error exporting content.",
-                "DataImportError": "Duplicated entry, cannot save {action}.",
-                "DatabaseVersionError": "Database version compatibility error, cannot {action}.",
-                "EmailError": "Error sending email!",
-                "ThemeValidationError": "Theme validation error, cannot {action}.",
-                "DisabledFeatureError": "Theme validation error, the {{{helperName}}} helper is not available. Cannot {action}.",
-                "UpdateCollisionError": "Saving failed! Someone else is editing this post."
             }
         },
         "data": {
@@ -487,7 +449,7 @@
                 "index": {
                     "couldNotCleanUpFile": {
                         "error": "Import could not clean up file ",
-                        "context": "Your site will continue to work as expected"
+                        "context": "Your blog will continue to work as expected"
                     },
                     "unsupportedRoonExport": "Your zip file looks like an old format Roon export, please re-export your Roon blog and try again.",
                     "noContentToImport": "Zip did not include any content to import.",
@@ -508,7 +470,7 @@
         "services": {
             "ping": {
                 "requestFailed": {
-                    "error": "The {service} service was unable to send a ping request, your site will continue to function.",
+                    "error": "The {service} service was unable to send a ping request, your blog will continue to function.",
                     "help": "If you get this error repeatedly, please seek help on {url}."
                 }
             },
@@ -520,11 +482,6 @@
                 },
                 "loader": "Error trying to load YAML setting for {setting} from '{path}'.",
                 "ensureSettings": "Error trying to access settings files in {path}."
-            },
-            "mega": {
-                "requestFailed": {
-                    "error" : "The email service was unable to send an email batch."
-                }
             }
         },
         "errors": {
@@ -535,7 +492,7 @@
             "unknownErrorOccurred": "An unknown error occurred.",
             "unknownError": "Unknown Error",
             "unknownApiError": "Unknown API Error",
-            "databaseIsReadOnly": "Your database is in read only mode. Visitors can read your site, but you can't log in or add posts.",
+            "databaseIsReadOnly": "Your database is in read only mode. Visitors can read your blog, but you can't log in or add posts.",
             "checkDatabase": "Check your database file and make sure that file owner and permissions are correct.",
             "notEnoughPermission": "You do not have permission to perform this action",
             "errorWhilstRenderingError": "Error whilst rendering error page",
@@ -580,12 +537,6 @@
             "is": {
                 "invalidAttribute": "Invalid or no attribute given to is helper"
             },
-            "link": {
-                "hrefIsRequired": "The \\{\\{#link\\}\\}\\{\\{/link\\}\\} helper requires an href=\"\" attribute."
-            },
-            "link_class": {
-                "forIsRequired": "The \\{\\{link_class\\}\\} helper requires a for=\"\" attribute."
-            },
             "navigation": {
                 "invalidData": "navigation data is not an object or is a function",
                 "valuesMustBeDefined": "All values must be defined for label, url and current",
@@ -595,7 +546,7 @@
                 "isDeprecated": "Warning: pageUrl is deprecated, please use page_url instead\nThe helper pageUrl has been replaced with page_url in Ghost 0.4.2, and will be removed entirely in Ghost 0.6\nIn your theme's pagination.hbs file, pageUrl should be renamed to page_url"
             },
             "pagination": {
-                "invalidData": "The \\{\\{pagination\\}\\} helper was used outside of a paginated context. See https://ghost.org/docs/api/handlebars-themes/helpers/pagination/.",
+                "invalidData": "The \\{\\{pagination\\}\\} helper was used outside of a paginated context. See https://themes.ghost.org/v1.23.0/docs/pagination.",
                 "valuesMustBeDefined": "All values must be defined for page, pages, limit and total",
                 "nextPrevValuesMustBeNumeric": "Invalid value, Next/Prev must be a number",
                 "valuesMustBeNumeric": "Invalid value, check page, pages, limit and total are numbers"
@@ -619,13 +570,13 @@
         "httpServer": {
             "cantTouchThis": "Can't touch this",
             "ghostIsRunning": "Ghost is running...",
-            "yourBlogIsAvailableOn": "Your site is now available on {url}",
+            "yourBlogIsAvailableOn": "Your blog is now available on {url}",
             "ctrlCToShutDown": "Ctrl+C to shut down",
             "ghostIsRunningIn": "Ghost is running in {env}...",
             "listeningOn": "Listening on: {host}:{port}",
             "urlConfiguredAs": "Url configured as: {url}",
             "ghostHasShutdown": "Ghost has shut down",
-            "yourBlogIsNowOffline": "Your site is now offline",
+            "yourBlogIsNowOffline": "Your blog is now offline",
             "ghostWasRunningFor": "Ghost was running for",
             "ghostIsClosingConnections": "Ghost is closing connections"
         },
@@ -654,7 +605,6 @@
                     "valueIsNotInteger": "Value in [{tableName}.{columnKey}] is not an integer.",
                     "themeCannotBeActivated": "{themeName} cannot be activated because it is not currently installed.",
                     "validationFailed": "Validation ({validationName}) failed for {key}",
-                    "schemaValidationFailed": "Validation failed for '{key}'",
                     "validationFailedTypes": {
                         "isLength": "Value in [{tableName}.{key}] exceeds maximum length of {max} characters."
                     }

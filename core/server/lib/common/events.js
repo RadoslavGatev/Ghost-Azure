@@ -1,6 +1,6 @@
-const events = require('events'),
-    util = require('util');
-let EventRegistry,
+var events = require('events'),
+    util = require('util'),
+    EventRegistry,
     EventRegistryInstance;
 
 EventRegistry = function () {
@@ -10,8 +10,10 @@ EventRegistry = function () {
 util.inherits(EventRegistry, events.EventEmitter);
 
 EventRegistry.prototype.onMany = function (arr, onEvent) {
-    arr.forEach((eventName) => {
-        this.on(eventName, onEvent);
+    var self = this;
+
+    arr.forEach(function (eventName) {
+        self.on(eventName, onEvent);
     });
 };
 
