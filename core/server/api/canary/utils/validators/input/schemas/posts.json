@@ -99,10 +99,6 @@
                     "type": ["string", "null"],
                     "maxLength": 500
                 },
-                "email_subject": {
-                    "type": ["string", "null"],
-                    "maxLength": 300
-                },
                 "custom_template": {
                     "type": ["string", "null"],
                     "maxLength": 100
@@ -119,12 +115,6 @@
                     "$ref": "#/definitions/post-tags"
                 },
                 "id": {
-                    "strip": true
-                },
-                "uuid": {
-                    "strip": true
-                },
-                "comment_id": {
                     "strip": true
                 },
                 "author": {
@@ -161,12 +151,6 @@
                     "strip": true
                 },
                 "plaintext": {
-                    "strip": true
-                },
-                "email": {
-                    "strip": true
-                },
-                "send_email_when_published": {
                     "strip": true
                 }
             }

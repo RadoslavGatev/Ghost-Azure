@@ -16,11 +16,14 @@ module.exports = {
                 meta: models.meta
             };
 
+            debug(frame.response);
             return;
         }
 
         frame.response = {
             posts: [mapper.mapPost(models, frame)]
         };
+
+        debug(frame.response);
     }
 };

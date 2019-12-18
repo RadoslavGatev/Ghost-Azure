@@ -21,9 +21,5 @@ module.exports = {
 
     get static() {
         return require('./static');
-    },
-
-    get unsubscribe() {
-        return require('./unsubscribe');
     }
 };

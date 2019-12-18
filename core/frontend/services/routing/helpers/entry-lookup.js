@@ -3,6 +3,7 @@ const Promise = require('bluebird');
 const url = require('url');
 const debug = require('ghost-ignition').debug('services:routing:helpers:entry-lookup');
 const routeMatch = require('path-match')();
+const config = require('../../../../server/config');
 
 /**
  * @description Query API for a single entry/resource.
@@ -39,10 +40,16 @@ function entryLookup(postUrl, routerOptions, locals) {
     }
 
     let options = {
-        include: 'authors,tags'
+        /**
+         * @deprecated: `author`, will be removed in Ghost 3.0
+         * @TODO: Remove "author" when we drop v0.1
+         */
+        include: 'author,authors,tags'
     };
 
-    options.context = {member: locals.member};
+    if (config.get('enableDeveloperExperiments')) {
+        options.context = {member: locals.member};
+    }
 
     return (api[routerOptions.query.controller] || api[routerOptions.query.resource])
         .read(_.extend(_.pick(params, 'slug', 'id'), options))

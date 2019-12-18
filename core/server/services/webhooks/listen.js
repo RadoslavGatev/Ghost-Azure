@@ -3,6 +3,8 @@ const common = require('../../lib/common');
 const trigger = require('./trigger');
 
 const WEBHOOKS = [
+    'subscriber.added',
+    'subscriber.deleted',
     'site.changed',
 
     'post.added',
@@ -28,10 +30,6 @@ const WEBHOOKS = [
     'tag.added',
     'tag.edited',
     'tag.deleted',
-
-    'member.added',
-    'member.deleted',
-    'member.edited',
 
     'post.tag.attached',
     'post.tag.detached',

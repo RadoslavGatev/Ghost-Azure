@@ -28,10 +28,6 @@ const membersService = {
         return !!settings && settings.isPaid && settings.paymentProcessors.length !== 0;
     },
 
-    contentGating: require('./content-gating'),
-
-    config: require('./config'),
-
     get api() {
         if (!membersApi) {
             membersApi = createMembersApiInstance();
@@ -53,4 +49,3 @@ const membersService = {
 };
 
 module.exports = membersService;
-module.exports.middleware = require('./middleware');

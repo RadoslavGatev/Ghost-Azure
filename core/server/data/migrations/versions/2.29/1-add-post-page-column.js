@@ -13,15 +13,7 @@ function createColumnMigration({table, column, dbIsInCorrectState, operation, op
                 log(`${operationVerb} ${table}.${column}`);
 
                 if (!isInCorrectState) {
-                    // has to be passed directly in case of migration to 3.0
-                    // ref: https://github.com/TryGhost/Ghost/commit/9d7190d69255ac011848c6bf654886be81abeedc#diff-c20cac44dad77922cf53ffd7b094cd8cL22
-                    const columnSpec = {
-                        type: 'bool',
-                        nullable: false,
-                        defaultTo: false
-                    };
-
-                    return operation(table, column, transacting, columnSpec);
+                    return operation(table, column, transacting);
                 }
             });
     };

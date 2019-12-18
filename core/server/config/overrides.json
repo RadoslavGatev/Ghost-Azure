@@ -16,16 +16,25 @@
     "apps": {
         "internal": [
             "private-blogging",
+            "subscribers",
             "amp"
         ]
     },
     "slugs": {
+        "reserved": ["admin", "app", "apps", "categories",
+            "category", "dashboard", "feed", "ghost-admin", "login", "logout",
+            "page", "pages", "post", "posts", "public", "register", "setup",
+            "signin", "signout", "signup", "user", "users", "wp-admin", "wp-login"],
         "protected": ["ghost", "rss", "amp"]
     },
     "uploads": {
+        "subscribers": {
+            "extensions": [".csv"],
+            "contentTypes": ["text/csv", "application/csv", "application/octet-stream"]
+        },
         "members": {
             "extensions": [".csv"],
-            "contentTypes": ["text/csv", "application/csv", "application/octet-stream", "application/vnd.ms-excel"]
+            "contentTypes": ["text/csv", "application/csv", "application/octet-stream"]
         },
         "images": {
             "extensions": [".jpg", ".jpeg", ".gif", ".png", ".svg", ".svgz", ".ico"],
@@ -62,20 +71,20 @@
     },
     "api": {
         "versions": {
-            "all": ["v2", "v3", "canary"],
+            "all": ["v0.1", "v2", "canary"],
             "canary": {
                 "admin": "canary/admin",
                 "content": "canary/content",
                 "members": "canary/members"
             },
-            "v3": {
-                "admin": "v3/admin",
-                "content": "v3/content",
-                "members": "v3/members"
-            },
             "v2": {
                 "admin": "v2/admin",
-                "content": "v2/content"
+                "content": "v2/content",
+                "members": "v2/members"
+            },
+            "v0.1": {
+                "admin": "v0.1",
+                "content": "v0.1"
             }
         }
     }
