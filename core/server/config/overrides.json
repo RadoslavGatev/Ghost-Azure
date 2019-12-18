@@ -3,11 +3,11 @@
         "appRoot": ".",
         "corePath": "core/",
         "clientAssets": "core/built/assets",
-        "helperTemplates": "core/frontend/helpers/tpl/",
+        "helperTemplates": "core/server/helpers/tpl/",
         "adminViews": "core/server/web/admin/views/",
         "defaultViews": "core/server/views/",
-        "defaultSettings": "core/frontend/services/settings/",
-        "internalAppPath": "core/frontend/apps/",
+        "defaultSettings": "core/server/services/settings/",
+        "internalAppPath": "core/server/apps/",
         "internalStoragePath": "core/server/adapters/storage/",
         "internalSchedulingPath": "core/server/adapters/scheduling/",
         "migrationPath": "core/server/data/migrations",
@@ -32,13 +32,9 @@
             "extensions": [".csv"],
             "contentTypes": ["text/csv", "application/csv", "application/octet-stream"]
         },
-        "members": {
-            "extensions": [".csv"],
-            "contentTypes": ["text/csv", "application/csv", "application/octet-stream"]
-        },
         "images": {
-            "extensions": [".jpg", ".jpeg", ".gif", ".png", ".svg", ".svgz", ".ico"],
-            "contentTypes": ["image/jpeg", "image/png", "image/gif", "image/svg+xml", "image/x-icon", "image/vnd.microsoft.icon"]
+            "extensions": [".jpg", ".jpeg", ".gif", ".png", ".svg", ".svgz"],
+            "contentTypes": ["image/jpeg", "image/png", "image/gif", "image/svg+xml"]
         },
         "icons": {
             "extensions": [".png", ".ico"],
@@ -55,10 +51,6 @@
         "redirects": {
             "extensions": [".json"],
             "contentTypes": ["text/plain", "application/octet-stream", "application/json"]
-        },
-        "routes": {
-            "extensions": [".yaml"],
-            "contentTypes": ["text/plain", "text/yaml", "application/octet-stream", "application/yaml", "application/x-yaml"]
         }
     },
     "times": {
@@ -68,24 +60,5 @@
     },
     "maintenance": {
         "enabled": false
-    },
-    "api": {
-        "versions": {
-            "all": ["v0.1", "v2", "canary"],
-            "canary": {
-                "admin": "canary/admin",
-                "content": "canary/content",
-                "members": "canary/members"
-            },
-            "v2": {
-                "admin": "v2/admin",
-                "content": "v2/content",
-                "members": "v2/members"
-            },
-            "v0.1": {
-                "admin": "v0.1",
-                "content": "v0.1"
-            }
-        }
     }
 }

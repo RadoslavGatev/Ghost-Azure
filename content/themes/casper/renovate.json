@@ -1,9 +1,0 @@
-{
-  "extends": [
-    "@tryghost:theme"
-  ],
-  "travis": { "enabled": true },
-  "node": {
-    "supportPolicy": ["lts_latest"]
-  }
-}

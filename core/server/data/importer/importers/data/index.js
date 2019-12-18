@@ -1,8 +1,5 @@
 var _ = require('lodash'),
     Promise = require('bluebird'),
-    semver = require('semver'),
-    common = require('../../../../lib/common'),
-    debug = require('ghost-ignition').debug('importer:data'),
     sequence = require('../../../../lib/promise/sequence'),
     models = require('../../../../models'),
     SubscribersImporter = require('./subscribers'),
@@ -48,36 +45,12 @@ DataImporter = {
             }
         };
 
-        if (!Object.prototype.hasOwnProperty.call(importOptions, 'returnImportedData')) {
+        if (!importOptions.hasOwnProperty('returnImportedData')) {
             importOptions.returnImportedData = false;
         }
 
         if (importOptions.importPersistUser) {
             modelOptions.importPersistUser = importOptions.importPersistUser;
-        }
-
-        if (!importData.meta) {
-            throw new common.errors.IncorrectUsageError({
-                message: 'Wrong importer structure. `meta` is missing.',
-                help: 'https://ghost.org/docs/api/migration/#json-file-structure'
-            });
-        }
-
-        if (!importData.meta.version) {
-            throw new common.errors.IncorrectUsageError({
-                message: 'Wrong importer structure. `meta.version` is missing.',
-                help: 'https://ghost.org/docs/api/migration/#json-file-structure'
-            });
-        }
-
-        // CASE: We deny LTS imports, because these are two major version jumps. We only support previous (v1) and latest (v2).
-        //       We can detect a wrong structure by checking the meta version field. Ghost v0 doesn't use semver compliant versions.
-        //       Same applies to WP exports. It currently uses the same meta version notation (000) - https://github.com/TryGhost/wp-ghost-exporter/issues/12
-        if (!semver.valid(importData.meta.version)) {
-            return Promise.reject(new common.errors.InternalServerError({
-                message: 'Detected unsupported file structure.',
-                help: 'Please install Ghost 1.0, import the file and then update your blog to Ghost 2.0.\nVisit https://ghost.org/faq/upgrade-to-ghost-1-0 or ask for help in our https://forum.ghost.org.'
-            }));
         }
 
         this.init(importData);
@@ -151,7 +124,6 @@ DataImporter = {
 
             return toReturn;
         }).catch(function (errors) {
-            debug(errors);
             return Promise.reject(errors);
         }).finally(() => {
             // release memory

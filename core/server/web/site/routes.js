@@ -1,5 +1,5 @@
-const routing = require('../../../frontend/services/routing');
+const routing = require('../../services/routing');
 
-module.exports = function siteRoutes(options = {}) {
-    return routing.bootstrap.init(options);
+module.exports = function siteRoutes() {
+    return routing.bootstrap();
 };

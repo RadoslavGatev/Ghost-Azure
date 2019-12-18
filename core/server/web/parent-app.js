@@ -1,13 +1,21 @@
-const debug = require('ghost-ignition').debug('web:parent');
-const express = require('express');
-const config = require('../config');
-const compress = require('compression');
-const netjet = require('netjet');
-const shared = require('./shared');
+var debug = require('ghost-ignition').debug('app'),
+    express = require('express'),
 
-module.exports = function setupParentApp(options = {}) {
+    // App requires
+    config = require('../config'),
+
+    // middleware
+    compress = require('compression'),
+    netjet = require('netjet'),
+
+    // local middleware
+    ghostLocals = require('./middleware/ghost-locals'),
+    requestId = require('./middleware/request-id'),
+    logRequest = require('./middleware/log-request');
+
+module.exports = function setupParentApp() {
     debug('ParentApp setup start');
-    const parentApp = express();
+    var parentApp = express();
 
     // ## Global settings
 
@@ -15,11 +23,8 @@ module.exports = function setupParentApp(options = {}) {
     // (X-Forwarded-Proto header will be checked, if present)
     parentApp.enable('trust proxy');
 
-    parentApp.use(shared.middlewares.requestId);
-    parentApp.use(shared.middlewares.logRequest);
-
-    // Register event emmiter on req/res to trigger cache invalidation webhook event
-    parentApp.use(shared.middlewares.emitEvents);
+    parentApp.use(requestId);
+    parentApp.use(logRequest);
 
     // enabled gzip compression by default
     if (config.get('compress') !== false) {
@@ -36,19 +41,19 @@ module.exports = function setupParentApp(options = {}) {
     }
 
     // This sets global res.locals which are needed everywhere
-    parentApp.use(shared.middlewares.ghostLocals);
+    parentApp.use(ghostLocals);
 
     // Mount the  apps on the parentApp
-
     // API
     // @TODO: finish refactoring the API app
-    parentApp.use('/ghost/api', require('./api')());
+    // @TODO: decide what to do with these paths - config defaults? config overrides?
+    parentApp.use('/ghost/api/v0.1/', require('./api/app')());
 
     // ADMIN
     parentApp.use('/ghost', require('./admin')());
 
     // BLOG
-    parentApp.use(require('./site')(options));
+    parentApp.use(require('./site')());
 
     debug('ParentApp setup end');
 

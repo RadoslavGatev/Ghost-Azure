@@ -142,8 +142,8 @@ body {
     background: linear-gradient(rgba(0,0,0,0.1),rgba(0,0,0,0));
 }
 
-.site-header.no-image:before,
-.site-header.no-image:after {
+.site-header.no-cover:before,
+.site-header.no-cover:after {
     display: none;
 }
 
@@ -411,10 +411,10 @@ The knock-on effect of this is ugly browser-scroll bars at the bottom, so 80px o
 }
 
 .post-card-image {
-    width: 100%;
+    width: auto;
     height: 200px;
     background: var(--lightgrey) no-repeat center center;
-    object-fit: cover;
+    background-size: cover;
 }
 
 .post-card-content-link {
@@ -595,48 +595,46 @@ The knock-on effect of this is ugly browser-scroll bars at the bottom, so 80px o
 
 /* Special Styling for home page grid (below):
 
-The first post in the list is styled to be bigger than the others and take over
-the full width of the grid to give it more emphasis. Wrapped in a media query to
-make sure this only happens on large viewports / desktop-ish devices.
+The first (most recent) post in the list is styled to be bigger than the others and take over the full width of the grid to give it more emphasis. Wrapped in a media query to make sure this only happens on large viewports / desktop-ish devices.
 
  */
 
 @media (min-width: 795px) {
-    .post-card-large {
+    .home-template .post-feed .post-card:nth-child(6n+1):not(.no-image) {
         flex: 1 1 100%;
         flex-direction: row;
     }
 
-    .post-card-large .post-card-image-link {
+    .home-template .post-feed .post-card:nth-child(6n+1):not(.no-image) .post-card-image-link {
         position: relative;
         flex: 1 1 auto;
         border-radius: 5px 0 0 5px;
     }
 
-    .post-card-large .post-card-image {
+    .home-template .post-feed .post-card:nth-child(6n+1):not(.no-image) .post-card-image {
         position: absolute;
         width: 100%;
         height: 100%;
     }
 
-    .post-card-large .post-card-content {
+    .home-template .post-feed .post-card:nth-child(6n+1):not(.no-image) .post-card-content {
         flex: 0 1 357px;
     }
 
-    .post-card-large h2 {
+    .home-template .post-feed .post-card:nth-child(6n+1):not(.no-image) h2 {
         font-size: 2.6rem;
     }
 
-    .post-card-large p {
+    .home-template .post-feed .post-card:nth-child(6n+1):not(.no-image) p {
         font-size: 1.8rem;
         line-height: 1.55em;
     }
 
-    .post-card-large .post-card-content-link {
+    .home-template .post-feed .post-card:nth-child(6n+1):not(.no-image) .post-card-content-link {
         padding: 30px 40px 0;
     }
 
-    .post-card-large .post-card-meta {
+    .home-template .post-feed .post-card:nth-child(6n+1):not(.no-image) .post-card-meta {
         padding: 0 40px 30px;
     }
 }
@@ -711,29 +709,22 @@ make sure this only happens on large viewports / desktop-ish devices.
 
 .post-full-image {
     margin: 0 -10vw -165px;
-    background: var(--lightgrey) center center;
-    border-radius: 5px;
-    overflow: hidden;
-}
-
-.post-full-image img {
-    width: 100%;
     height: 800px;
-    object-fit: cover;
+    background: var(--lightgrey) center center;
+    background-size: cover;
+    border-radius: 5px;
 }
 
 @media (max-width: 1170px) {
     .post-full-image {
         margin: 0 -4vw -100px;
-        border-radius: 0;
-    }
-    .post-full-image img {
         height: 600px;
+        border-radius: 0;
     }
 }
 
 @media (max-width: 800px) {
-    .post-full-image img {
+    .post-full-image {
         height: 400px;
     }
 }
@@ -824,7 +815,6 @@ make sure this only happens on large viewports / desktop-ish devices.
 
 .post-full-content a {
     color: #000;
-    word-break: break-word;
     box-shadow: var(--blue) 0 -1px 0 inset;
 }
 
@@ -852,7 +842,6 @@ make sure this only happens on large viewports / desktop-ish devices.
     display: block;
     margin: 1.5em auto;
     max-width: 1040px;
-    height: auto;
 }
 @media (max-width: 1040px) {
     .post-full-content img,
@@ -892,9 +881,8 @@ Usage (In Ghost editor):
 }
 
 
-/* Override third party iframe styles */
 .post-full-content iframe {
-    margin: 0 auto !important;
+    margin: 0 auto;
 }
 
 .post-full-content blockquote {
@@ -924,10 +912,6 @@ Usage (In Ghost editor):
     border-radius: 3px;
 }
 
-.post-full-content p code {
-    word-break: break-all;
-}
-
 .post-full-content pre {
     overflow-x: auto;
     margin: 1.5em 0 3em;
@@ -941,10 +925,6 @@ Usage (In Ghost editor):
     border-radius: 5px;
 }
 
-.post-full-content pre ::selection {
-    color: color(var(--midgrey) l(-25%));
-}
-
 .post-full-content pre code {
     padding: 0;
     font-size: inherit;
@@ -952,7 +932,7 @@ Usage (In Ghost editor):
     background: transparent;
 }
 
-.post-full-content pre code :not(span) {
+.post-full-content pre code * {
     color: inherit;
 }
 
@@ -1846,6 +1826,20 @@ Usage (In Ghost editor):
     max-width: 920px;
 }
 
+/* For Ghost 1.0 */
+.kg-card-markdown {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 100%;
+}
+
+.post-template .kg-card-markdown > p:first-child {
+    font-size: 1.25em;
+    line-height: 1.5em;
+}
+/* ^ .kg-card-markdown will be will disappear in Ghost 2.0 */
+
 .post-template .post-content > p:first-child {
     font-size: 1.25em;
     line-height: 1.5em;
@@ -1868,34 +1862,39 @@ Usage (In Ghost editor):
     max-width: 100vw;
 }
 
-.post-full-content figure {
-    margin: 1.5em 0 3em;
-}
-
-.post-full-content figure img {
-    margin: 0;
-}
-
-.post-full-content figcaption {
-    margin: 1.0em 0 0;
+.post-content figcaption {
     font-size: 80%;
     line-height: 1.6em;
     text-align: center;
 }
 
-.kg-width-full figcaption {
-    padding: 0 1.5em;
+.kg-image-card {
+    margin: 0 0 1.5em;
+}
+
+.kg-image-card figcaption {
+    margin: -1.0em 0 1.5em;
 }
 
 .kg-embed-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 100%;
+    margin: 1.5em 0 3em;
+    min-width: 100%;
+}
+
+.kg-embed-card figcaption {
+    margin: 0.5em 0 0;
 }
 
 .kg-embed-card .fluid-width-video-wrapper {
     margin: 0;
+}
+
+
+.kg-image-full + figcaption {
+    padding: 0 1.5em;
 }
 
 
@@ -1905,170 +1904,6 @@ Usage (In Ghost editor):
     }
 }
 
-.kg-gallery-container {
-    display: flex;
-    flex-direction: column;
-    max-width: 1040px;
-    width: 100vw;
-}
-
-.kg-gallery-row {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-}
-
-.kg-gallery-image img {
-    display: block;
-    margin: 0;
-    width: 100%;
-    height: 100%;
-}
-
-.kg-gallery-row:not(:first-of-type) {
-    margin: 0.75em 0 0 0;
-}
-
-.kg-gallery-image:not(:first-of-type) {
-    margin: 0 0 0 0.75em;
-}
-
-.kg-gallery-card + .kg-image-card.kg-width-wide,
-.kg-gallery-card + .kg-gallery-card,
-.kg-image-card.kg-width-wide + .kg-gallery-card,
-.kg-image-card.kg-width-wide + .kg-image-card.kg-width-wide {
-    margin: -2.25em 0 3em;
-}
-
-/* keep existing <pre> styles for code cards with captions */
-.kg-code-card {
-    min-width: 100%;
-}
-
-.kg-code-card pre {
-    margin: 0;
-}
-
-.kg-bookmark-card {
-    background: var(--white);
-    width: 100%;
-}
-
-.kg-card + .kg-bookmark-card {
-    margin-top: 0;
-}
-
-.post-full-content .kg-bookmark-container {
-    display: flex;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-    color: var(--darkgrey);
-    text-decoration: none;
-    min-height: 148px;
-    box-shadow: 0px 2px 5px -1px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.09);
-    border-radius: 3px;
-}
-
-.kg-bookmark-content {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    align-items: flex-start;
-    justify-content: start;
-    padding: 20px;
-}
-
-.kg-bookmark-title {
-    font-size: 1.6rem;
-    line-height: 1.5em;
-    font-weight: 600;
-    color: color(var(--midgrey) l(-30%));
-}
-
-.post-full-content .kg-bookmark-container:hover .kg-bookmark-title {
-    color: var(--blue);
-}
-
-.kg-bookmark-description {
-    display: -webkit-box;
-    font-size: 1.5rem;
-    line-height: 1.5em;
-    color: color(var(--midgrey) l(-10%));
-    font-weight: 400;
-    margin-top: 12px;
-    max-height: 48px;
-    overflow-y: hidden;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-}
-
-.kg-bookmark-thumbnail {
-    position: relative;
-    min-width: 33%;
-    max-height: 100%;
-}
-
-.kg-bookmark-thumbnail img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 0 3px 3px 0;
-}
-
-.kg-bookmark-metadata {
-    display: flex;
-    align-items: center;
-    font-size: 1.5rem;
-    font-weight: 400;
-    color: color(var(--midgrey) l(-10%));
-    margin-top: 14px;
-    flex-wrap: wrap;
-}
-
-.post-full-content .kg-bookmark-icon {
-    width: 22px;
-    height: 22px;
-    margin-right: 8px;
-}
-
-.kg-bookmark-author {
-    line-height: 1.5em;
-}
-
-.kg-bookmark-author:after {
-    content: "•";
-    margin: 0 6px;
-}
-
-.kg-bookmark-publisher {
-    overflow: hidden;
-    line-height: 1.5em;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 240px;
-}
-
-@media (max-width: 500px) {
-    .post-full-content .kg-bookmark-container {
-        flex-direction: column;
-    }
-
-    .kg-bookmark-thumbnail {
-        order: 1;
-        width: 100%;
-        min-height: 160px;
-    }
-
-    .kg-bookmark-thumbnail img {
-        border-radius: 3px 3px 0 0;
-    }
-
-    .kg-bookmark-content {
-        order: 2
-    }
-}
 
 /* 8. Author Template
 /* ---------------------------------------------------------- */
