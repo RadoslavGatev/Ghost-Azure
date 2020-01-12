@@ -9,5 +9,7 @@ module.exports = {
             actions: models.data.map(model => mapper.mapAction(model, frame)),
             meta: models.meta
         };
+
+        debug(frame.response);
     }
 };

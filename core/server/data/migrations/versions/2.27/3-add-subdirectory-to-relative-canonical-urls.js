@@ -1,3 +1,4 @@
+const models = require('../../../../models');
 const common = require('../../../../lib/common');
 const config = require('../../../../config');
 const {URL} = require('url');
@@ -31,20 +32,19 @@ module.exports.up = (options) => {
 
     // perform a specific query for the type of canonical URLs we're looking for
     // so we're not fetching and manually looping over a ton of post models
-    return localOptions
-        .transacting('posts')
-        .where('canonical_url', 'like', '/%')
-        .whereNot('canonical_url', 'like', '//%')
-        .select().then((posts) => {
+    return models.Posts
+        .forge()
+        .query((qb) => {
+            qb.where('canonical_url', 'like', '/%');
+            qb.whereNot('canonical_url', 'like', '//%');
+        })
+        .fetch(localOptions)
+        .then((posts) => {
             if (posts) {
                 return Promise.mapSeries(posts, (post) => {
-                    const canonicalUrl = post.canonical_url.replace('/', url.pathname);
-                    return localOptions
-                        .transacting('posts')
-                        .where('id', '=', post.id)
-                        .update({
-                            canonical_url: canonicalUrl
-                        });
+                    const canonicalUrl = post.get('canonical_url').replace('/', url.pathname);
+                    post.set('canonical_url', canonicalUrl);
+                    return post.save(null, localOptions);
                 }).then(() => {
                     common.logging.info(`Added subdirectory prefix to canonical_url in ${posts.length} posts`);
                 });
@@ -75,19 +75,18 @@ module.exports.down = (options) => {
         return Promise.resolve();
     }
 
-    return localOptions
-        .transacting('posts')
-        .where('canonical_url', 'like', `${url.pathname}%`)
-        .select().then((posts) => {
+    return models.Posts
+        .forge()
+        .query((qb) => {
+            qb.where('canonical_url', 'LIKE', `${url.pathname}%`);
+        })
+        .fetch()
+        .then((posts) => {
             if (posts) {
                 return Promise.mapSeries(posts, (post) => {
-                    const canonicalUrl = post.canonical_url.replace(url.pathname, '/');
-                    return localOptions
-                        .transacting('posts')
-                        .where('id', '=', post.id)
-                        .update({
-                            canonical_url: canonicalUrl
-                        });
+                    const canonicalUrl = post.get('canonical_url').replace(url.pathname, '/');
+                    post.set('canonical_url', canonicalUrl);
+                    return post.save(null, localOptions);
                 }).then(() => {
                     common.logging.info(`Removed subdirectory prefix from canonical_url in ${posts.length} posts`);
                 });

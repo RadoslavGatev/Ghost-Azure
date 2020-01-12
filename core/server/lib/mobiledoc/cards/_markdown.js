@@ -4,10 +4,6 @@ module.exports = function markdownCardDefinition() {
     return {
         name: 'markdown',
         type: 'dom',
-        config: {
-            commentWrapper: true
-        },
-
         render: function (opts) {
             let converters = require('../converters');
             let payload = opts.payload;

@@ -20,5 +20,7 @@ module.exports = {
         frame.response = {
             invites: [models.toJSON(frame.options)]
         };
+
+        debug(frame.response);
     }
 };

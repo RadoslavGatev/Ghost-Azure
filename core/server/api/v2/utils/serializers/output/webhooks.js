@@ -11,5 +11,7 @@ module.exports = {
         frame.response = {
             webhooks: [models.toJSON(frame.options)]
         };
+
+        debug(frame.response);
     }
 };

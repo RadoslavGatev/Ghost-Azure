@@ -5,6 +5,8 @@ module.exports = {
         debug('browse');
 
         frame.response = themes;
+
+        debug(frame.response);
     },
 
     upload() {
@@ -21,5 +23,7 @@ module.exports = {
         debug('download');
 
         frame.response = fn;
+
+        debug(frame.response);
     }
 };

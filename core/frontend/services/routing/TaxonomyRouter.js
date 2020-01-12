@@ -1,5 +1,4 @@
 const debug = require('ghost-ignition').debug('services:routing:taxonomy-router');
-const config = require('../../../server/config');
 const common = require('../../../server/lib/common');
 const ParentRouter = require('./ParentRouter');
 const RSSRouter = require('./RSSRouter');
@@ -54,9 +53,7 @@ class TaxonomyRouter extends ParentRouter {
         this.mountRoute(urlUtils.urlJoin(this.permalinks.value, 'page', ':page(\\d+)'), controllers.channel);
 
         // REGISTER: edit redirect to admin client e.g. /tag/:slug/edit
-        if (config.get('admin:redirects')) {
-            this.mountRoute(urlUtils.urlJoin(this.permalinks.value, 'edit'), this._redirectEditOption.bind(this));
-        }
+        this.mountRoute(urlUtils.urlJoin(this.permalinks.value, 'edit'), this._redirectEditOption.bind(this));
 
         common.events.emit('router.created', this);
     }

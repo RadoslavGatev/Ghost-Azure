@@ -16,7 +16,7 @@ const sequence = require('../../../lib/promise/sequence');
  * @param {Object} frame
  */
 module.exports.input = (apiConfig, apiValidators, frame) => {
-    debug('input begin');
+    debug('input');
 
     const tasks = [];
     const sharedValidators = require('./input');
@@ -63,6 +63,6 @@ module.exports.input = (apiConfig, apiValidators, frame) => {
         }
     }
 
-    debug('input ready');
+    debug(tasks);
     return sequence(tasks);
 };

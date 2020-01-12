@@ -4,9 +4,10 @@
  */
 const _ = require('lodash');
 const Promise = require('bluebird');
+const config = require('../../../../server/config');
 
 // The default settings for a default post query
-// @TODO: get rid of this config and use v2, v3 config
+// @TODO: get rid of this config and use v0.1 or v2 config
 const queryDefaults = {
     type: 'browse',
     resource: 'posts',
@@ -19,7 +20,11 @@ const queryDefaults = {
  */
 const defaultQueryOptions = {
     options: {
-        include: 'authors,tags'
+        /**
+         * @deprecated: `author`, will be removed in Ghost 3.0
+         * @TODO: Remove "author" when we drop v0.1
+         */
+        include: 'author,authors,tags'
     }
 };
 
@@ -56,7 +61,9 @@ function processQuery(query, slugParam, locals) {
         query.options[name] = _.isString(option) ? option.replace(/%s/g, slugParam) : option;
     });
 
-    query.options.context = {member: locals.member};
+    if (config.get('enableDeveloperExperiments')) {
+        query.options.context = {member: locals.member};
+    }
 
     return (api[query.controller] || api[query.resource])[query.type](query.options);
 }

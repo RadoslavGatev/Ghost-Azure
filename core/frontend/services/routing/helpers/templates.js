@@ -130,8 +130,6 @@ _private.pickTemplate = function pickTemplate(templateList, fallback) {
     if (!template) {
         if (!fallback) {
             template = 'index';
-        } else if (_.isFunction(fallback)) {
-            fallback();
         } else {
             template = fallback;
         }

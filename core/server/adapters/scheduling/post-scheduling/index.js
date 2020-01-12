@@ -1,80 +1,24 @@
-const Promise = require('bluebird');
-const moment = require('moment');
-const jwt = require('jsonwebtoken');
-const localUtils = require('../utils');
-const common = require('../../../lib/common');
-const models = require('../../../models');
-const urlUtils = require('../../../lib/url-utils');
-const _private = {};
-const SCHEDULED_RESOURCES = ['post', 'page'];
-
-/**
- * @description Load the internal scheduler integration
- *
- * @return {Promise}
- */
-_private.getSchedulerIntegration = function () {
-    return models.Integration.findOne({slug: 'ghost-scheduler'}, {withRelated: 'api_keys'})
-        .then((integration) => {
-            if (!integration) {
-                throw new common.errors.NotFoundError({
-                    message: common.i18n.t('errors.api.resource.resourceNotFound', {
-                        resource: 'Integration'
-                    })
-                });
-            }
-            return integration.toJSON();
-        });
-};
-
-/**
- * @description Get signed admin token for making authenticated scheduling requests
- *
- * @return {Promise}
- */
-_private.getSignedAdminToken = function ({publishedAt, apiUrl, integration}) {
-    let key = integration.api_keys[0];
-
-    const JWT_OPTIONS = {
-        keyid: key.id,
-        algorithm: 'HS256',
-        audience: apiUrl,
-        noTimestamp: true
-    };
-
-    // Default token expiry is till 6 hours after scheduled time
-    // or if published_at is in past then till 6 hours after blog start
-    // to allow for retries in case of network issues
-    // and never before 10 mins to publish time
-    let tokenExpiry = moment(publishedAt).add(6, 'h');
-    if (tokenExpiry.isBefore(moment())) {
-        tokenExpiry = moment().add(6, 'h');
-    }
-
-    return jwt.sign(
-        {
-            exp: tokenExpiry.unix(),
-            nbf: moment(publishedAt).subtract(10, 'm').unix()
-        },
-        Buffer.from(key.secret, 'hex'),
-        JWT_OPTIONS
-    );
-};
+const Promise = require('bluebird'),
+    moment = require('moment'),
+    localUtils = require('../utils'),
+    common = require('../../../lib/common'),
+    models = require('../../../models'),
+    urlUtils = require('../../../lib/url-utils'),
+    _private = {};
 
 /**
  * @description Normalize model data into scheduler notation.
  * @param {Object} options
  * @return {Object}
  */
-_private.normalize = function normalize({model, apiUrl, resourceType, integration}, event = '') {
-    const resource = `${resourceType}s`;
-    let publishedAt = (event === 'unscheduled') ? model.previous('published_at') : model.get('published_at');
-    const signedAdminToken = _private.getSignedAdminToken({publishedAt, apiUrl, integration});
-    let url = `${urlUtils.urlJoin(apiUrl, 'schedules', resource, model.get('id'))}/?token=${signedAdminToken}`;
+_private.normalize = function normalize(options) {
+    const {model, apiUrl, client} = options;
+
     return {
         // NOTE: The scheduler expects a unix timestamp.
-        time: moment(publishedAt).valueOf(),
-        url: url,
+        time: moment(model.get('published_at')).valueOf(),
+        // @TODO: We are still using API v0.1
+        url: `${urlUtils.urlJoin(apiUrl, 'schedules', 'posts', model.get('id'))}?client_id=${client.get('slug')}&client_secret=${client.get('secret')}`,
         extra: {
             httpMethod: 'PUT',
             oldTime: model.previous('published_at') ? moment(model.previous('published_at')).valueOf() : null
@@ -83,27 +27,26 @@ _private.normalize = function normalize({model, apiUrl, resourceType, integratio
 };
 
 /**
- * @description Load all scheduled posts/pages from database.
+ * @description Load the client credentials for v0.1 API.
+ *
+ * @TODO: Remove when we drop v0.1. API v2 uses integrations.
  * @return {Promise}
  */
-_private.loadScheduledResources = function () {
+_private.loadClient = function loadClient() {
+    return models.Client.findOne({slug: 'ghost-scheduler'}, {columns: ['slug', 'secret']});
+};
+
+/**
+ * @description Load all scheduled posts from database.
+ * @return {Promise}
+ */
+_private.loadScheduledPosts = function () {
+    // TODO: make this version aware?
     const api = require('../../../api');
-    // Fetches all scheduled resources(posts/pages) with default API
-    return Promise.mapSeries(SCHEDULED_RESOURCES, (resourceType) => {
-        return api.schedules.getScheduled.query({
-            options: {
-                resource: resourceType
-            }
-        }).then((result) => {
-            return result[resourceType] || [];
+    return api.schedules.getScheduledPosts()
+        .then((result) => {
+            return result.posts || [];
         });
-    }).then((results) => {
-        return SCHEDULED_RESOURCES.reduce(function (obj, entry, index) {
-            return Object.assign(obj, {
-                [entry]: results[index]
-            });
-        }, {});
-    });
 };
 
 /**
@@ -113,8 +56,8 @@ _private.loadScheduledResources = function () {
  */
 exports.init = function init(options = {}) {
     const {apiUrl} = options;
-    let adapter = null;
-    let integration = null;
+    let adapter = null,
+        client = null;
 
     if (!Object.keys(options).length) {
         return Promise.reject(new common.errors.IncorrectUsageError({message: 'post-scheduling: no config was provided'}));
@@ -124,9 +67,9 @@ exports.init = function init(options = {}) {
         return Promise.reject(new common.errors.IncorrectUsageError({message: 'post-scheduling: no apiUrl was provided'}));
     }
 
-    return _private.getSchedulerIntegration()
-        .then((_integration) => {
-            integration = _integration;
+    return _private.loadClient()
+        .then((_client) => {
+            client = _client;
             return localUtils.createAdapter(options);
         })
         .then((_adapter) => {
@@ -136,44 +79,42 @@ exports.init = function init(options = {}) {
                 return [];
             }
 
-            return _private.loadScheduledResources();
+            return _private.loadScheduledPosts();
         })
-        .then((scheduledResources) => {
-            if (!Object.keys(scheduledResources).length) {
+        .then((scheduledPosts) => {
+            if (!scheduledPosts.length) {
                 return;
             }
 
-            // Reschedules all scheduled resources on boot
-            // NOTE: We are using reschedule, because custom scheduling adapter could use a database, which needs to be updated
-            // and not an in-process implementation!
-            Object.keys(scheduledResources).forEach((resourceType) => {
-                scheduledResources[resourceType].forEach((model) => {
-                    adapter.unschedule(_private.normalize({model, apiUrl, integration, resourceType}, 'unscheduled'), {bootstrap: true});
-                    adapter.schedule(_private.normalize({model, apiUrl, integration, resourceType}));
-                });
+            scheduledPosts.forEach((model) => {
+                // NOTE: We are using reschedule, because custom scheduling adapter could use a database, which needs to be updated
+                //       and not an in-process implementation!
+                adapter.reschedule(_private.normalize({model, apiUrl, client}), {bootstrap: true});
             });
         })
         .then(() => {
             adapter.run();
         })
         .then(() => {
-            SCHEDULED_RESOURCES.forEach((resource) => {
-                common.events.on(`${resource}.scheduled`, (model) => {
-                    adapter.schedule(_private.normalize({model, apiUrl, integration, resourceType: resource}));
-                });
+            common.events.onMany([
+                'post.scheduled',
+                'page.scheduled'
+            ], (model) => {
+                adapter.schedule(_private.normalize({model, apiUrl, client}));
+            });
 
-                /** We want to do reschedule as (unschedule + schedule) due to how token(+url) is generated
-                 * We want to first remove existing schedule by generating a matching token(+url)
-                 * followed by generating a new token(+url) for the new schedule
-                */
-                common.events.on(`${resource}.rescheduled`, (model) => {
-                    adapter.unschedule(_private.normalize({model, apiUrl, integration, resourceType: resource}, 'unscheduled'));
-                    adapter.schedule(_private.normalize({model, apiUrl, integration, resourceType: resource}));
-                });
+            common.events.onMany([
+                'post.rescheduled',
+                'page.rescheduled'
+            ], (model) => {
+                adapter.reschedule(_private.normalize({model, apiUrl, client}));
+            });
 
-                common.events.on(`${resource}.unscheduled`, (model) => {
-                    adapter.unschedule(_private.normalize({model, apiUrl, integration, resourceType: resource}, 'unscheduled'));
-                });
+            common.events.onMany([
+                'post.unscheduled',
+                'page.unscheduled'
+            ], (model) => {
+                adapter.unschedule(_private.normalize({model, apiUrl, client}));
             });
         });
 };
