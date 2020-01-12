@@ -59,10 +59,6 @@ module.exports = {
         return require('./mail');
     },
 
-    get subscribers() {
-        return require('./subscribers');
-    },
-
     get members() {
         return require('./members');
     },
@@ -105,5 +101,13 @@ module.exports = {
 
     get site() {
         return require('./site');
+    },
+
+    get email_preview() {
+        return require('./email-preview');
+    },
+
+    get emails() {
+        return require('./emails');
     }
 };

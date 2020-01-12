@@ -11,6 +11,10 @@ module.exports = function setupAdminApp() {
     debug('Admin setup start');
     const adminApp = express();
 
+    // Make sure 'req.secure' and `req.hostname` is valid for proxied requests
+    // (X-Forwarded-Proto header will be checked, if present)
+    adminApp.enable('trust proxy');
+
     // Admin assets
     // @TODO ensure this gets a local 404 error handler
     const configMaxAge = config.get('caching:admin:maxAge');
@@ -18,9 +22,6 @@ module.exports = function setupAdminApp() {
         config.get('paths').clientAssets,
         {maxAge: (configMaxAge || configMaxAge === 0) ? configMaxAge : constants.ONE_YEAR_MS, fallthrough: false}
     ));
-
-    // Service Worker for offline support
-    adminApp.get(/^\/(sw.js|sw-registration.js)$/, require('./serviceworker'));
 
     // Ember CLI's live-reload script
     if (config.get('env') === 'development') {

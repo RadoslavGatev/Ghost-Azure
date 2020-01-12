@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const localUtils = require('../../../index');
+const config = require('../../../../../../config');
 
 const tag = (attrs, frame) => {
     if (localUtils.isContentAPI(frame)) {
@@ -18,10 +19,7 @@ const tag = (attrs, frame) => {
         }
     }
 
-    // Already deleted in model.toJSON, but leaving here so that we can clean that up when we deprecate v0.1
     delete attrs.parent_id;
-
-    // @NOTE: unused fields
     delete attrs.parent;
 
     return attrs;
@@ -29,11 +27,11 @@ const tag = (attrs, frame) => {
 
 const author = (attrs, frame) => {
     if (localUtils.isContentAPI(frame)) {
-        // Already deleted in model.toJSON, but leaving here so that we can clean that up when we deprecate v0.1
         delete attrs.created_at;
         delete attrs.updated_at;
         delete attrs.last_seen;
         delete attrs.status;
+        delete attrs.email;
 
         // @NOTE: used for night shift
         delete attrs.accessibility;
@@ -68,7 +66,6 @@ const author = (attrs, frame) => {
     // @NOTE: unused fields
     delete attrs.visibility;
     delete attrs.locale;
-    delete attrs.ghost_auth_id;
 
     return attrs;
 };
@@ -100,18 +97,19 @@ const post = (attrs, frame) => {
         }
     } else {
         delete attrs.page;
+    }
 
-        if (!attrs.tags) {
-            delete attrs.primary_tag;
-        }
+    if (!attrs.tags) {
+        delete attrs.primary_tag;
+    }
 
-        if (!attrs.authors) {
-            delete attrs.primary_author;
-        }
+    if (!attrs.authors) {
+        delete attrs.primary_author;
     }
 
     delete attrs.locale;
     delete attrs.author;
+    delete attrs.type;
 
     return attrs;
 };
@@ -141,7 +139,28 @@ const action = (attrs) => {
     }
 };
 
+const settings = (attrs) => {
+    if (_.isArray(attrs)) {
+        attrs.forEach((attr) => {
+            if (attr.key === 'bulk_email_settings') {
+                const {provider, apiKey, domain, baseUrl} = attr.value ? JSON.parse(attr.value) : {};
+
+                const bulkEmailConfig = config.get('bulkEmail');
+                const hasMailgunConfig = !!(bulkEmailConfig && bulkEmailConfig.mailgun);
+                const hasMailgunSetting = !!(apiKey && baseUrl && domain);
+
+                attr.value = JSON.stringify({
+                    provider, apiKey, domain, baseUrl,
+                    isEnabled: (hasMailgunConfig || hasMailgunSetting),
+                    isConfig: hasMailgunConfig
+                });
+            }
+        });
+    }
+};
+
 module.exports.post = post;
 module.exports.tag = tag;
 module.exports.author = author;
 module.exports.action = action;
+module.exports.settings = settings;
