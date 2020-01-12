@@ -1,23 +1,38 @@
-var util = require('util'),
-    moment = require('moment'),
-    request = require('superagent'),
-    debug = require('ghost-ignition').debug('scheduling-default'),
-    SchedulingBase = require('./SchedulingBase'),
-    common = require('../../lib/common');
+const util = require('util');
+const moment = require('moment');
+const debug = require('ghost-ignition').debug('scheduling-default');
+const SchedulingBase = require('./SchedulingBase');
+const common = require('../../lib/common');
+const request = require('../../lib/request');
 
 /**
- * allJobs is a sorted list by time attribute
+ * @description Default post scheduling implementation.
+ *
+ * The default scheduler is used for all self-hosted blogs.
+ * It is implemented with pure javascript (timers).
+ *
+ * "node-cron" did not perform well enough and we really just needed a simple time management.
+
+ * @param {Objec†} options
+ * @constructor
  */
 function SchedulingDefault(options) {
     SchedulingBase.call(this, options);
 
+    // NOTE: How often should the scheduler wake up?
     this.runTimeoutInMs = 1000 * 60 * 5;
+
+    // NOTE: An offset between now and past, which helps us choosing jobs which need to be executed soon.
     this.offsetInMinutes = 10;
     this.beforePingInMs = -50;
     this.retryTimeoutInMs = 1000 * 5;
 
+    // NOTE: Each scheduler implementation can decide whether to load scheduled posts on bootstrap or not.
     this.rescheduleOnBoot = true;
+
+    // NOTE: A sorted list of all scheduled jobs.
     this.allJobs = {};
+
     this.deletedJobs = {};
     this.isRunning = false;
 }
@@ -25,38 +40,69 @@ function SchedulingDefault(options) {
 util.inherits(SchedulingDefault, SchedulingBase);
 
 /**
- * add to list
+ * @description Add a new job to the scheduler.
+ *
+ * A new job get's added when the post scheduler module receives a new model event e.g. "post.scheduled".
+ *
+ * @param {Object} object
+ *                       {
+ *                          time: [Number] A unix timestamp
+ *                          url:  [String] The full post/page API url to publish it.
+ *                          extra: {
+ *                              httpMethod: [String] The method of the target API endpoint.
+ *                              oldTime:    [Number] The previous published time.
+ *                          }
+ *                       }
  */
 SchedulingDefault.prototype.schedule = function (object) {
     this._addJob(object);
 };
 
 /**
- * remove from list
- * add to list
+ * @description Unschedule a job.
+ *
+ * Unscheduling means: scheduled -> draft.
+ *
+ * @param {Object} object
+ *                       {
+ *                          time: [Number] A unix timestamp
+ *                          url:  [String] The full post/page API url to publish it.
+ *                          extra: {
+ *                              httpMethod: [String] The method of the target API endpoint.
+ *                              oldTime:    [Number] The previous published time.
+ *                          }
+ *                       }
+ * @param {Object} options
+ *                      {
+ *                          bootstrap: [Boolean]
+ *                      }
  */
-SchedulingDefault.prototype.reschedule = function (object) {
-    this._deleteJob({time: object.extra.oldTime, url: object.url});
-    this._addJob(object);
+SchedulingDefault.prototype.unschedule = function (object, options = {bootstrap: false}) {
+    /**
+     * CASE:
+     * The post scheduling unit triggers "reschedule" on bootstrap, because other custom scheduling implementations
+     * could use a database and we need to give the chance to update the job (delete + re-add).
+     *
+     * We receive a "bootstrap" variable to ensure that jobs are scheduled correctly for this scheduler implementation,
+     * because "object.extra.oldTime" === "object.time". If we mark the job as deleted, it won't get scheduled.
+     */
+    if (!options.bootstrap) {
+        this._deleteJob(object);
+    }
 };
 
 /**
- * remove from list
- * deletion happens right before execution
- */
-SchedulingDefault.prototype.unschedule = function (object) {
-    this._deleteJob(object);
-};
-
-/**
- * check if there are new jobs which needs to be published in the next x minutes
- * because allJobs is a sorted list, we don't have to iterate over all jobs, just until the offset is too big
+ * @description "run" is executed from outside (see post-scheduling module)
+ *
+ * This function will ensure that the scheduler will be kept alive while the blog is running.
+ * It will run recursively and checks if there are new jobs which need to be executed in the next X minutes.
  */
 SchedulingDefault.prototype.run = function () {
-    var self = this,
-        timeout = null,
+    const self = this;
+    let timeout = null,
         recursiveRun;
 
+    // NOTE: Ensure the scheduler never runs twice.
     if (this.isRunning) {
         return;
     }
@@ -65,9 +111,10 @@ SchedulingDefault.prototype.run = function () {
 
     recursiveRun = function recursiveRun() {
         timeout = setTimeout(function () {
-            var times = Object.keys(self.allJobs),
+            const times = Object.keys(self.allJobs),
                 nextJobs = {};
 
+            // CASE: We stop till the offset is too big. We are only interested in jobs which need get executed soon.
             times.every(function (time) {
                 if (moment(Number(time)).diff(moment(), 'minutes') <= self.offsetInMinutes) {
                     nextJobs[time] = self.allJobs[time];
@@ -90,10 +137,12 @@ SchedulingDefault.prototype.run = function () {
 };
 
 /**
- * each timestamp key entry can have multiple jobs
+ * @description Add the actual job to "allJobs".
+ * @param {Object} object
+ * @private
  */
 SchedulingDefault.prototype._addJob = function (object) {
-    var timestamp = moment(object.time).valueOf(),
+    let timestamp = moment(object.time).valueOf(),
         keys = [],
         sortedJobs = {},
         instantJob = {},
@@ -101,7 +150,7 @@ SchedulingDefault.prototype._addJob = function (object) {
 
     // CASE: should have been already pinged or should be pinged soon
     if (moment(timestamp).diff(moment(), 'minutes') < this.offsetInMinutes) {
-        debug('Imergency job', object.url, moment(object.time).format('YYYY-MM-DD HH:mm:ss'));
+        debug('Emergency job', object.url, moment(object.time).format('YYYY-MM-DD HH:mm:ss'));
 
         instantJob[timestamp] = [object];
         this._execute(instantJob);
@@ -126,52 +175,78 @@ SchedulingDefault.prototype._addJob = function (object) {
     this.allJobs = sortedJobs;
 };
 
+/**
+ * @description Delete the job.
+ *
+ * Keep a list of deleted jobs because it can happen that a job is already part of the next execution list,
+ * but it got deleted meanwhile.
+ *
+ * @param {Object} object
+ * @private
+ */
 SchedulingDefault.prototype._deleteJob = function (object) {
-    if (!object.time) {
+    const {url, time} = object;
+
+    if (!time) {
         return;
     }
 
-    var deleteKey = object.url + '_' + moment(object.time).valueOf();
+    const deleteKey = `${url}_${moment(time).valueOf()}`;
 
     if (!this.deletedJobs[deleteKey]) {
         this.deletedJobs[deleteKey] = [];
     }
 
-    debug('Deleted job', object.url, moment(object.time).format('YYYY-MM-DD HH:mm:ss'));
+    debug('Deleted job', url, moment(time).format('YYYY-MM-DD HH:mm:ss'));
     this.deletedJobs[deleteKey].push(object);
 };
 
 /**
- * ping jobs
- * setTimeout is not accurate, but we can live with that fact and use setImmediate feature to qualify
- * we don't want to use process.nextTick, this would block any I/O operation
+ * @description The "execute" function will receive the next jobs which need execution.
+ *
+ * Based on "offsetInMinutes" we figure out which jobs need execution and the "execute" function will
+ * ensure that
+ *
+ * The advantage of having a two step system (a general runner and an executor) is:
+ *    - accuracy
+ *    - setTimeout is limited to 24,3 days
+ *
+ * The execution of "setTimeout" is never guaranteed, therefor we've optimised the execution by using "setImmediate".
+ * The executor will put each job to sleep using `setTimeout` with a threshold of 70ms. And "setImmediate" is then
+ * used to detect the correct moment to trigger the URL.
+
+ * We can't use "process.nextTick" otherwise we will block I/O operations.
  */
 SchedulingDefault.prototype._execute = function (jobs) {
-    var keys = Object.keys(jobs),
+    const keys = Object.keys(jobs),
         self = this;
 
     keys.forEach(function (timestamp) {
-        var timeout = null,
+        let timeout = null,
             diff = moment(Number(timestamp)).diff(moment());
 
-        // awake a little before
+        // NOTE: awake a little before...
         timeout = setTimeout(function () {
             clearTimeout(timeout);
 
             (function retry() {
-                var immediate = setImmediate(function () {
+                let immediate = setImmediate(function () {
                     clearImmediate(immediate);
 
+                    // CASE: It's not the time yet...
                     if (moment().diff(moment(Number(timestamp))) <= self.beforePingInMs) {
                         return retry();
                     }
 
-                    var toExecute = jobs[timestamp];
+                    const toExecute = jobs[timestamp];
                     delete jobs[timestamp];
 
+                    // CASE: each timestamp can have multiple jobs
                     toExecute.forEach(function (job) {
-                        var deleteKey = job.url + '_' + moment(job.time).valueOf();
+                        const {url, time} = job;
+                        const deleteKey = `${url}_${moment(time).valueOf()}`;
 
+                        // CASE: Was the job already deleted in the meanwhile...?
                         if (self.deletedJobs[deleteKey]) {
                             if (self.deletedJobs[deleteKey].length === 1) {
                                 delete self.deletedJobs[deleteKey];
@@ -191,56 +266,67 @@ SchedulingDefault.prototype._execute = function (jobs) {
 };
 
 /**
- * - if we detect to publish a post in the past (case blog is down), we add a force flag
+ * @description Ping the job URL.
+ * @param {Object} object
+ * @return {Promise}
+ * @private
  */
 SchedulingDefault.prototype._pingUrl = function (object) {
-    debug('Ping url', object.url, moment().format('YYYY-MM-DD HH:mm:ss'), moment(object.time).format('YYYY-MM-DD HH:mm:ss'));
+    const {url, time} = object;
 
-    var url = object.url,
-        time = object.time,
-        httpMethod = object.extra ? object.extra.httpMethod : 'PUT',
-        tries = object.tries || 0,
-        requestTimeout = object.extra ? object.extra.timeoutInMS : 1000 * 5,
-        maxTries = 30,
-        req = request[httpMethod.toLowerCase()](url),
-        self = this, timeout;
+    debug('Ping url', url, moment().format('YYYY-MM-DD HH:mm:ss'), moment(time).format('YYYY-MM-DD HH:mm:ss'));
 
+    const httpMethod = object.extra ? object.extra.httpMethod : 'PUT';
+    const tries = object.tries || 0;
+    const requestTimeout = object.extra ? object.extra.timeoutInMS : 1000 * 5;
+    const maxTries = 30;
+
+    const options = {
+        timeout: requestTimeout,
+        method: httpMethod.toLowerCase(),
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
+
+    // CASE: If we detect to publish a post in the past (case blog is down), we add a force flag
     if (moment(time).isBefore(moment())) {
         if (httpMethod === 'GET') {
-            req.query('force=true');
+            // @TODO: rename to searchParams when updating to Got v10
+            options.query = 'force=true';
         } else {
-            req.send({
-                force: true
-            });
+            options.body = JSON.stringify({force: true});
         }
     }
 
-    req.timeout({
-        response: requestTimeout
-    });
+    return request(url, options).catch((err) => {
+        const {statusCode} = err;
 
-    req.end(function (err, response) {
-        if (err) {
-            // CASE: post/page was deleted already
-            if (response && response.status === 404) {
-                return;
-            }
+        // CASE: post/page was deleted already
+        if (statusCode === 404) {
+            return;
+        }
 
-            // CASE: blog is in maintenance mode, retry
-            if (response && response.status === 503 && tries < maxTries) {
-                timeout = setTimeout(function pingAgain() {
-                    clearTimeout(timeout);
-
-                    object.tries = tries + 1;
-                    self._pingUrl(object);
-                }, self.retryTimeoutInMs);
-            }
+        // CASE: blog is in maintenance mode, retry
+        if (statusCode === 503 && tries < maxTries) {
+            setTimeout(() => {
+                object.tries = tries + 1;
+                this._pingUrl(object);
+            }, this.retryTimeoutInMs);
 
             common.logging.error(new common.errors.GhostError({
-                err: err,
-                level: 'critical'
+                err,
+                context: 'Retrying...',
+                level: 'normal'
             }));
+
+            return;
         }
+
+        common.logging.error(new common.errors.GhostError({
+            err,
+            level: 'critical'
+        }));
     });
 };
 

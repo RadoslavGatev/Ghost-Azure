@@ -1,4 +1,6 @@
-module.exports = {
+const createCard = require('../create-card');
+
+module.exports = createCard({
     name: 'image',
     type: 'dom',
     render(opts) {
@@ -11,7 +13,7 @@ module.exports = {
         }
 
         let figure = dom.createElement('figure');
-        let figureClass = 'kg-image-card';
+        let figureClass = 'kg-card kg-image-card';
         if (payload.cardWidth) {
             figureClass = `${figureClass} kg-width-${payload.cardWidth}`;
         }
@@ -33,8 +35,21 @@ module.exports = {
             let figcaption = dom.createElement('figcaption');
             figcaption.appendChild(dom.createRawHTMLSection(payload.caption));
             figure.appendChild(figcaption);
+            figure.setAttribute('class', `${figure.getAttribute('class')} kg-card-hascaption`);
         }
 
         return figure;
+    },
+
+    absoluteToRelative(urlUtils, payload, options) {
+        payload.src = payload.src && urlUtils.absoluteToRelative(payload.src, options);
+        payload.caption = payload.caption && urlUtils.htmlAbsoluteToRelative(payload.caption, options);
+        return payload;
+    },
+
+    relativeToAbsolute(urlUtils, payload, options) {
+        payload.src = payload.src && urlUtils.relativeToAbsolute(payload.src, options);
+        payload.caption = payload.caption && urlUtils.htmlRelativeToAbsolute(payload.caption, options);
+        return payload;
     }
-};
+});

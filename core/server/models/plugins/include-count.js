@@ -19,23 +19,24 @@ module.exports = function (Bookshelf) {
 
                     if (options.context && options.context.public) {
                         // @TODO use the filter behavior for posts
-                        qb.andWhere('posts.page', '=', false);
+                        qb.andWhere('posts.type', '=', 'post');
                         qb.andWhere('posts.status', '=', 'published');
                     }
                 });
             }
         },
         users: {
-            posts: function addPostCountToTags(model, options) {
+            posts: function addPostCountToUsers(model, options) {
                 model.query('columns', 'users.*', function (qb) {
                     qb.count('posts.id')
                         .from('posts')
-                        .whereRaw('posts.author_id = users.id')
+                        .join('posts_authors', 'posts.id', 'posts_authors.post_id')
+                        .whereRaw('posts_authors.author_id = users.id')
                         .as('count__posts');
 
                     if (options.context && options.context.public) {
                         // @TODO use the filter behavior for posts
-                        qb.andWhere('posts.page', '=', false);
+                        qb.andWhere('posts.type', '=', 'post');
                         qb.andWhere('posts.status', '=', 'published');
                     }
                 });
