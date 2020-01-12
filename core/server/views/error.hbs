@@ -25,10 +25,14 @@
               <div class="gh-view">
                 <section class="error-content error-404 js-error-container">
                   <section class="error-details">
+                    <img
+                    class="error-ghost"
+                    src="{{asset "public/404-ghost@2x.png"}}"
+                    srcset="{{asset "public/404-ghost.png"}} 1x, {{asset "public/404-ghost@2x.png"}} 2x"/>
                     <section class="error-message">
                       <h1 class="error-code">{{statusCode}}</h1>
                       <h2 class="error-description">{{message}}</h2>
-                      <a class="error-link" href="{{@site.url}}">Go to the front page →</a>
+                      <a class="error-link" href="{{@blog.url}}">Go to the front page →</a>
                     </section>
                   </section>
                 </section>
@@ -38,16 +42,16 @@
                         <h3>Theme errors</h3>
 
                         <ul class="error-stack-list">
-                            {{#foreach errorDetails}}
+                            {{#each errorDetails}}
                                 <li>
                                     <em class="error-stack-function">{{{rule}}}</em>
 
-                                    {{#foreach failures}}
+                                    {{#each failures}}
                                         <p><span class="error-stack-file">Ref: {{ref}}</span></p>
                                         <p><span class="error-stack-file">Message: {{message}}</span></p>
-                                    {{/foreach}}
+                                    {{/each}}
                                 </li>
-                            {{/foreach}}
+                            {{/each}}
                         </ul>
                     </section>
                 {{/if}}

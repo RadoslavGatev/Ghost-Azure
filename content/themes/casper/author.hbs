@@ -3,9 +3,7 @@
 
 {{#author}}
 {{!-- Everything inside the #author tags pulls data from the author --}}
-
-
-{{> header background=cover_image}} {{!--Special header.hbs partial to generate the <header> tag--}}
+<header class="site-header outer {{#if cover_image}}" style="background-image: url({{cover_image}}){{else}}no-cover{{/if}}">
     <div class="inner">
         {{> "site-nav"}}
         <div class="site-header-content">

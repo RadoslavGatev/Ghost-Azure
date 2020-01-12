@@ -26,21 +26,11 @@ models = [
     'refreshtoken',
     'role',
     'settings',
-    'session',
     'subscriber',
     'tag',
-    'tag-public',
     'user',
-    'author',
     'invite',
-    'webhook',
-    'integration',
-    'api-key',
-    'mobiledoc-revision',
-    'member',
-    'member-stripe-customer',
-    'stripe-customer-subscription',
-    'action'
+    'webhook'
 ];
 
 function init() {

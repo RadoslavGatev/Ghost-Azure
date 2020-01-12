@@ -1,129 +1,117 @@
 // # Mail
 // Handles sending email for Ghost
-const _ = require('lodash');
-const Promise = require('bluebird');
-const validator = require('validator');
-const config = require('../../config');
-const common = require('../../lib/common');
-const settingsCache = require('../settings/cache');
-const urlUtils = require('../../lib/url-utils');
+var _ = require('lodash'),
+    Promise = require('bluebird'),
+    validator = require('validator'),
+    config = require('../../config'),
+    common = require('../../lib/common'),
+    settingsCache = require('../settings/cache'),
+    urlService = require('../url');
 
-const helpMessage = common.i18n.t('errors.api.authentication.checkEmailConfigInstructions', {url: 'https://ghost.org/docs/concepts/config/#mail'});
-const defaultErrorMessage = common.i18n.t('errors.mail.failedSendingEmail.error');
+function GhostMailer() {
+    var nodemailer = require('nodemailer'),
+        transport = config.get('mail') && config.get('mail').transport || 'direct',
+        options = config.get('mail') && _.clone(config.get('mail').options) || {};
 
-function getDomain() {
-    const domain = urlUtils.urlFor('home', true).match(new RegExp('^https?://([^/:?#]+)(?:[/:?#]|$)', 'i'));
-    return domain && domain[1];
+    this.state = {};
+    this.transport = nodemailer.createTransport(transport, options);
+    this.state.usingDirect = transport === 'direct';
 }
 
-function getFromAddress(requestedFromAddress) {
-    const configAddress = config.get('mail') && config.get('mail').from;
+GhostMailer.prototype.from = function () {
+    var from = config.get('mail') && config.get('mail').from,
+        defaultBlogTitle;
 
-    const address = requestedFromAddress || configAddress;
     // If we don't have a from address at all
-    if (!address) {
-        // Default to noreply@[blog.url]
-        return getFromAddress(`noreply@${getDomain()}`);
+    if (!from) {
+        // Default to ghost@[blog.url]
+        from = 'ghost@' + this.getDomain();
     }
 
     // If we do have a from address, and it's just an email
-    if (validator.isEmail(address)) {
-        const defaultBlogTitle = settingsCache.get('title') ? settingsCache.get('title').replace(/"/g, '\\"') : common.i18n.t('common.mail.title', {domain: getDomain()});
-        return `"${defaultBlogTitle}" <${address}>`;
+    if (validator.isEmail(from)) {
+        defaultBlogTitle = settingsCache.get('title') ? settingsCache.get('title').replace(/"/g, '\\"') : common.i18n.t('common.mail.title', {domain: this.getDomain()});
+        from = '"' + defaultBlogTitle + '" <' + from + '>';
     }
 
-    return address;
-}
+    return from;
+};
 
-function createMessage(message) {
-    const encoding = 'base64';
-    const generateTextFromHTML = !message.forceTextContent;
-    return Object.assign({}, message, {
-        from: getFromAddress(message.from),
-        generateTextFromHTML,
-        encoding
-    });
-}
+// Moved it to its own module
+GhostMailer.prototype.getDomain = function () {
+    var domain = urlService.utils.urlFor('home', true).match(new RegExp('^https?://([^/:?#]+)(?:[/:?#]|$)', 'i'));
+    return domain && domain[1];
+};
 
-function createMailError({message, err, ignoreDefaultMessage} = {message: ''}) {
-    const fullErrorMessage = defaultErrorMessage + message;
-    return new common.errors.EmailError({
-        message: ignoreDefaultMessage ? message : fullErrorMessage,
-        err: err,
-        help: helpMessage
-    });
-}
+// Sends an email message enforcing `to` (blog owner) and `from` fields
+// This assumes that api.settings.read('email') was already done on the API level
+GhostMailer.prototype.send = function (message) {
+    var self = this,
+        to,
+        help = common.i18n.t('errors.api.authentication.checkEmailConfigInstructions', {url: 'https://docs.ghost.org/v1/docs/mail-config'}),
+        errorMessage = common.i18n.t('errors.mail.failedSendingEmail.error');
 
-module.exports = class GhostMailer {
-    constructor() {
-        const nodemailer = require('nodemailer');
-        const transport = config.get('mail') && config.get('mail').transport || 'direct';
-        // nodemailer mutates the options passed to createTransport
-        const options = config.get('mail') && _.clone(config.get('mail').options) || {};
+    // important to clone message as we modify it
+    message = _.clone(message) || {};
+    to = message.to || false;
 
-        this.state = {
-            usingDirect: transport === 'direct'
-        };
-        this.transport = nodemailer.createTransport(transport, options);
+    if (!(message && message.subject && message.html && message.to)) {
+        return Promise.reject(new common.errors.EmailError({
+            message: common.i18n.t('errors.mail.incompleteMessageData.error'),
+            help: help
+        }));
     }
 
-    send(message) {
-        if (!(message && message.subject && message.html && message.to)) {
-            return Promise.reject(createMailError({
-                message: common.i18n.t('errors.mail.incompleteMessageData.error'),
-                ignoreDefaultMessage: true
-            }));
-        }
+    message = _.extend(message, {
+        from: self.from(),
+        to: to,
+        generateTextFromHTML: true,
+        encoding: 'base64'
+    });
 
-        const messageToSend = createMessage(message);
+    return new Promise(function (resolve, reject) {
+        self.transport.sendMail(message, function (err, response) {
+            if (err) {
+                errorMessage += common.i18n.t('errors.mail.reason', {reason: err.message || err});
 
-        return this.sendMail(messageToSend).then((response) => {
-            if (this.transport.transportType === 'DIRECT') {
-                return this.handleDirectTransportResponse(response);
+                return reject(new common.errors.EmailError({
+                    message: errorMessage,
+                    err: err,
+                    help: help
+                }));
             }
-            return response;
-        });
-    }
 
-    sendMail(message) {
-        return new Promise((resolve, reject) => {
-            this.transport.sendMail(message, (err, response) => {
-                if (err) {
-                    reject(createMailError({
-                        message: common.i18n.t('errors.mail.reason', {reason: err.message || err}),
-                        err
-                    }));
-                }
-                resolve(response);
-            });
-        });
-    }
+            if (self.transport.transportType !== 'DIRECT') {
+                return resolve(response);
+            }
 
-    handleDirectTransportResponse(response) {
-        return new Promise((resolve, reject) => {
             response.statusHandler.once('failed', function (data) {
                 if (data.error && data.error.errno === 'ENOTFOUND') {
-                    reject(createMailError({
-                        message: common.i18n.t('errors.mail.noMailServerAtAddress.error', {domain: data.domain})
-                    }));
+                    errorMessage += common.i18n.t('errors.mail.noMailServerAtAddress.error', {domain: data.domain});
                 }
 
-                reject(createMailError());
+                return reject(new common.errors.EmailError({
+                    message: errorMessage,
+                    help: help
+                }));
             });
 
             response.statusHandler.once('requeue', function (data) {
                 if (data.error && data.error.message) {
-                    reject(createMailError({
-                        message: common.i18n.t('errors.mail.reason', {reason: data.error.message})
-                    }));
+                    errorMessage += common.i18n.t('errors.mail.reason', {reason: data.error.message});
                 }
 
-                reject(createMailError());
+                return reject(new common.errors.EmailError({
+                    message: errorMessage,
+                    help: help
+                }));
             });
 
             response.statusHandler.once('sent', function () {
-                resolve(common.i18n.t('notices.mail.messageSent'));
+                return resolve(common.i18n.t('notices.mail.messageSent'));
             });
         });
-    }
+    });
 };
+
+module.exports = GhostMailer;

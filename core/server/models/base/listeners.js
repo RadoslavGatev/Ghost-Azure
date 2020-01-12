@@ -5,14 +5,10 @@ var moment = require('moment-timezone'),
     sequence = require('../../lib/promise/sequence');
 
 /**
- * @TODO REMOVE WHEN v0.1 IS DROPPED
  * WHEN access token is created we will update last_seen for user.
  */
 common.events.on('token.added', function (tokenModel) {
-    models.User.findOne({id: tokenModel.get('user_id')})
-        .then(function (user) {
-            return user.updateLastSeen();
-        })
+    models.User.edit({last_seen: moment().toDate()}, {id: tokenModel.get('user_id')})
         .catch(function (err) {
             common.logging.error(new common.errors.GhostError({err: err, level: 'critical'}));
         });
@@ -57,7 +53,7 @@ common.events.on('settings.active_timezone.edited', function (settingModel, opti
     options = _.merge({}, options, {context: {internal: true}});
 
     var newTimezone = settingModel.attributes.value,
-        previousTimezone = settingModel._previousAttributes.value,
+        previousTimezone = settingModel._updatedAttributes.value,
         timezoneOffsetDiff = moment.tz(previousTimezone).utcOffset() - moment.tz(newTimezone).utcOffset();
 
     // CASE: TZ was updated, but did not change
@@ -137,7 +133,7 @@ common.events.on('settings.notifications.edited', function (settingModel) {
 
     allNotifications = allNotifications.filter(function (notification) {
         // Do not delete the release notification
-        if (Object.prototype.hasOwnProperty.call(notification, 'custom') && !notification.custom) {
+        if (notification.hasOwnProperty('custom') && !notification.custom) {
             return true;
         }
 

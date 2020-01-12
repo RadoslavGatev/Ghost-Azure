@@ -28,8 +28,7 @@ _private.loadNconf = function loadNconf(options) {
      * env arguments
      */
     nconf.env({
-        separator: '__',
-        parseValues: true
+        separator: '__'
     });
 
     nconf.file('custom-env', path.join(customConfigPath, 'config.' + env + '.json'));
@@ -48,9 +47,8 @@ _private.loadNconf = function loadNconf(options) {
 
     nconf.sanitizeDatabaseProperties();
     nconf.makePathsAbsolute(nconf.get('paths'), 'paths');
-    if (nconf.get('database:client') === 'sqlite3') {
-        nconf.makePathsAbsolute(nconf.get('database:connection'), 'database:connection');
-    }
+    nconf.makePathsAbsolute(nconf.get('database:connection'), 'database:connection');
+
     /**
      * Check if the URL in config has a protocol
      */
