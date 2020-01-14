@@ -21,5 +21,7 @@ module.exports = {
         frame.response = {
             tags: [mapper.mapTag(models, frame)]
         };
+
+        debug(frame.response);
     }
 };

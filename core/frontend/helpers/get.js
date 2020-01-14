@@ -13,18 +13,32 @@ var proxy = require('./proxy'),
     createFrame = proxy.hbs.handlebars.createFrame,
 
     api = proxy.api,
+    labs = proxy.labs,
     pathAliases,
     get;
 
+/**
+ * v0.1: users, posts, tags
+ * v2: authors, pagesPublic, posts, tagsPublic
+ *
+ * @NOTE: if you use "users" in v2, we should fallback to authors
+ */
 const RESOURCES = {
     posts: {
-        alias: 'postsPublic'
+        alias: 'postsPublic',
+        resource: 'posts'
     },
     tags: {
-        alias: 'tagsPublic'
+        alias: 'tagsPublic',
+        resource: 'tags'
+    },
+    users: {
+        alias: 'authorsPublic',
+        resource: 'users'
     },
     pages: {
-        alias: 'pagesPublic'
+        alias: 'pagesPublic',
+        resource: 'posts'
     },
     authors: {
         alias: 'authorsPublic'
@@ -140,15 +154,21 @@ get = function get(resource, options) {
         return Promise.resolve(options.inverse(self, {data: data}));
     }
 
-    const controllerName = RESOURCES[resource].alias;
-    const controller = api[apiVersion][controllerName];
+    const controller = api[apiVersion][RESOURCES[resource].alias] ? RESOURCES[resource].alias : RESOURCES[resource].resource;
     const action = isBrowse(apiOptions) ? 'browse' : 'read';
+
+    // CASE: no fallback defined e.g. v0.1 tries to fetch "authors"
+    if (!controller) {
+        data.error = i18n.t('warnings.helpers.get.invalidResource');
+        logging.warn(data.error);
+        return Promise.resolve(options.inverse(self, {data: data}));
+    }
 
     // Parse the options we're going to pass to the API
     apiOptions = parseOptions(ghostGlobals, this, apiOptions);
 
     // @TODO: https://github.com/TryGhost/Ghost/issues/10548
-    return controller[action](apiOptions).then(function success(result) {
+    return api[apiVersion][controller][action](apiOptions).then(function success(result) {
         var blockParams;
 
         // used for logging details of slow requests
@@ -180,7 +200,7 @@ get = function get(resource, options) {
                 message: `{{#get}} helper took ${totalMs}ms to complete`,
                 code: 'SLOW_GET_HELPER',
                 errorDetails: {
-                    api: `${apiVersion}.${controllerName}.${action}`,
+                    api: `${apiVersion}.${controller}.${action}`,
                     apiOptions,
                     returnedRows: returnedRowsCount
                 }
@@ -189,4 +209,27 @@ get = function get(resource, options) {
     });
 };
 
-module.exports = get;
+module.exports = function getLabsWrapper() {
+    const self = this;
+    const args = arguments;
+    const apiVersion = _.get(args, '[1].data.root._locals.apiVersion');
+
+    // If the API version is v0.1 return the labs enabled version of the helper
+    if (apiVersion === 'v0.1') {
+        return labs.enabledHelper({
+            flagKey: 'publicAPI',
+            flagName: 'Public API',
+            helperName: 'get',
+            // Even though this is a labs enabled helper, really we want users to upgrade to v2 API.
+            errMessagePath: 'warnings.helpers.get.apiRequired.message',
+            errContextPath: 'warnings.helpers.get.apiRequired.context',
+            helpUrl: 'https://ghost.org/docs/api/handlebars-themes/packagejson/',
+            async: true
+        }, function executeHelper() {
+            return get.apply(self, args);
+        });
+    }
+
+    // Else, we just apply the helper normally
+    return get.apply(self, args);
+};

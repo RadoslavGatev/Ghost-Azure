@@ -7,5 +7,7 @@ module.exports = {
         frame.response = {
             slugs: [{slug}]
         };
+
+        debug(frame.response);
     }
 };

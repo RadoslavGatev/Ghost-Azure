@@ -9,6 +9,7 @@ const labs = flag => (req, res, next) => {
     }
 };
 
+labs.subscribers = labs('subscribers');
 labs.members = labs('members');
 
 module.exports = labs;

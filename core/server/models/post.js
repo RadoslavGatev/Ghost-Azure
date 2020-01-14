@@ -49,22 +49,20 @@ Post = ghostBookshelf.Model.extend({
         }
 
         return {
-            send_email_when_published: false,
             uuid: uuid.v4(),
             status: 'draft',
             featured: false,
-            type: 'post',
+            page: false,
             visibility: visibility
         };
     },
 
-    relationships: ['tags', 'authors', 'mobiledoc_revisions', 'posts_meta'],
+    relationships: ['tags', 'authors', 'mobiledoc_revisions'],
 
     // NOTE: look up object, not super nice, but was easy to implement
     relationshipBelongsTo: {
         tags: 'tags',
-        authors: 'users',
-        posts_meta: 'posts_meta'
+        authors: 'users'
     },
 
     /**
@@ -84,10 +82,10 @@ Post = ghostBookshelf.Model.extend({
 
     emitChange: function emitChange(event, options = {}) {
         let eventToTrigger;
-        let resourceType = this.get('type');
+        let resourceType = this.get('page') ? 'page' : 'post';
 
         if (options.usePreviousAttribute) {
-            resourceType = this.previous('type');
+            resourceType = this.previous('page') ? 'page' : 'post';
         }
 
         eventToTrigger = resourceType + '.' + event;
@@ -128,7 +126,7 @@ Post = ghostBookshelf.Model.extend({
         model.isScheduled = model.get('status') === 'scheduled';
         model.wasPublished = model.previous('status') === 'published';
         model.wasScheduled = model.previous('status') === 'scheduled';
-        model.resourceTypeChanging = model.get('type') !== model.previous('type');
+        model.resourceTypeChanging = model.get('page') !== model.previous('page');
         model.publishedAtHasChanged = model.hasDateChanged('published_at');
         model.needsReschedule = model.publishedAtHasChanged && model.isScheduled;
 
@@ -335,22 +333,6 @@ Post = ghostBookshelf.Model.extend({
             this.set('tags', tagsToSave);
         }
 
-        /**
-         * CASE: Attach id to update existing posts_meta entry for a post
-         * CASE: Don't create new posts_meta entry if post meta is empty
-         */
-        if (!_.isUndefined(this.get('posts_meta')) && !_.isNull(this.get('posts_meta'))) {
-            let postsMetaData = this.get('posts_meta');
-            let relatedModelId = model.related('posts_meta').get('id');
-            let hasNoData = !_.values(postsMetaData).some(x => !!x);
-            if (relatedModelId && !_.isEmpty(postsMetaData)) {
-                postsMetaData.id = relatedModelId;
-                this.set('posts_meta', postsMetaData);
-            } else if (_.isEmpty(postsMetaData) || hasNoData) {
-                this.set('posts_meta', null);
-            }
-        }
-
         this.handleAttachedModels(model);
 
         ghostBookshelf.Model.prototype.onSaving.apply(this, arguments);
@@ -455,24 +437,6 @@ Post = ghostBookshelf.Model.extend({
             if (this.hasChanged('published_by') && !options.importing) {
                 this.set('published_by', this.previous('published_by') ? String(this.previous('published_by')) : null);
             }
-        }
-
-        // send_email_when_published is read-only and should only be set using a query param when publishing/scheduling
-        if (options.send_email_when_published && this.hasChanged('status') && (newStatus === 'published' || newStatus === 'scheduled')) {
-            this.set('send_email_when_published', true);
-        }
-
-        // ensure draft posts have the send_email_when_published reset unless an email has already been sent
-        if (newStatus === 'draft' && this.hasChanged('status')) {
-            ops.push(function ensureSendEmailWhenPublishedIsUnchanged() {
-                return self.related('email').fetch({transacting: options.transacting}).then((email) => {
-                    if (email) {
-                        self.set('send_email_when_published', true);
-                    } else {
-                        self.set('send_email_when_published', false);
-                    }
-                });
-            });
         }
 
         // If a title is set, not the same as the old title, a draft post, and has never been published
@@ -590,14 +554,6 @@ Post = ghostBookshelf.Model.extend({
         return this.hasMany('MobiledocRevision', 'post_id');
     },
 
-    posts_meta: function postsMeta() {
-        return this.hasOne('PostsMeta', 'post_id');
-    },
-
-    email: function email() {
-        return this.hasOne('Email', 'post_id');
-    },
-
     /**
      * @NOTE:
      * If you are requesting models with `columns`, you try to only receive some fields of the model/s.
@@ -657,6 +613,13 @@ Post = ghostBookshelf.Model.extend({
         // CASE: never expose the revisions
         delete attrs.mobiledoc_revisions;
 
+        // expose canonical_url only for API v2 calls
+        // NOTE: this can be removed when API v0.1 is dropped. A proper solution for field
+        //       differences on resources like this would be an introduction of API output schema
+        if (!_.get(unfilteredOptions, 'extraProperties', []).includes('canonical_url')) {
+            delete attrs.canonical_url;
+        }
+
         // If the current column settings allow it...
         if (!options.columns || (options.columns && options.columns.indexOf('primary_tag') > -1)) {
             // ... attach a computed property of primary_tag which is the first tag if it is public, else null
@@ -677,19 +640,31 @@ Post = ghostBookshelf.Model.extend({
             return null;
         }
 
-        return options.context && options.context.public ? 'type:post' : 'type:post+status:published';
+        return options.context && options.context.public ? 'page:false' : 'page:false+status:published';
     },
 
     /**
-     * You can pass an extra `status=VALUES` field.
+     * You can pass an extra `status=VALUES` or "staticPages" field.
      * Long-Term: We should deprecate these short cuts and force users to use the filter param.
      */
     extraFilters: function extraFilters(options) {
-        if (!options.status) {
+        if (!options.staticPages && !options.status) {
             return null;
         }
 
         let filter = null;
+
+        // CASE: "staticPages" is passed
+        if (options.staticPages && options.staticPages !== 'all') {
+            // CASE: convert string true/false to boolean
+            if (!_.isBoolean(options.staticPages)) {
+                options.staticPages = _.includes(['true', '1'], options.staticPages);
+            }
+
+            filter = `page:${options.staticPages}`;
+        } else if (options.staticPages === 'all') {
+            filter = 'page:[true, false]';
+        }
 
         // CASE: "status" is passed, combine filters
         if (options.status && options.status !== 'all') {
@@ -709,6 +684,7 @@ Post = ghostBookshelf.Model.extend({
         }
 
         delete options.status;
+        delete options.staticPages;
         return filter;
     },
 
@@ -775,10 +751,10 @@ Post = ghostBookshelf.Model.extend({
             // these are the only options that can be passed to Bookshelf / Knex.
             validOptions = {
                 findOne: ['columns', 'importing', 'withRelated', 'require', 'filter'],
-                findPage: ['status'],
+                findPage: ['status', 'staticPages'],
                 findAll: ['columns', 'filter'],
                 destroy: ['destroyAll', 'destroyBy'],
-                edit: ['filter', 'send_email_when_published']
+                edit: ['filter']
             };
 
         // The post model additionally supports having a formats option
@@ -796,20 +772,10 @@ Post = ghostBookshelf.Model.extend({
      * receive all fields including relations. Otherwise you can't rely on a consistent flow. And we want to avoid
      * that event listeners have to re-fetch a resource. This function is used in the context of inserting
      * and updating resources. We won't return the relations by default for now.
-     *
-     * We also always fetch posts metadata to keep current behavior consistent
      */
     defaultRelations: function defaultRelations(methodName, options) {
         if (['edit', 'add', 'destroy'].indexOf(methodName) !== -1) {
             options.withRelated = _.union(['authors', 'tags'], options.withRelated || []);
-        }
-
-        const META_ATTRIBUTES = _.without(ghostBookshelf.model('PostsMeta').prototype.permittedAttributes(), 'id', 'post_id');
-
-        // NOTE: only include post_meta relation when requested in 'columns' or by default
-        //       optimization is needed to be able to perform .findAll on large SQLite datasets
-        if (!options.columns || (options.columns && _.intersection(META_ATTRIBUTES, options.columns).length)) {
-            options.withRelated = _.union(['posts_meta'], options.withRelated || []);
         }
 
         return options;

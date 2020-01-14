@@ -1,24 +1,8 @@
 const _ = require('lodash');
 const debug = require('ghost-ignition').debug('api:canary:utils:serializers:input:posts');
-const mapNQLKeyValues = require('../../../../../../shared/nql-map-key-values');
 const url = require('./utils/url');
 const localUtils = require('../../index');
 const converters = require('../../../../../lib/mobiledoc/converters');
-const postsMetaSchema = require('../../../../../data/schema').tables.posts_meta;
-
-const replacePageWithType = mapNQLKeyValues({
-    key: {
-        from: 'page',
-        to: 'type'
-    },
-    values: [{
-        from: false,
-        to: 'post'
-    }, {
-        from: true,
-        to: 'page'
-    }]
-});
 
 function removeMobiledocFormat(frame) {
     if (frame.options.formats && frame.options.formats.includes('mobiledoc')) {
@@ -37,7 +21,7 @@ function defaultRelations(frame) {
         return false;
     }
 
-    frame.options.withRelated = ['tags', 'authors', 'authors.roles', 'email'];
+    frame.options.withRelated = ['tags', 'authors', 'authors.roles'];
 }
 
 function setDefaultOrder(frame) {
@@ -53,24 +37,12 @@ function setDefaultOrder(frame) {
     }
 }
 
-function forceVisibilityColumn(frame) {
-    if (frame.options.columns && !frame.options.columns.includes('visibility')) {
-        frame.options.columns.push('visibility');
-    }
-}
-
 function defaultFormat(frame) {
     if (frame.options.formats) {
         return;
     }
 
     frame.options.formats = 'mobiledoc';
-}
-
-function handlePostsMeta(frame) {
-    let metaAttrs = _.keys(_.omit(postsMetaSchema, ['id', 'post_id']));
-    let meta = _.pick(frame.data.posts[0], metaAttrs);
-    frame.data.posts[0].posts_meta = meta;
 }
 
 /**
@@ -83,9 +55,9 @@ function handlePostsMeta(frame) {
  */
 const forcePageFilter = (frame) => {
     if (frame.options.filter) {
-        frame.options.filter = `(${frame.options.filter})+type:post`;
+        frame.options.filter = `(${frame.options.filter})+page:false`;
     } else {
-        frame.options.filter = 'type:post';
+        frame.options.filter = 'page:false';
     }
 };
 
@@ -114,7 +86,6 @@ module.exports = {
             removeMobiledocFormat(frame);
 
             setDefaultOrder(frame);
-            forceVisibilityColumn(frame);
         }
 
         if (!localUtils.isContentAPI(frame)) {
@@ -123,7 +94,7 @@ module.exports = {
             defaultRelations(frame);
         }
 
-        frame.options.mongoTransformer = replacePageWithType;
+        debug(frame.options);
     },
 
     read(apiConfig, frame) {
@@ -142,7 +113,6 @@ module.exports = {
             removeMobiledocFormat(frame);
 
             setDefaultOrder(frame);
-            forceVisibilityColumn(frame);
         }
 
         if (!localUtils.isContentAPI(frame)) {
@@ -150,6 +120,8 @@ module.exports = {
             defaultFormat(frame);
             defaultRelations(frame);
         }
+
+        debug(frame.options);
     },
 
     add(apiConfig, frame, options = {add: true}) {
@@ -167,7 +139,7 @@ module.exports = {
 
         // @NOTE: force adding post
         if (options.add) {
-            frame.data.posts[0].type = 'post';
+            frame.data.posts[0].page = false;
         }
 
         // CASE: Transform short to long format
@@ -191,25 +163,21 @@ module.exports = {
             });
         }
 
-        handlePostsMeta(frame);
         defaultFormat(frame);
         defaultRelations(frame);
     },
 
     edit(apiConfig, frame) {
-        debug('edit');
         this.add(apiConfig, frame, {add: false});
 
-        handlePostsMeta(frame);
         forceStatusFilter(frame);
         forcePageFilter(frame);
     },
 
     destroy(apiConfig, frame) {
-        debug('destroy');
         frame.options.destroyBy = {
             id: frame.options.id,
-            type: 'post'
+            page: false
         };
 
         defaultFormat(frame);

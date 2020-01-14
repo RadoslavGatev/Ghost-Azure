@@ -22,5 +22,7 @@ module.exports = {
         frame.response = {
             pages: [mapper.mapPost(models, frame)]
         };
+
+        debug(frame.response);
     }
 };

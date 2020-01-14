@@ -59,9 +59,11 @@ SchedulingDefault.prototype.schedule = function (object) {
 };
 
 /**
- * @description Unschedule a job.
+ * @description Remove & schedule a job.
  *
- * Unscheduling means: scheduled -> draft.
+ * This function is useful if the model layer detects a rescheduling event.
+ * Rescheduling means: scheduled -> update published at.
+ * To be able to delete the previous job we need the old published time.
  *
  * @param {Object} object
  *                       {
@@ -77,18 +79,39 @@ SchedulingDefault.prototype.schedule = function (object) {
  *                          bootstrap: [Boolean]
  *                      }
  */
-SchedulingDefault.prototype.unschedule = function (object, options = {bootstrap: false}) {
+SchedulingDefault.prototype.reschedule = function (object, options = {bootstrap: false}) {
     /**
      * CASE:
-     * The post scheduling unit triggers "reschedule" on bootstrap, because other custom scheduling implementations
+     * The post scheduling unit calls "reschedule" on bootstrap, because other custom scheduling implementations
      * could use a database and we need to give the chance to update the job (delete + re-add).
      *
      * We receive a "bootstrap" variable to ensure that jobs are scheduled correctly for this scheduler implementation,
      * because "object.extra.oldTime" === "object.time". If we mark the job as deleted, it won't get scheduled.
      */
     if (!options.bootstrap) {
-        this._deleteJob(object);
+        this._deleteJob({time: object.extra.oldTime, url: object.url});
     }
+
+    this._addJob(object);
+};
+
+/**
+ * @description Unschedule a job.
+ *
+ * Unscheduling means: scheduled -> draft.
+ *
+ * @param {Object} object
+ *                       {
+ *                          time: [Number] A unix timestamp
+ *                          url:  [String] The full post/page API url to publish it.
+ *                          extra: {
+ *                              httpMethod: [String] The method of the target API endpoint.
+ *                              oldTime:    [Number] The previous published time.
+ *                          }
+ *                       }
+ */
+SchedulingDefault.prototype.unschedule = function (object) {
+    this._deleteJob(object);
 };
 
 /**

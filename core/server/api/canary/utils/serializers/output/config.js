@@ -2,9 +2,10 @@ const debug = require('ghost-ignition').debug('api:canary:utils:serializers:outp
 
 module.exports = {
     all(data, apiConfig, frame) {
-        debug('all');
         frame.response = {
             config: data
         };
+
+        debug(frame.response);
     }
 };
