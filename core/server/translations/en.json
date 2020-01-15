@@ -26,9 +26,6 @@
                     "invitedByName": "{invitedByName} has invited you to join {blogName}"
                 }
             },
-            "clients": {
-                "clientNotFound": "Client not found"
-            },
             "actions": {
                 "images": {
                     "upload": "upload image"
@@ -54,11 +51,6 @@
                 "versionMismatch": "Client request for {clientVersion} does not match server version {serverVersion}."
             },
             "auth": {
-                "publicAPIDisabled": {
-                    "error": "Permission error! Public API is disabled.",
-                    "context": "Please enable the deprecated v0.1 Public API or switch to using the v2 Content API."
-                },
-                "clientAuthenticationFailed": "Client Authentication Failed",
                 "clientCredentialsNotProvided": "Client credentials were not provided",
                 "clientCredentialsNotValid": "Client credentials were not valid",
                 "forInformationRead": "For information on how to fix this, please read {url}.",
@@ -79,11 +71,6 @@
                 "invalidToken": "Invalid token",
                 "invalidTokenWithMessage": "Invalid token: {message}",
                 "incorrectAuthHeaderFormat": "Authorization header format is \"Authorization: Ghost [token]\""
-            },
-            "oauth": {
-                "invalidClient": "Invalid client.",
-                "invalidRefreshToken": "Invalid refresh token.",
-                "refreshTokenExpired": "Refresh token expired."
             },
             "privateblogging": {
                 "wrongPassword": "Wrong password"
@@ -212,9 +199,6 @@
             "general": {
                 "sql": "Could not understand request."
             },
-            "subscriber": {
-                "notEnoughPermission": "You do not have permission to perform this action"
-            },
             "invite": {
                 "notEnoughPermission": "You do not have permission to perform this action"
             },
@@ -270,6 +254,10 @@
             },
             "api_key": {
                 "apiKeyNotFound": "API Key not found"
+            },
+            "email": {
+                "emailNotFound": "Email not found.",
+                "retryNotAllowed": "Only failed emails can be retried"
             },
             "base": {
                 "index": {
@@ -327,9 +315,6 @@
                 "invalidTokenTypeHint": "Invalid token_type_hint given.",
                 "invalidTokenProvided": "Invalid token provided",
                 "tokenRevocationFailed": "Token revocation failed"
-            },
-            "clients": {
-                "clientNotFound": "Client not found."
             },
             "configuration": {
                 "invalidKey": "Invalid key"
@@ -391,12 +376,6 @@
             "slugs": {
                 "couldNotGenerateSlug": "Could not generate slug.",
                 "unknownSlugType": "Unknown slug type '{type}'."
-            },
-            "subscribers": {
-                "missingFile": "Please select a csv.",
-                "invalidFile": "Please select a valid CSV file to import.",
-                "subscriberNotFound": "Subscriber not found.",
-                "subscriberAlreadyExists": "Email address is already subscribed."
             },
             "members": {
                 "memberNotFound": "Member not found.",
@@ -485,6 +464,7 @@
                 "DatabaseVersionError": "Database version compatibility error, cannot {action}.",
                 "EmailError": "Error sending email!",
                 "ThemeValidationError": "Theme validation error, cannot {action}.",
+                "HostLimitError": "Host Limit error, cannot {action}.",
                 "DisabledFeatureError": "Theme validation error, the {{{helperName}}} helper is not available. Cannot {action}.",
                 "UpdateCollisionError": "Saving failed! Someone else is editing this post."
             }
@@ -541,6 +521,11 @@
                 },
                 "loader": "Error trying to load YAML setting for {setting} from '{path}'.",
                 "ensureSettings": "Error trying to access settings files in {path}."
+            },
+            "mega": {
+                "requestFailed": {
+                    "error" : "The email service was unable to send an email batch."
+                }
             }
         },
         "errors": {
@@ -581,15 +566,14 @@
             "asset": {
                 "pathIsRequired": "The \\{\\{asset\\}\\} helper must be passed a path"
             },
+            "cancel_link": {
+                "invalidData": "The \\{\\{cancel_link\\}\\} helper was used outside of a subscription context. See https://ghost.org/docs/members/cancel-link/."
+            },
             "foreach": {
                 "iteratorNeeded": "Need to pass an iterator to #foreach"
             },
             "get": {
-                "invalidResource": "Invalid resource given to get helper",
-                "apiRequired": {
-                    "message": "The \\{\\{#get\\}\\} helper requires your theme to have API access.",
-                    "context": "Please enable the v2 API via your theme's package.json file."
-                }
+                "invalidResource": "Invalid resource given to get helper"
             },
             "has": {
                 "invalidAttribute": "Invalid or no attribute given to has helper"

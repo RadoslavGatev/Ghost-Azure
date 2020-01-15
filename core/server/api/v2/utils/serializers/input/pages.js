@@ -1,8 +1,24 @@
 const _ = require('lodash');
+const mapNQLKeyValues = require('../../../../../../shared/nql-map-key-values');
 const debug = require('ghost-ignition').debug('api:v2:utils:serializers:input:pages');
 const converters = require('../../../../../lib/mobiledoc/converters');
 const url = require('./utils/url');
 const localUtils = require('../../index');
+const postsMetaSchema = require('../../../../../data/schema').tables.posts_meta;
+
+const replacePageWithType = mapNQLKeyValues({
+    key: {
+        from: 'page',
+        to: 'type'
+    },
+    values: [{
+        from: false,
+        to: 'post'
+    }, {
+        from: true,
+        to: 'page'
+    }]
+});
 
 function removeMobiledocFormat(frame) {
     if (frame.options.formats && frame.options.formats.includes('mobiledoc')) {
@@ -37,12 +53,24 @@ function setDefaultOrder(frame) {
     }
 }
 
+function forceVisibilityColumn(frame) {
+    if (frame.options.columns && !frame.options.columns.includes('visibility')) {
+        frame.options.columns.push('visibility');
+    }
+}
+
 function defaultFormat(frame) {
     if (frame.options.formats) {
         return;
     }
 
     frame.options.formats = 'mobiledoc';
+}
+
+function handlePostsMeta(frame) {
+    let metaAttrs = _.keys(_.omit(postsMetaSchema, ['id', 'post_id']));
+    let meta = _.pick(frame.data.pages[0], metaAttrs);
+    frame.data.pages[0].posts_meta = meta;
 }
 
 /**
@@ -55,9 +83,9 @@ function defaultFormat(frame) {
  */
 const forcePageFilter = (frame) => {
     if (frame.options.filter) {
-        frame.options.filter = `(${frame.options.filter})+page:true`;
+        frame.options.filter = `(${frame.options.filter})+type:page`;
     } else {
-        frame.options.filter = 'page:true';
+        frame.options.filter = 'type:page';
     }
 };
 
@@ -78,6 +106,7 @@ module.exports = {
         if (localUtils.isContentAPI(frame)) {
             removeMobiledocFormat(frame);
             setDefaultOrder(frame);
+            forceVisibilityColumn(frame);
         }
 
         if (!localUtils.isContentAPI(frame)) {
@@ -86,7 +115,7 @@ module.exports = {
             defaultRelations(frame);
         }
 
-        debug(frame.options);
+        frame.options.mongoTransformer = replacePageWithType;
     },
 
     read(apiConfig, frame) {
@@ -97,6 +126,7 @@ module.exports = {
         if (localUtils.isContentAPI(frame)) {
             removeMobiledocFormat(frame);
             setDefaultOrder(frame);
+            forceVisibilityColumn(frame);
         }
 
         if (!localUtils.isContentAPI(frame)) {
@@ -104,8 +134,6 @@ module.exports = {
             defaultFormat(frame);
             defaultRelations(frame);
         }
-
-        debug(frame.options);
     },
 
     add(apiConfig, frame, options = {add: true}) {
@@ -123,7 +151,7 @@ module.exports = {
 
         // @NOTE: force storing page
         if (options.add) {
-            frame.data.pages[0].page = true;
+            frame.data.pages[0].type = 'page';
         }
 
         // CASE: Transform short to long format
@@ -147,23 +175,26 @@ module.exports = {
             });
         }
 
+        handlePostsMeta(frame);
         defaultFormat(frame);
         defaultRelations(frame);
     },
 
     edit(apiConfig, frame) {
-        this.add(...arguments, {add: false});
-
         debug('edit');
 
+        this.add(...arguments, {add: false});
+
+        handlePostsMeta(frame);
         forceStatusFilter(frame);
         forcePageFilter(frame);
     },
 
     destroy(apiConfig, frame) {
+        debug('destroy');
         frame.options.destroyBy = {
             id: frame.options.id,
-            page: true
+            type: 'page'
         };
 
         defaultFormat(frame);

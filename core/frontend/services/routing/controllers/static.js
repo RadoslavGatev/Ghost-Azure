@@ -1,8 +1,7 @@
 const _ = require('lodash'),
     Promise = require('bluebird'),
     debug = require('ghost-ignition').debug('services:routing:controllers:static'),
-    helpers = require('../helpers'),
-    config = require('../../../../server/config');
+    helpers = require('../helpers');
 
 function processQuery(query, locals) {
     const api = require('../../../../server/api')[locals.apiVersion];
@@ -12,20 +11,17 @@ function processQuery(query, locals) {
     //       the target resource. That means this static route has to behave the same way than the original resource url.
     //       e.g. the meta data package needs access to the full resource including relations.
     //       We override the `include` property for now, because the full data set is required anyway.
-    if (_.get(query, 'resource') === 'posts') {
+    if (_.get(query, 'resource') === 'posts' || _.get(query, 'resource') === 'pages') {
         _.extend(query.options, {
-            // @TODO: Remove "author" when we drop v0.1
-            include: 'author,authors,tags'
+            include: 'authors,tags'
         });
     }
 
-    if (config.get('enableDeveloperExperiments')) {
-        Object.assign(query.options, {
-            context: {
-                members: locals.member
-            }
-        });
-    }
+    Object.assign(query.options, {
+        context: {
+            members: locals.member
+        }
+    });
 
     return api[query.controller][query.type](query.options);
 }
