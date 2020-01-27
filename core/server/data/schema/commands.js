@@ -5,15 +5,14 @@ var _ = require('lodash'),
     schema = require('./schema'),
     clients = require('./clients');
 
-function addTableColumn(tableName, table, columnName) {
-    var column,
-        columnSpec = schema[tableName][columnName];
+function addTableColumn(tableName, table, columnName, columnSpec = schema[tableName][columnName]) {
+    var column;
 
     // creation distinguishes between text with fieldtype, string with maxlength and all others
-    if (columnSpec.type === 'text' && columnSpec.hasOwnProperty('fieldtype')) {
+    if (columnSpec.type === 'text' && Object.prototype.hasOwnProperty.call(columnSpec, 'fieldtype')) {
         column = table[columnSpec.type](columnName, columnSpec.fieldtype);
     } else if (columnSpec.type === 'string') {
-        if (columnSpec.hasOwnProperty('maxlength')) {
+        if (Object.prototype.hasOwnProperty.call(columnSpec, 'maxlength')) {
             column = table[columnSpec.type](columnName, columnSpec.maxlength);
         } else {
             column = table[columnSpec.type](columnName, 191);
@@ -22,32 +21,35 @@ function addTableColumn(tableName, table, columnName) {
         column = table[columnSpec.type](columnName);
     }
 
-    if (columnSpec.hasOwnProperty('nullable') && columnSpec.nullable === true) {
+    if (Object.prototype.hasOwnProperty.call(columnSpec, 'nullable') && columnSpec.nullable === true) {
         column.nullable();
     } else {
         column.nullable(false);
     }
-    if (columnSpec.hasOwnProperty('primary') && columnSpec.primary === true) {
+    if (Object.prototype.hasOwnProperty.call(columnSpec, 'primary') && columnSpec.primary === true) {
         column.primary();
     }
-    if (columnSpec.hasOwnProperty('unique') && columnSpec.unique) {
+    if (Object.prototype.hasOwnProperty.call(columnSpec, 'unique') && columnSpec.unique) {
         column.unique();
     }
-    if (columnSpec.hasOwnProperty('unsigned') && columnSpec.unsigned) {
+    if (Object.prototype.hasOwnProperty.call(columnSpec, 'unsigned') && columnSpec.unsigned) {
         column.unsigned();
     }
-    if (columnSpec.hasOwnProperty('references')) {
+    if (Object.prototype.hasOwnProperty.call(columnSpec, 'references')) {
         // check if table exists?
         column.references(columnSpec.references);
     }
-    if (columnSpec.hasOwnProperty('defaultTo')) {
+    if (Object.prototype.hasOwnProperty.call(columnSpec, 'defaultTo')) {
         column.defaultTo(columnSpec.defaultTo);
+    }
+    if (Object.prototype.hasOwnProperty.call(columnSpec, 'index') && columnSpec.index === true) {
+        column.index();
     }
 }
 
-function addColumn(tableName, column, transaction) {
+function addColumn(tableName, column, transaction, columnSpec) {
     return (transaction || db.knex).schema.table(tableName, function (table) {
-        addTableColumn(tableName, table, column);
+        addTableColumn(tableName, table, column, columnSpec);
     });
 }
 
@@ -131,6 +133,40 @@ function checkTables(transaction) {
     }
 }
 
+const createLog = type => msg => common.logging[type](msg);
+
+function createColumnMigration(...migrations) {
+    async function runColumnMigration(conn, migration) {
+        const {
+            table,
+            column,
+            dbIsInCorrectState,
+            operation,
+            operationVerb,
+            columnDefinition
+        } = migration;
+
+        const hasColumn = await conn.schema.hasColumn(table, column);
+        const isInCorrectState = dbIsInCorrectState(hasColumn);
+
+        const log = createLog(isInCorrectState ? 'warn' : 'info');
+
+        log(`${operationVerb} ${table}.${column}`);
+
+        if (!isInCorrectState) {
+            await operation(table, column, conn, columnDefinition);
+        }
+    }
+
+    return async function columnMigration(options) {
+        const conn = options.transacting || options.connection;
+
+        for (const migration of migrations) {
+            await runColumnMigration(conn, migration);
+        }
+    };
+}
+
 module.exports = {
     checkTables: checkTables,
     createTable: createTable,
@@ -141,5 +177,6 @@ module.exports = {
     dropUnique: dropUnique,
     addColumn: addColumn,
     dropColumn: dropColumn,
-    getColumns: getColumns
+    getColumns: getColumns,
+    createColumnMigration
 };

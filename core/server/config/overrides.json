@@ -3,11 +3,11 @@
         "appRoot": ".",
         "corePath": "core/",
         "clientAssets": "core/built/assets",
-        "helperTemplates": "core/server/helpers/tpl/",
+        "helperTemplates": "core/frontend/helpers/tpl/",
         "adminViews": "core/server/web/admin/views/",
         "defaultViews": "core/server/views/",
-        "defaultSettings": "core/server/services/settings/",
-        "internalAppPath": "core/server/apps/",
+        "defaultSettings": "core/frontend/services/settings/",
+        "internalAppPath": "core/frontend/apps/",
         "internalStoragePath": "core/server/adapters/storage/",
         "internalSchedulingPath": "core/server/adapters/scheduling/",
         "migrationPath": "core/server/data/migrations",
@@ -16,25 +16,20 @@
     "apps": {
         "internal": [
             "private-blogging",
-            "subscribers",
             "amp"
         ]
     },
     "slugs": {
-        "reserved": ["admin", "app", "apps", "categories",
-            "category", "dashboard", "feed", "ghost-admin", "login", "logout",
-            "page", "pages", "post", "posts", "public", "register", "setup",
-            "signin", "signout", "signup", "user", "users", "wp-admin", "wp-login"],
         "protected": ["ghost", "rss", "amp"]
     },
     "uploads": {
-        "subscribers": {
+        "members": {
             "extensions": [".csv"],
-            "contentTypes": ["text/csv", "application/csv", "application/octet-stream"]
+            "contentTypes": ["text/csv", "application/csv", "application/octet-stream", "application/vnd.ms-excel"]
         },
         "images": {
-            "extensions": [".jpg", ".jpeg", ".gif", ".png", ".svg", ".svgz"],
-            "contentTypes": ["image/jpeg", "image/png", "image/gif", "image/svg+xml"]
+            "extensions": [".jpg", ".jpeg", ".gif", ".png", ".svg", ".svgz", ".ico"],
+            "contentTypes": ["image/jpeg", "image/png", "image/gif", "image/svg+xml", "image/x-icon", "image/vnd.microsoft.icon"]
         },
         "icons": {
             "extensions": [".png", ".ico"],
@@ -54,7 +49,7 @@
         },
         "routes": {
             "extensions": [".yaml"],
-            "contentTypes": ["text/plain", "text/yaml", "application/octet-stream", "application/yaml"]
+            "contentTypes": ["text/plain", "text/yaml", "application/octet-stream", "application/yaml", "application/x-yaml"]
         }
     },
     "times": {
@@ -64,5 +59,24 @@
     },
     "maintenance": {
         "enabled": false
+    },
+    "api": {
+        "versions": {
+            "all": ["v2", "v3", "canary"],
+            "canary": {
+                "admin": "canary/admin",
+                "content": "canary/content",
+                "members": "canary/members"
+            },
+            "v3": {
+                "admin": "v3/admin",
+                "content": "v3/content",
+                "members": "v3/members"
+            },
+            "v2": {
+                "admin": "v2/admin",
+                "content": "v2/content"
+            }
+        }
     }
 }

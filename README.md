@@ -1,36 +1,23 @@
 # Ghost-Azure 
-## Your Ghost blog ready for Azure app service deployment. 
-[![Deploy to Azure](https://azuredeploy.net/deploybutton.png)](https://azuredeploy.net/)
-[![Visualize](http://armviz.io/visualizebutton.png)](http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2Fdmoore44%2FGhost-Azure%2Fazure%2Fazuredeploy.json)
-[Deploy to Azure via Portal](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fdmoore44%2FGhost-Azure%2Fazure%2Fazuredeploy.json)
-<p>
-</p>
-
 ## Why Ghost-Azure?
-The current version of Ghost(1.18.0) is not compatible with Azure app service. Ghost-Azure is a production-ready template which can be hosted directly on Azure app service. We will try to maintain the ghost version updated. All contributions are welcome.
+Straight out of the box, the current 1.x and 2.x versions of Ghost aren't compatible with the Azure App Service. Ghost-Azure resolves this by providing a production-ready template which can be hosted directly on Azure App Service. In the background, an Azure Function ([Ghost-Release-Uploader](https://github.com/RadoslavGatev/Ghost-Release-Uploader)) makes sure that this repository stays up-to-date with the latest releases of Ghost.
 
-## Usage
-### 1. Fork this repository.
-### 2. Branch out from the branch "azure".
-```bash
-git checkout azure
-git checkout -b my_blog
-```
-### 3. Install npm modules.
-```bash
-npm install
-```
-### 4. Initialize your database.
-```bash
-node db.js
-```
-### 5. Customize everything you want in your content folder.
-### 6. Keep your fork up to date(if you want the latest ghost version).
-[https://help.github.com/articles/syncing-a-fork/](https://help.github.com/articles/syncing-a-fork/)
+## Demo
+[![Status of Demo deployment](https://vsrm.dev.azure.com/RG-GitHub/_apis/public/Release/badge/72c85fbd-8b34-4db0-8be1-f1a286cc4d59/3/4)](https://dev.azure.com/RG-GitHub/Ghost-Azure/_release?definitionId=3)
 
-OR
-```bash
-git checkout my_branch
-git pull https://github.com/dmoore44/Ghost-Azure azure
-```
+You can play with the demo web app: https://ghost-azure-demo.azurewebsites.net. Just give it some time to warm up.
 
+## Installation methods
+I suggest forking this repository into your own to avoid changes I make to my repository to negatively impact your installation.
+
+### One-click deploy
+[![Deploy to Azure](https://azuredeploy.net/deploybutton.png)](https://azuredeploy.net/)
+[![Visualize](http://armviz.io/visualizebutton.png)](http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2FRadoslavGatev%2FGhost-Azure%2Fazure%2Fazuredeploy.json)
+[Deploy to Azure via Portal](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FRadoslavGatev%2FGhost-Azure%2Fazure%2Fazuredeploy.json)
+
+### Azure App Service Deployment Center
+More info on [Microsoft Docs](https://docs.microsoft.com/en-us/azure/app-service/deploy-continuous-deployment#deploy-continuously-from-github)
+
+## Contributing to the project
+Feedback with improvements and pull requests from the community will be highly appreciated and accepted.
+Please open Pull requests only in the [Ghost-Release-Uploader repository](https://github.com/RadoslavGatev/Ghost-Release-Uploader) as commits to Ghost-Azure are fully automated by it.

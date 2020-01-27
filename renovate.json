@@ -1,0 +1,24 @@
+{
+  "extends": [
+    "@tryghost:base",
+    "@tryghost:groupTestLint",
+    "@tryghost:groupCSS",
+    "@tryghost:groupBuildTools",
+    "@tryghost:automergeSilentTestLintNonMajor"
+  ],
+  "travis": { "enabled": true },
+  "node": {
+    "supportPolicy": ["lts"]
+   },
+  "separateMinorPatch": true,
+  "patch": {
+    "automerge": true
+  },
+  "ignoreDeps": [
+      "moment-timezone",
+      "nodemailer",
+      "validator",
+      "simple-dom"
+    ],
+  "ignorePaths": ["core/test"]
+}

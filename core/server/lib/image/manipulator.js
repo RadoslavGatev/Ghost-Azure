@@ -1,5 +1,6 @@
 const Promise = require('bluebird');
 const common = require('../common');
+const fs = require('fs-extra');
 
 /**
  * @NOTE: Sharp cannot operate on the same image path, that's why we have to use in & out paths.
@@ -7,16 +8,43 @@ const common = require('../common');
  * We currently can't enable compression or having more config options, because of
  * https://github.com/lovell/sharp/issues/1360.
  */
-const process = (options = {}) => {
-    let sharp, img;
 
+const unsafeProcess = (options = {}) => {
+    return fs.readFile(options.in)
+        .then((data) => {
+            return unsafeResizeImage(data, {
+                width: options.width
+            });
+        })
+        .then((data) => {
+            return fs.writeFile(options.out, data);
+        });
+};
+
+const unsafeResizeImage = (originalBuffer, {width, height} = {}) => {
+    const sharp = require('sharp');
+    return sharp(originalBuffer)
+        .resize(width, height, {
+            // CASE: dont make the image bigger than it was
+            withoutEnlargement: true
+        })
+        // CASE: Automatically remove metadata and rotate based on the orientation.
+        .rotate()
+        .toBuffer()
+        .then((resizedBuffer) => {
+            return resizedBuffer.length < originalBuffer.length ? resizedBuffer : originalBuffer;
+        });
+};
+
+// NOTE: .gif optimization is currently not supported by sharp but will be soon
+//       as there has been support added in underlying libvips library https://github.com/lovell/sharp/issues/1372
+//       As for .svg files, sharp only supports conversion to png, and this does not
+//       play well with animated svg files
+const canTransformFileExtension = ext => !['.gif', '.svg', '.svgz', '.ico'].includes(ext);
+
+const makeSafe = fn => (...args) => {
     try {
-        sharp = require('sharp');
-
-        // @NOTE: workaround for Windows as libvips keeps a reference to the input file
-        //        which makes it impossible to fs.unlink() it on cleanup stage
-        sharp.cache(false);
-        img = sharp(options.in);
+        require('sharp');
     } catch (err) {
         return Promise.reject(new common.errors.InternalServerError({
             message: 'Sharp wasn\'t installed',
@@ -24,27 +52,15 @@ const process = (options = {}) => {
             err: err
         }));
     }
-
-    return img.metadata()
-        .then((metadata) => {
-            if (metadata.width > options.width) {
-                img.resize(options.width);
-            }
-
-            // CASE: if you call `rotate` it will automatically remove the orientation (and all other meta data) and rotates
-            //       based on the orientation. It does not rotate if no orientation is set.
-            img.rotate();
-        })
-        .then(() => {
-            return img.toFile(options.out);
-        })
-        .catch((err) => {
-            throw new common.errors.InternalServerError({
-                message: 'Unable to manipulate image.',
-                err: err,
-                code: 'IMAGE_PROCESSING'
-            });
+    return fn(...args).catch((err) => {
+        throw new common.errors.InternalServerError({
+            message: 'Unable to manipulate image.',
+            err: err,
+            code: 'IMAGE_PROCESSING'
         });
+    });
 };
 
-module.exports.process = process;
+module.exports.canTransformFileExtension = canTransformFileExtension;
+module.exports.process = makeSafe(unsafeProcess);
+module.exports.resizeImage = makeSafe(unsafeResizeImage);

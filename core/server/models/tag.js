@@ -1,6 +1,5 @@
-const ghostBookshelf = require('./base'),
-    urlService = require('../services/url'),
-    {urlFor} = require('../services/url/utils');
+const ghostBookshelf = require('./base');
+
 let Tag, Tags;
 
 Tag = ghostBookshelf.Model.extend({
@@ -19,14 +18,20 @@ Tag = ghostBookshelf.Model.extend({
     },
 
     onCreated: function onCreated(model, attrs, options) {
+        ghostBookshelf.Model.prototype.onCreated.apply(this, arguments);
+
         model.emitChange('added', options);
     },
 
     onUpdated: function onUpdated(model, attrs, options) {
+        ghostBookshelf.Model.prototype.onUpdated.apply(this, arguments);
+
         model.emitChange('edited', options);
     },
 
     onDestroyed: function onDestroyed(model, options) {
+        ghostBookshelf.Model.prototype.onDestroyed.apply(this, arguments);
+
         model.emitChange('deleted', options);
     },
 
@@ -40,7 +45,7 @@ Tag = ghostBookshelf.Model.extend({
             this.set('visibility', 'internal');
         }
 
-        if (this.hasChanged('slug') || !this.get('slug')) {
+        if (this.hasChanged('slug') || (!this.get('slug') && this.get('name'))) {
             // Pass the new slug through the generator to strip illegal characters, detect duplicates
             return ghostBookshelf.Model.generateSlug(Tag, this.get('slug') || this.get('name'),
                 {transacting: options.transacting})
@@ -48,13 +53,6 @@ Tag = ghostBookshelf.Model.extend({
                     self.set({slug: slug});
                 });
         }
-    },
-
-    emptyStringProperties: function emptyStringProperties() {
-        // CASE: the client might send empty image properties with "" instead of setting them to null.
-        // This can cause GQL to fail. We therefore enforce 'null' for empty image properties.
-        // See https://github.com/TryGhost/GQL/issues/24
-        return ['feature_image'];
     },
 
     posts: function posts() {
@@ -65,41 +63,43 @@ Tag = ghostBookshelf.Model.extend({
         var options = Tag.filterOptions(unfilteredOptions, 'toJSON'),
             attrs = ghostBookshelf.Model.prototype.toJSON.call(this, options);
 
+        // @NOTE: this serialization should be moved into api layer, it's not being moved as it's not used
         attrs.parent = attrs.parent || attrs.parent_id;
         delete attrs.parent_id;
 
-        if (options && options.context && options.context.public && options.absolute_urls) {
-            attrs.url = urlFor({
-                relativeUrl: urlService.getUrlByResourceId(attrs.id)
-            }, true);
-            if (attrs.feature_image) {
-                attrs.feature_image = urlFor('image', {image: attrs.feature_image}, true);
-            }
+        return attrs;
+    },
+
+    getAction(event, options) {
+        const actor = this.getActor(options);
+
+        // @NOTE: we ignore internal updates (`options.context.internal`) for now
+        if (!actor) {
+            return;
         }
 
-        return attrs;
+        // @TODO: implement context
+        return {
+            event: event,
+            resource_id: this.id || this.previous('id'),
+            resource_type: 'tag',
+            actor_id: actor.id,
+            actor_type: actor.type
+        };
     }
 }, {
     orderDefaultOptions: function orderDefaultOptions() {
         return {};
     },
 
-    /**
-     * @deprecated in favour of filter
-     */
-    processOptions: function processOptions(options) {
-        return options;
-    },
-
     permittedOptions: function permittedOptions(methodName) {
-        var options = ghostBookshelf.Model.permittedOptions(methodName),
+        var options = ghostBookshelf.Model.permittedOptions.call(this, methodName),
 
             // whitelists for the `options` hash argument on methods, by method name.
             // these are the only options that can be passed to Bookshelf / Knex.
             validOptions = {
-                findPage: ['page', 'limit', 'columns', 'filter', 'order', 'absolute_urls'],
                 findAll: ['columns'],
-                findOne: ['visibility'],
+                findOne: ['columns', 'visibility'],
                 destroy: ['destroyAll']
             };
 

@@ -1,16 +1,18 @@
-const debug = require('ghost-ignition').debug('importer:posts'),
-    _ = require('lodash'),
-    uuid = require('uuid'),
-    BaseImporter = require('./base'),
-    converters = require('../../../../lib/mobiledoc/converters'),
-    validation = require('../../../validation');
+const debug = require('ghost-ignition').debug('importer:posts');
+const _ = require('lodash');
+const uuid = require('uuid');
+const BaseImporter = require('./base');
+const converters = require('../../../../lib/mobiledoc/converters');
+const validation = require('../../../validation');
+const postsMetaSchema = require('../../../schema').tables.posts_meta;
+const metaAttrs = _.keys(_.omit(postsMetaSchema, ['id']));
 
 class PostsImporter extends BaseImporter {
     constructor(allDataFromFile) {
         super(allDataFromFile, {
             modelName: 'Post',
             dataKeyToImport: 'posts',
-            requiredFromFile: ['posts', 'tags', 'posts_tags', 'posts_authors'],
+            requiredFromFile: ['posts', 'tags', 'posts_tags', 'posts_authors', 'posts_meta'],
             requiredImportedData: ['tags'],
             requiredExistingData: ['tags']
         });
@@ -21,6 +23,28 @@ class PostsImporter extends BaseImporter {
             if (!validation.validator.isUUID(obj.uuid || '')) {
                 obj.uuid = uuid.v4();
             }
+
+            // we used to have post.page=true/false
+            // we now have post.type='page'/'post'
+            // give precedence to post.type if both are present
+            if (_.has(obj, 'page')) {
+                if (_.isEmpty(obj.type)) {
+                    obj.type = obj.page ? 'page' : 'post';
+                }
+                delete obj.page;
+            }
+        });
+    }
+
+    /**
+     * Sanitizes post metadata, picking data from sepearate table(for >= v3) or post itself(for < v3)
+     */
+    sanitizePostsMeta(model) {
+        let postsMetaFromFile = _.find(this.requiredFromFile.posts_meta, {post_id: model.id}) || _.pick(model, metaAttrs);
+        let postsMetaData = Object.assign({}, _.mapValues(postsMetaSchema, () => null), postsMetaFromFile);
+        model.posts_meta = postsMetaData;
+        _.each(metaAttrs, (attr) => {
+            delete model[attr];
         });
     }
 
@@ -100,7 +124,11 @@ class PostsImporter extends BaseImporter {
 
                 // CASE: search through imported data.
                 // EDGE CASE: uppercase tag slug was imported and auto modified
-                let importedObject = _.find(this.requiredImportedData[tableName], {originalSlug: objectInFile.slug});
+                let importedObject = null;
+
+                if (objectInFile.id) {
+                    importedObject = _.find(this.requiredImportedData[tableName], {originalId: objectInFile.id});
+                }
 
                 if (importedObject) {
                     this.dataToImport[postIndex][targetProperty][index].id = importedObject.id;
@@ -164,6 +192,7 @@ class PostsImporter extends BaseImporter {
 
             // CASE 1: you are importing old editor posts
             // CASE 2: you are importing Koenig Beta posts
+            // CASE 3: you are importing Koenig 2.0 posts
             if (model.mobiledoc || (model.mobiledoc && model.html && model.html.match(/^<div class="kg-card-markdown">/))) {
                 let mobiledoc;
 
@@ -179,7 +208,8 @@ class PostsImporter extends BaseImporter {
                 }
 
                 mobiledoc.cards.forEach((card) => {
-                    if (card[0] === 'image') {
+                    // Koenig Beta = imageStyle, Ghost 2.0 Koenig = cardWidth
+                    if (card[0] === 'image' && card[1].imageStyle) {
                         card[1].cardWidth = card[1].imageStyle;
                         delete card[1].imageStyle;
                     }
@@ -188,13 +218,14 @@ class PostsImporter extends BaseImporter {
                 model.mobiledoc = JSON.stringify(mobiledoc);
                 model.html = converters.mobiledocConverter.render(JSON.parse(model.mobiledoc));
             }
+            this.sanitizePostsMeta(model);
         });
 
         // NOTE: We only support removing duplicate posts within the file to import.
         // For any further future duplication detection, see https://github.com/TryGhost/Ghost/issues/8717.
         let slugs = [];
         this.dataToImport = _.filter(this.dataToImport, (post) => {
-            if (slugs.indexOf(post.slug) !== -1) {
+            if (!!post.slug && slugs.indexOf(post.slug) !== -1) {
                 this.problems.push({
                     message: 'Entry was not imported and ignored. Detected duplicated entry.',
                     help: this.modelName,
