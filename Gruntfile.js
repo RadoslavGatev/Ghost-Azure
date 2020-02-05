@@ -114,9 +114,10 @@ const configureGrunt = function (grunt) {
             options: {
                 ui: 'bdd',
                 reporter: grunt.option('reporter') || 'spec',
-                timeout: '30000',
+                timeout: '60000',
                 save: grunt.option('reporter-output'),
                 require: ['core/server/overrides'],
+                retries: '3',
                 exit: true
             },
 
