@@ -1,5 +1,5 @@
 const Promise = require('bluebird');
-const backupDatabase = require('../../data/db/backup');
+const dbBackup = require('../../data/db/backup');
 const exporter = require('../../data/exporter');
 const importer = require('../../data/importer');
 const common = require('../../lib/common');
@@ -25,13 +25,14 @@ module.exports = {
             // NOTE: we need to have `include` property available as backupDatabase uses it internally
             Object.assign(frame.options, {include: frame.options.withRelated});
 
-            return backupDatabase(frame.options);
+            return dbBackup.backup(frame.options);
         }
     },
 
     exportContent: {
         options: [
-            'include'
+            'include',
+            'filename'
         ],
         validation: {
             options: {
@@ -47,7 +48,17 @@ module.exports = {
             }
         },
         permissions: true,
-        query(frame) {
+        async query(frame) {
+            if (frame.options.filename) {
+                let backup = await dbBackup.readBackup(frame.options.filename);
+
+                if (!backup) {
+                    throw new common.errors.NotFoundError();
+                }
+
+                return backup;
+            }
+
             return Promise.resolve()
                 .then(() => exporter.doExport({include: frame.options.withRelated}))
                 .catch((err) => {
@@ -114,7 +125,7 @@ module.exports = {
                 });
             }
 
-            return backupDatabase().then(deleteContent);
+            return dbBackup.backup().then(deleteContent);
         }
     }
 };
