@@ -387,6 +387,31 @@
                     "name": "Retry emails",
                     "action_type": "retry",
                     "object_type": "email"
+                },
+                {
+                    "name": "Browse labels",
+                    "action_type": "browse",
+                    "object_type": "label"
+                },
+                {
+                    "name": "Read labels",
+                    "action_type": "read",
+                    "object_type": "label"
+                },
+                {
+                    "name": "Edit labels",
+                    "action_type": "edit",
+                    "object_type": "label"
+                },
+                {
+                    "name": "Add labels",
+                    "action_type": "add",
+                    "object_type": "label"
+                },
+                {
+                    "name": "Delete labels",
+                    "action_type": "destroy",
+                    "object_type": "label"
                 }
             ]
         },
@@ -582,6 +607,7 @@
                     "api_key": "all",
                     "action": "all",
                     "member": "all",
+                    "label": "all",
                     "email_preview": "all",
                     "email": "all"
                 },
@@ -606,6 +632,7 @@
                     "webhook": "all",
                     "action": "all",
                     "member": "all",
+                    "label": "all",
                     "email_preview": "all",
                     "email": "all"
                 },
