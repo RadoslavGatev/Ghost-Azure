@@ -40,7 +40,7 @@ var r
 return(r=void 0===t&&void 0===n?new Uint8Array(e):void 0===n?new Uint8Array(e,t):new Uint8Array(e,t,n)).__proto__=a.prototype,r}(e,t,n):"string"==typeof e?function(e,t){if("string"==typeof t&&""!==t||(t="utf8"),!a.isEncoding(t))throw new TypeError('"encoding" must be a valid string encoding')
 var n=0|d(e,t),r=o(n),i=r.write(e,t)
 return i!==n&&(r=r.slice(0,i)),r}(e,t):function(e){if(a.isBuffer(e)){var t=0|f(e.length),n=o(t)
-return 0===n.length?n:(e.copy(n,0,0,t),n)}if(e){if(z(e)||"length"in e)return"number"!=typeof e.length||j(e.length)?o(0):c(e)
+return 0===n.length||e.copy(n,0,0,t),n}if(e){if(z(e)||"length"in e)return"number"!=typeof e.length||j(e.length)?o(0):c(e)
 if("Buffer"===e.type&&Array.isArray(e.data))return c(e.data)}throw new TypeError("First argument must be a string, Buffer, ArrayBuffer, Array, or array-like object.")}(e)}function s(e){if("number"!=typeof e)throw new TypeError('"size" argument must be a number')
 if(e<0)throw new RangeError('"size" argument must not be negative')}function u(e){return s(e),o(e<0?0:0|f(e))}function c(e){for(var t=e.length<0?0:0|f(e.length),n=o(t),r=0;r<t;r+=1)n[r]=255&e[r]
 return n}function f(e){if(e>=2147483647)throw new RangeError("Attempt to allocate Buffer larger than maximum size: 0x"+2147483647..toString(16)+" bytes")
@@ -1600,7 +1600,7 @@ return p?p+" "+g:g}if("!"===l&&t.match(/\[[^\]]*\] ?(?:\(|\[)/,!1))return i.imag
 if("["===l&&i.imageMarker&&t.match(/[^\]]*\](\(.*?\)| ?\[.*?\])/,!1))return i.imageMarker=!1,i.imageAltText=!0,n.highlightFormatting&&(i.formatting="image"),C(i)
 if("]"===l&&i.imageAltText){n.highlightFormatting&&(i.formatting="image")
 p=C(i)
-return i.imageAltText=!1,i.image=!1,i.inline=i.f=T,p}if("["===l&&!i.image)return i.linkText&&t.match(/^.*?\]/)?C(i):(i.linkText=!0,n.highlightFormatting&&(i.formatting="link"),C(i))
+return i.imageAltText=!1,i.image=!1,i.inline=i.f=T,p}if("["===l&&!i.image)return i.linkText&&t.match(/^.*?\]/)||(i.linkText=!0,n.highlightFormatting&&(i.formatting="link")),C(i)
 if("]"===l&&i.linkText){n.highlightFormatting&&(i.formatting="link")
 p=C(i)
 return i.linkText=!1,i.inline=i.f=t.match(/\(.*?\)| ?\[.*?\]/,!1)?T:S,p}if("<"===l&&t.match(/^(https?|ftps?):\/\/(?:[^\\>]|\\.)+>/,!1))return i.f=i.inline=L,n.highlightFormatting&&(i.formatting="link"),(p=C(i))?p+=" ":p="",p+o.linkInline
