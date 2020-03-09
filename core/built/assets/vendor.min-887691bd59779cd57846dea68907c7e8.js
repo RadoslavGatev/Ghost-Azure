@@ -11027,41 +11027,41 @@ let i=function(e){return t=>t.closest&&t.closest(e)}
 this.element.contains(t)||n.find(i("#".concat(this.element.id)))||n.find(i('[data-kg="plus-menu"]'))||n.find(i(".liquid-destination"))||this.editor.element.contains(t)||this.deselectCard()},_handleMousemove(){this.showToolbar||(this.set("showToolbar",!0),this._removeMousemoveHandler())},_removeMousemoveHandler(){window.removeEventListener("mousemove",this._onMousemoveHandler),this._onMousemoveHandler=null},_fireWhenRendered(e){this.element?Ember.run.bind(this,e)():Ember.run.scheduleOnce("afterRender",this,e)},_createMutationObserver(e,t,n){function i(e){"childList"===e.type&&Array.prototype.forEach.call(e.target.querySelectorAll('input[type="text"]'),(function(e){o.includes(e)||(o.push(e),e.addEventListener("focus",t,!1),e.addEventListener("blur",n,!1))}))}function r(e){e.removeEventListener("focus",t,!1),e.removeEventListener("blur",n,!1),function(e){o.splice(o.indexOf(e),1)}(e)}function a(e){e.forEach(i)}let o=[],s=function(e){let t=new MutationObserver(a)
 return t.observe(e,{childList:!0,subtree:!0}),t}(e)
 return{disconnect(){"disconnect"in s&&(s.disconnect(),o.forEach(r))}}},_inputFocus(){this._hasDisabledContenteditable=!0,this.editor.element.contentEditable=!1},_inputBlur(){this._hasDisabledContenteditable=!1,this.editor.element.contentEditable=!0}})
-e.default=i})),define("koenig-editor/components/koenig-editor",["exports","mobiledoc-kit/editor/editor","mobiledoc-kit/utils/key","mobiledoc-kit/utils/cursor/range","koenig-editor/utils/reading-time","koenig-editor/options/atoms","koenig-editor/options/cards","ghost-admin/utils/format-markdown","koenig-editor/templates/components/koenig-editor","koenig-editor/options/key-commands","koenig-editor/options/text-expansions","validator","mobiledoc-kit/renderers/mobiledoc","@tryghost/kg-parser-plugins","mobiledoc-kit/utils/parse-utils","koenig-editor/utils/markup-utils","koenig-editor/lib/dnd/utils","@tryghost/helpers","ghost-admin/helpers/svg-jar"],(function(e,t,n,i,r,a,o,s,l,u,c,d,h,p,f,m,g,b,y){"use strict"
-Object.defineProperty(e,"__esModule",{value:!0}),e.arrayToMap=w,e.toggleSpecialFormatEditState=k,e.default=e.SPECIAL_MARKUPS=e.NO_CURSOR_MOVEMENT=e.CURSOR_AFTER=e.CURSOR_BEFORE=e.BLANK_DOC=e.TESTING_EXPANDO_PROPERTY=e.REMOVE_CARD_HOOK=e.ADD_CARD_HOOK=void 0
-const{countWords:v}=b.utils
+e.default=i})),define("koenig-editor/components/koenig-editor",["exports","mobiledoc-kit/utils/browser","mobiledoc-kit/editor/editor","mobiledoc-kit/utils/key","mobiledoc-kit/utils/cursor/range","koenig-editor/utils/reading-time","koenig-editor/options/atoms","koenig-editor/options/cards","ghost-admin/utils/format-markdown","koenig-editor/templates/components/koenig-editor","koenig-editor/options/key-commands","koenig-editor/options/text-expansions","validator","mobiledoc-kit/renderers/mobiledoc","@tryghost/kg-parser-plugins","mobiledoc-kit/utils/parse-utils","koenig-editor/utils/markup-utils","koenig-editor/lib/dnd/utils","@tryghost/helpers","ghost-admin/helpers/svg-jar"],(function(e,t,n,i,r,a,o,s,l,u,c,d,h,p,f,m,g,b,y,v){"use strict"
+Object.defineProperty(e,"__esModule",{value:!0}),e.arrayToMap=k,e.toggleSpecialFormatEditState=A,e.default=e.SPECIAL_MARKUPS=e.NO_CURSOR_MOVEMENT=e.CURSOR_AFTER=e.CURSOR_BEFORE=e.BLANK_DOC=e.TESTING_EXPANDO_PROPERTY=e.REMOVE_CARD_HOOK=e.ADD_CARD_HOOK=void 0
+const{countWords:M}=y.utils
 e.ADD_CARD_HOOK="addComponent"
 e.REMOVE_CARD_HOOK="removeComponent"
 e.TESTING_EXPANDO_PROPERTY="__mobiledoc_kit_editor"
-const M={version:h.MOBILEDOC_VERSION,markups:[],atoms:[],cards:[],sections:[[1,"p",[[0,[],0,""]]]]}
-e.BLANK_DOC=M
+const _={version:p.MOBILEDOC_VERSION,markups:[],atoms:[],cards:[],sections:[[1,"p",[[0,[],0,""]]]]}
+e.BLANK_DOC=_
 e.CURSOR_BEFORE=-1
 e.CURSOR_AFTER=1
 e.NO_CURSOR_MOVEMENT=0
-const _={S:"~~",CODE:"`",SUP:"^",SUB:"~"}
-function w(e){let t=Object.create(null)
-return e.forEach(e=>{e&&(e="is".concat(Ember.String.capitalize(Ember.String.camelize(e))),t[e]=!0)}),t}function k(e){let{head:t,isCollapsed:n}=e.range
-n&&Object.keys(_).forEach(n=>{if(n=n.toLowerCase(),t.marker&&t.marker.hasMarkup(n)&&e._editState.activeMarkups.findBy("tagName",n)){let i=t.markerIn(1)
-i&&i.hasMarkup(n)||e._editState.activeMarkups.filterBy("tagName",n).forEach(t=>{e._editState.toggleMarkupState(t)})}})}function A(e,t){let n,{builder:i,editor:r}=t,a=r.post.sections,o=r.activeSection
+const w={S:"~~",CODE:"`",SUP:"^",SUB:"~"}
+function k(e){let t=Object.create(null)
+return e.forEach(e=>{e&&(e="is".concat(Ember.String.capitalize(Ember.String.camelize(e))),t[e]=!0)}),t}function A(e){let{head:t,isCollapsed:n}=e.range
+n&&Object.keys(w).forEach(n=>{if(n=n.toLowerCase(),t.marker&&t.marker.hasMarkup(n)&&e._editState.activeMarkups.findBy("tagName",n)){let i=t.markerIn(1)
+i&&i.hasMarkup(n)||e._editState.activeMarkups.filterBy("tagName",n).forEach(t=>{e._editState.toggleMarkupState(t)})}})}function E(e,t){let n,{builder:i,editor:r}=t,a=r.post.sections,o=r.activeSection
 if(!o&&(o=r.post.sections.tail,!o.isMarkerable)){let e=i.createMarkupSection()
 t.insertSectionAtEnd(e),t.setRange(e.toRange()),o=t._range.head.section}if(o.isBlank||o.isListItem||!o.next||(o=o.next),o.isListItem){let e=o.parent,n=i.createMarkupSection()
 e.next?t.insertSectionBefore(a,n,e.next):t.insertSectionAtEnd(n),t.setRange(n.toRange()),o=t._range.head.section}e.forEach(e=>{let r={files:[e]}
-n=i.createCardSection("image",r),t.insertSectionBefore(a,n,o)}),o.isBlank&&t.removeSection(o),t.setRange(n.tailPosition())}e.SPECIAL_MARKUPS=_
-var E=Ember.Component.extend({koenigDragDropHandler:Ember.inject.service(),layout:l.default,tagName:"article",classNames:["koenig-editor","w-100","flex-grow","relative","center","mb0","mt0"],mobiledoc:null,placeholder:"Write here...",autofocus:!1,spellcheck:!0,options:null,headerOffset:0,dropTargetSelector:null,scrollContainerSelector:null,scrollOffsetTopSelector:null,scrollOffsetBottomSelector:null,editor:null,activeMarkupTagNames:null,activeSectionTagNames:null,selectedRange:null,componentCards:null,linkRange:null,selectedCard:null,_localMobiledoc:null,_upstreamMobiledoc:null,_startedRunLoop:!1,_lastIsEditingDisabled:!1,_isRenderingEditor:!1,_skipCursorChange:!1,_modifierKeys:null,willCreateEditor(){},didCreateEditor(){},onChange(){},cursorDidExitAtTop(){},wordCountDidChange(){},editorOptions:Ember.computed((function(){let e=this.options||{},t=this.atoms||[],n=this.cards||[]
-return t=a.default.concat(t),n=o.default.concat(n),Ember.assign({placeholder:this.placeholder,spellcheck:this.spellcheck,autofocus:this.autofocus,atoms:t,cards:n},e)})),init(){this._super(...arguments)
+n=i.createCardSection("image",r),t.insertSectionBefore(a,n,o)}),o.isBlank&&t.removeSection(o),t.setRange(n.tailPosition())}e.SPECIAL_MARKUPS=w
+var C=Ember.Component.extend({koenigDragDropHandler:Ember.inject.service(),layout:u.default,tagName:"article",classNames:["koenig-editor","w-100","flex-grow","relative","center","mb0","mt0"],mobiledoc:null,placeholder:"Write here...",autofocus:!1,spellcheck:!0,options:null,headerOffset:0,dropTargetSelector:null,scrollContainerSelector:null,scrollOffsetTopSelector:null,scrollOffsetBottomSelector:null,editor:null,activeMarkupTagNames:null,activeSectionTagNames:null,selectedRange:null,componentCards:null,linkRange:null,selectedCard:null,_localMobiledoc:null,_upstreamMobiledoc:null,_startedRunLoop:!1,_lastIsEditingDisabled:!1,_isRenderingEditor:!1,_skipCursorChange:!1,_modifierKeys:null,willCreateEditor(){},didCreateEditor(){},onChange(){},cursorDidExitAtTop(){},wordCountDidChange(){},editorOptions:Ember.computed((function(){let e=this.options||{},t=this.atoms||[],n=this.cards||[]
+return t=o.default.concat(t),n=s.default.concat(n),Ember.assign({placeholder:this.placeholder,spellcheck:this.spellcheck,autofocus:this.autofocus,atoms:t,cards:n},e)})),init(){this._super(...arguments)
 let e=this.mobiledoc
-e||(e=M,this.set("mobiledoc",e)),this.set("componentCards",Ember.A([])),this.set("activeMarkupTagNames",{}),this.set("activeSectionTagNames",{}),this._modifierKeys={shift:!1,alt:!1,ctrl:!1},this._onMousedownHandler=Ember.run.bind(this,this.handleMousedown),window.addEventListener("mousedown",this._onMousedownHandler),this._onMouseupHandler=Ember.run.bind(this,this.handleMouseup),window.addEventListener("mouseup",this._onMouseupHandler),this._startedRunLoop=!1},willRender(){let e=this.mobiledoc||M,n=this._localMobiledoc&&this._localMobiledoc===e||this._upstreamMobiledoc&&this._upstreamMobiledoc===e,i=this._lastIsEditingDisabled===this.isEditingDisabled
-if(n&&i)return
+e||(e=_,this.set("mobiledoc",e)),this.set("componentCards",Ember.A([])),this.set("activeMarkupTagNames",{}),this.set("activeSectionTagNames",{}),this._modifierKeys={shift:!1,alt:!1,ctrl:!1},this._onMousedownHandler=Ember.run.bind(this,this.handleMousedown),window.addEventListener("mousedown",this._onMousedownHandler),this._onMouseupHandler=Ember.run.bind(this,this.handleMouseup),window.addEventListener("mouseup",this._onMouseupHandler),this._startedRunLoop=!1},willRender(){let e=this.mobiledoc||_,t=this._localMobiledoc&&this._localMobiledoc===e||this._upstreamMobiledoc&&this._upstreamMobiledoc===e,i=this._lastIsEditingDisabled===this.isEditingDisabled
+if(t&&i)return
 this._lastIsEditingDisabled=this.isEditingDisabled,this._upstreamMobiledoc=e,this._localMobiledoc=null,this.willCreateEditor()
 let r=this.editor
 r&&r.destroy()
 let a=this.editorOptions
-a.mobiledoc=e,a.showLinkTooltips=!1,a.undoDepth=100,a.parserPlugins=(0,p.createParserPlugins)()
-let s={addComponent:({env:e,options:t,payload:n},i)=>{let a=e.name,s=o.CARD_COMPONENT_MAP[a],{files:l}=n,u=JSON.parse(JSON.stringify(n||null))
+a.mobiledoc=e,a.showLinkTooltips=!1,a.undoDepth=100,a.parserPlugins=(0,f.createParserPlugins)()
+let o={addComponent:({env:e,options:t,payload:n},i)=>{let a=e.name,o=s.CARD_COMPONENT_MAP[a],{files:l}=n,u=JSON.parse(JSON.stringify(n||null))
 u.files=l
-let c=Ember.Object.create({cardName:a,componentName:s,koenigOptions:i,payload:u,env:e,options:t,editor:r,postModel:e.postModel,isSelected:!1,isEditing:!1}),d=Ember.guidFor(c),h="koenig-editor-card-".concat(d),p=document.createElement("div")
+let c=Ember.Object.create({cardName:a,componentName:o,koenigOptions:i,payload:u,env:e,options:t,editor:r,postModel:e.postModel,isSelected:!1,isEditing:!1}),d=Ember.guidFor(c),h="koenig-editor-card-".concat(d),p=document.createElement("div")
 return p.id=h,c.setProperties({destinationElementId:h,destinationElement:p}),Ember.run.schedule("afterRender",()=>{this.componentCards.pushObject(c)}),{card:c,element:p}},removeComponent:e=>{this.componentCards.removeObject(e)}}
-a.cardOptions=s,r=new t.default(a),(0,u.default)(r,this),(0,c.default)(r,this),r.willRender(()=>{Ember.run.currentRunLoop||(this._startedRunLoop=!0,Ember.run.begin())}),r.didRender(()=>{this._startedRunLoop&&(this._startedRunLoop=!1,Ember.run.end()),this._cleanupScheduled&&Ember.run.schedule("afterRender",this,this._cleanup)}),r.postDidChange(()=>{Ember.run.join(()=>{this.postDidChange(r)})}),r.cursorDidChange(()=>{Ember.run.join(()=>{this.cursorDidChange(r)})}),r.inputModeDidChange(()=>{this.isDestroyed||Ember.run.join(()=>{this.inputModeDidChange(r)})}),r.willHandleNewline(e=>{Ember.run.join(()=>{this.willHandleNewline(e)})}),this.isEditingDisabled&&r.disableEditing(),this.set("editor",r),this.didCreateEditor(this),Ember.run.schedule("afterRender",this,this._registerCardReorderDragDropHandler),Ember.run.schedule("afterRender",this,this._calculateWordCount)},didInsertElement(){this._super(...arguments)
+a.cardOptions=o,r=new n.default(a),(0,c.default)(r,this),(0,d.default)(r,this),r.willRender(()=>{Ember.run.currentRunLoop||(this._startedRunLoop=!0,Ember.run.begin())}),r.didRender(()=>{this._startedRunLoop&&(this._startedRunLoop=!1,Ember.run.end()),this._cleanupScheduled&&Ember.run.schedule("afterRender",this,this._cleanup)}),r.postDidChange(()=>{Ember.run.join(()=>{this.postDidChange(r)})}),r.cursorDidChange(()=>{Ember.run.join(()=>{this.cursorDidChange(r)})}),r.inputModeDidChange(()=>{this.isDestroyed||Ember.run.join(()=>{this.inputModeDidChange(r)})}),r.willHandleNewline(e=>{Ember.run.join(()=>{this.willHandleNewline(e)})}),this.isEditingDisabled&&r.disableEditing(),this.set("editor",r),this.didCreateEditor(this),Ember.run.schedule("afterRender",this,this._registerCardReorderDragDropHandler),Ember.run.schedule("afterRender",this,this._calculateWordCount)},didInsertElement(){this._super(...arguments)
 let e=this.element.querySelector('[data-kg="editor"]')
 this._pasteHandler=Ember.run.bind(this,this.handlePaste),e.addEventListener("paste",this._pasteHandler),this.scrollContainerSelector&&(this._scrollContainer=document.querySelector(this.scrollContainerSelector)),this._keydownHandler=Ember.run.bind(this,this.handleKeydown),window.addEventListener("keydown",this._keydownHandler),this._keyupHandler=Ember.run.bind(this,this.handleKeyup),window.addEventListener("keyup",this._keyupHandler),this._dropTarget=document.querySelector(this.dropTargetSelector)||this.element,this._dragOverHandler=Ember.run.bind(this,this.handleDragOver),this._dragLeaveHandler=Ember.run.bind(this,this.handleDragLeave),this._dropHandler=Ember.run.bind(this,this.handleDrop),this._dropTarget.addEventListener("dragover",this._dragOverHandler),this._dropTarget.addEventListener("dragleave",this._dragLeaveHandler),this._dropTarget.addEventListener("drop",this._dropHandler)},didRender(){this._super(...arguments)
 let e=this.editor
@@ -11073,41 +11073,47 @@ this._performEdit((function(t){t.removeMarkupFromRange(i.activeSection.toRange()
 i.run(t=>{let{builder:i}=t,a=i.createCardSection(e,n),o=r.next,s=!o
 if(t.replaceSection(r,a),s){let e=t.builder.createMarkupSection("p")
 t.insertSectionAtEnd(e),t.setRange(e.tailPosition())}else t.setRange(o.headPosition())}),Ember.run.schedule("afterRender",this,(function(){let e=this.componentCards.lastObject
-e.koenigOptions.hasEditMode?this.editCard(e):e.koenigOptions.selectAfterInsert&&this.selectCard(e)}))},selectCard(e){this.selectCard(e)},editCard(e){this.editCard(e)},deselectCard(e){this.deselectCard(e)},editLink(e){let t=(0,m.getLinkMarkupFromRange)(e)
-e.isCollapsed&&!t||!e.headSection.isMarkerable||this.set("linkRange",e)},cancelEditLink(){this.set("linkRange",null)},deleteCard(e,t=1){this.deleteCard(e,t)},moveCursorToPrevSection(e){let t=this.getSectionFromCard(e)
+e.koenigOptions.hasEditMode?this.editCard(e):e.koenigOptions.selectAfterInsert&&this.selectCard(e)}))},selectCard(e){this.selectCard(e)},editCard(e){this.editCard(e)},deselectCard(e){this.deselectCard(e)},editLink(e,t){let n=(0,g.getLinkMarkupFromRange)(e)
+e.isCollapsed&&!n||!e.headSection.isMarkerable||(this.set("linkRange",e),this.set("linkRect",t))},cancelEditLink(){this.set("linkRange",null),this.set("linkRect",null)},deleteCard(e,t=1){this.deleteCard(e,t)},moveCursorToPrevSection(e){let t=this.getSectionFromCard(e)
 t.prev&&(this.deselectCard(e),this.moveCaretToTailOfSection(t.prev,!1))},moveCursorToNextSection(e){let t=this.getSectionFromCard(e)
 t.next?(this.deselectCard(e),this.moveCaretToHeadOfSection(t.next,!1)):this.send("addParagraphAfterCard",e)},addParagraphAfterCard(e){let t=this.editor,n=this.getSectionFromCard(e),i=n.parent.sections,r=n.next
 this.deselectCard(e),t.run(e=>{let{builder:t}=e,n=t.createMarkupSection("p")
 r?e.insertSectionBefore(i,n,r):e.insertSectionAtEnd(n),e.setRange(n.tailPosition())})}},skipNewline(){this._skipNextNewline=!0},cleanup(){this._cleanupScheduled=!0},_cleanup(){this.componentCards.forEach(e=>{let t=e.koenigOptions.deleteIfEmpty
 if(t){if("string"==typeof t){let e=t
 t=t=>Ember.isBlank(Ember.get(t,e))}t(e)&&this.deleteCard(e,0)}}),this._cleanupScheduled=!1},postDidChange(e){let t=this.serializeVersion,n=e.serialize(t)
-this._localMobiledoc=n,this.onChange(n),this._calculateWordCount(),this._cardDragDropContainer.refresh()},cursorDidChange(e){let{head:t,tail:n,direction:r,isCollapsed:a,head:{section:o}}=e.range
+this._localMobiledoc=n,this.onChange(n),this._calculateWordCount(),this._cardDragDropContainer.refresh()},cursorDidChange(e){let{head:t,tail:n,direction:i,isCollapsed:a,head:{section:o}}=e.range
 if(this._skipCursorChange)return this._skipCursorChange=!1,this.set("selectedRange",e.range),void this._scrollCursorIntoView()
-if(!this.selectedCard||this.selectedCard.postModel!==o)if(!o||!a||"card-section"!==o.type||0!==t.offset&&1!==t.offset){if(this.selectedCard&&!e.range.isBlank&&this.deselectCard(this.selectedCard),k(e),1===r&&!a&&0===n.offset&&n.section.prev){let r=n.section.prev,a=new i.default(t,r.tailPosition())
+if(!this.selectedCard||this.selectedCard.postModel!==o)if(!o||!a||"card-section"!==o.type||0!==t.offset&&1!==t.offset){if(this.selectedCard&&!e.range.isBlank&&this.deselectCard(this.selectedCard),A(e),1===i&&!a&&0===n.offset&&n.section.prev){let i=n.section.prev,a=new r.default(t,i.tailPosition())
 return e.selectRange(a)}this.set("selectedRange",e.range),this._scrollCursorIntoView()}else Ember.run.schedule("afterRender",this,()=>{let t=this.getCardFromSection(o)
-this.selectCard(t),this.set("selectedRange",e.range)})},inputModeDidChange(e){let t=w(e.activeMarkups.map(e=>e.tagName)),n=w(e.activeSections.map(e=>e.isNested?e.parent.tagName:e.tagName))
-k(e),this._isRenderingEditor?Ember.run.schedule("afterRender",()=>{this.set("activeMarkupTagNames",t),this.set("activeSectionTagNames",n)}):(this.set("activeMarkupTagNames",t),this.set("activeSectionTagNames",n))},willHandleNewline(e){this._skipNextNewline&&(e.preventDefault(),this._skipNextNewline=!1)},handleKeydown(e){let t=n.default.fromEvent(e)
-if(this._updateModifiersFromKey(t,{isDown:!0}),"Dead"===e.key&&192===e.keyCode)return this._isGraveInput=!0
-this._isGraveInput=!1,"`"===e.key&&"Space"===e.code&&this._triggerTextHandlers()},handleKeyup(e){let t=n.default.fromEvent(e)
+this.selectCard(t),this.set("selectedRange",e.range)})},inputModeDidChange(e){let t=k(e.activeMarkups.map(e=>e.tagName)),n=k(e.activeSections.map(e=>e.isNested?e.parent.tagName:e.tagName))
+A(e),this._isRenderingEditor?Ember.run.schedule("afterRender",()=>{this.set("activeMarkupTagNames",t),this.set("activeSectionTagNames",n)}):(this.set("activeMarkupTagNames",t),this.set("activeSectionTagNames",n))},willHandleNewline(e){this._skipNextNewline&&(e.preventDefault(),this._skipNextNewline=!1)},handleKeydown(e){let n=i.default.fromEvent(e)
+if(this._updateModifiersFromKey(n,{isDown:!0}),"Dead"===e.key&&192===e.keyCode)return this._isGraveInput=!0
+this._isGraveInput=!1,"`"===e.key&&"Space"===e.code&&this._triggerTextHandlers()
+let{editor:r}=this
+if(t.default.isMac()&&r&&r.cursor&&r.cursor.isAddressable(e.target)){if("h"===e.key&&e.ctrlKey){e.preventDefault()
+let t=new KeyboardEvent("keydown",{key:"Backspace",keyCode:8})
+e.target.dispatchEvent(t)}if("d"===e.key&&e.ctrlKey){e.preventDefault()
+let t=new KeyboardEvent("keydown",{key:"Delete",keyCode:46})
+e.target.dispatchEvent(t)}}},handleKeyup(e){let t=i.default.fromEvent(e)
 this._updateModifiersFromKey(t,{isDown:!1}),this._isGraveInput&&" "===e.key&&(this._isGraveInput=!1,this._triggerTextHandlers())},handlePaste(e){let{editor:t}=this
 if(!t.cursor.isAddressable(e.target))return
 let n=Array.from(e.clipboardData.files).filter(e=>e.type.indexOf("image")>-1)
-if(n.length>0)return e.preventDefault(),e.stopImmediatePropagation(),void t.run(e=>{A(n,e)})
-let i=t.range,{html:r,text:a}=(0,f.getContentFromPasteEvent)(e)
-if(a&&d.default.isURL(a)){if(i&&!i.isCollapsed&&i.headSection===i.tailSection&&i.headSection.isMarkerable){let n=t.builder.createMarkup("a",{href:a})
+if(n.length>0)return e.preventDefault(),e.stopImmediatePropagation(),void t.run(e=>{E(n,e)})
+let i=t.range,{html:r,text:a}=(0,m.getContentFromPasteEvent)(e)
+if(a&&h.default.isURL(a)){if(i&&!i.isCollapsed&&i.headSection===i.tailSection&&i.headSection.isMarkerable){let n=t.builder.createMarkup("a",{href:a})
 return t.run(e=>{e.addMarkupToRange(i,n)}),t.selectRange(i.tail),e.preventDefault(),void e.stopImmediatePropagation()}if(i&&i.isCollapsed&&i.headSection.isBlank&&!i.headSection.isListItem)return this._modifierKeys.shift?t.run(e=>{let n=t.builder.createMarkup("a",{href:a})
 e.insertTextWithMarkup(i.head,a,[n])}):t.run(e=>{let t={url:a,linkOnError:!0,isDirectUrl:!0},n=e.builder.createCardSection("embed",t),r=i.headSection.next
 if(e.replaceSection(i.headSection,n),r)e.setRange(r.headPosition())
 else{let t=e.builder.createMarkupSection("p")
 e.insertSectionAtEnd(t),e.setRange(t.headPosition())}}),e.preventDefault(),void e.stopImmediatePropagation()}if(a&&!r&&!this._modifierKeys.shift){e.preventDefault(),e.stopImmediatePropagation()
-let n={type:"paste",preventDefault(){},target:t.element,clipboardData:{getData(e){if("text/html"===e)return(0,s.default)(a,!1)}}}
+let n={type:"paste",preventDefault(){},target:t.element,clipboardData:{getData(e){if("text/html"===e)return(0,l.default)(a,!1)}}}
 t.triggerEvent(t.element,"paste",n)}if(r){e.preventDefault(),e.stopImmediatePropagation()
 let n=r.replace(/<b(\s|>)/gi,"<strong$1").replace(/<\/b>/gi,"</strong>").replace(/<i(\s|>)/gi,"<em$1").replace(/<\/i>/gi,"</em>"),i={type:"paste",preventDefault(){},target:t.element,clipboardData:{getData:e=>"text/plain"===e?a:"text/html"===e?n:void 0}}
 t.triggerEvent(t.element,"paste",i)}},handleMousedown(e){1===e.which&&(this._isMouseDown=!0)},handleMouseup(e){1===e.which&&(this._isMouseDown=!1)},handleDragOver(e){if(e.dataTransfer&&!e.target.closest(".__mobiledoc-card")){if(navigator.userAgent.indexOf("Chrome")>-1){let t=e.dataTransfer.effectAllowed
 e.dataTransfer.dropEffect="move"===t||"linkMove"===t?"move":"copy"}e.stopPropagation(),e.preventDefault()}},handleDragLeave(e){e.preventDefault()},handleDrop(e){let t=e.target.closest(".__mobiledoc-card")
 if(t){let e=t.firstChild.id,n=this.componentCards.findBy("destinationElementId",e)
 if(n.isEditing||n.component.handlesDragDrop)return}if(e.preventDefault(),e.dataTransfer.files){let t=Array.from(e.dataTransfer.files).filter(e=>e.type.indexOf("image")>-1)
-t.length>0&&(this.editor.run(e=>{A(t,e)}),this._scrollCursorIntoView({jumpToCard:!0}))}},dragStart(e){e.preventDefault()},selectCard(e,t=!1){if(e===this.selectedCard&&t===e.isEditing)return
+t.length>0&&(this.editor.run(e=>{E(t,e)}),this._scrollCursorIntoView({jumpToCard:!0}))}},dragStart(e){e.preventDefault()},selectCard(e,t=!1){if(e===this.selectedCard&&t===e.isEditing)return
 this.selectedCard&&e!==this.selectedCard&&this.deselectCard(this.selectedCard),e.setProperties({isEditing:t,isSelected:!0}),this.selectedCard=e,this._hideCursor()
 let n=this.getSectionFromCard(e)
 this.moveCaretToTailOfSection(n)},editCard(e){e===this.selectedCard&&e.isEditing||(this.selectCard(e,!0),this._cardDragDropContainer.disableDrag())},deselectCard(e){e.set("isEditing",!1),e.set("isSelected",!1),this.selectedCard=null,this._showCursor(),this._cardDragDropContainer.enableDrag()},deleteCard(e,t){this.editor.run(n=>{let i,r=e.env.postModel
@@ -11115,7 +11121,7 @@ if(i=-1===t?r.prev&&r.prev.tailPosition():r.next&&r.next.headPosition(),n.remove
 return n.insertSectionAtEnd(t),n.setRange(t.tailPosition())}if(0!==t)return n.setRange(i)})},getCardFromSection(e){if(!e||"card-section"!==e.type)return
 let t=e.renderNode.element.querySelector(".__mobiledoc-card").firstChild.id
 return this.componentCards.findBy("destinationElementId",t)},getCardFromElement(e){if(!e)return
-let t=e.querySelector(".__mobiledoc-card")||(0,g.getParent)(e,".__mobiledoc-card")
+let t=e.querySelector(".__mobiledoc-card")||(0,b.getParent)(e,".__mobiledoc-card")
 if(!t)return
 let n=t.firstChild.id
 return this.componentCards.findBy("destinationElementId",n)},getSectionFromCard:e=>e.env.postModel,moveCaretToHeadOfSection(e,t=!0){this.moveCaretToSection(e,"head",t)},moveCaretToTailOfSection(e,t=!0){this.moveCaretToSection(e,"tail",t)},moveCaretToSection(e,t,n=!0){let i=("head"===t?e.headPosition():e.tailPosition()).toRange()
@@ -11123,7 +11129,7 @@ n&&!i.isEqual(this.editor.range)&&(this._skipCursorChange=!0),this.editor.select
 let t,{range:n}=this.editor,i=window.getSelection()
 "None"!==i.type&&(t=i&&i.getRangeAt(0))
 let r=n.head&&n.head.section&&n.head.section.renderNode&&n.head.section.renderNode.element
-if((e.jumpToCard||!n||!n.head.section||!n.head.section.isCardSection)&&t){let{top:e,height:n}=t.getBoundingClientRect(),i=window.innerHeight,a=0,o=0,s=this._scrollContainer.scrollTop
+if((e.jumpToCard||!n||!n.head.section||!n.head.section.isCardSection)&&(!t||t.startContainer!==this.editor.element||t.endContainer!==this.editor.element)&&t){let{top:e,height:n}=t.getBoundingClientRect(),i=window.innerHeight,a=0,o=0,s=this._scrollContainer.scrollTop
 if(this.scrollOffsetTopSelector){let e=document.querySelector(this.scrollOffsetTopSelector)
 a=e?e.offsetHeight:0}if(this.scrollOffsetBottomSelector){let e=document.querySelector(this.scrollOffsetBottomSelector)
 o=e?e.offsetHeight:0}if(0===e&&0===n){if(!r)return;({top:e,height:n}=r.getBoundingClientRect())}if(e<0+a)return void(this._scrollContainer.scrollTop=s-a+e-20)
@@ -11136,7 +11142,7 @@ let n=document.createElement("div")
 n.classList.add("absolute","flex","flex-column","justify-center","items-center","w15","h15","br3","bg-white","shadow-1"),n.style.top="0",n.style.left="-100%",n.style.zIndex=10001,n.style.willChange="transform"
 let i=document.createElement("div")
 i.classList.add("flex","items-center")
-let r=(0,y.svgJar)(o.CARD_ICON_MAP[t],{class:"w8 h8"})
+let r=(0,v.svgJar)(s.CARD_ICON_MAP[t],{class:"w8 h8"})
 return i.insertAdjacentHTML("beforeend",r.string),n.appendChild(i),n},_getDropIndicatorPosition(e,t,n){let i=Array.from(this.editor.element.querySelectorAll(":scope > *")),r=i.indexOf(t),a=i.indexOf(e.element)
 if("card"!==e.type&&"image"!==e.type)return!1
 if(this._isCardDropAllowed(a,r,n)){let e,t,a=r
@@ -11149,15 +11155,15 @@ let n=this.getCardFromElement(e.element)
 this.deleteCard(n,0)},_calculateWordCount(){Ember.run.throttle(this,this._throttledWordCount,100,!1)},_throttledWordCount(){if(this.isDestroying||this.isDestroyed)return
 let e=0,t=0
 if(this.editor.post.walkAllLeafSections(n=>{if(n.isCardSection){let i=this.getCardFromSection(n),r=Ember.get(i,"component.counts")||{}
-e+=r.wordCount||0,t+=r.imageCount||0}else e+=v(n.text)}),e!==this.wordCount||t!==this.imageCount){let n=(0,r.default)({wordCount:e,imageCount:t})
+e+=r.wordCount||0,t+=r.imageCount||0}else e+=M(n.text)}),e!==this.wordCount||t!==this.imageCount){let n=(0,a.default)({wordCount:e,imageCount:t})
 this.setProperties({wordCount:e,imageCount:t,readingTime:n}),this.wordCountDidChange({wordCount:e,imageCount:t,readingTime:n})}},_triggerTextHandlers(){let{editor:e}=this
 e.cursor.isAddressable(event.target)&&Ember.run.next(this,(function(){let t=e._eventManager._textInputHandler._findHandler()
 if(t){let[n,i]=t
 n.run(e,i)}}))},_setExpandoProperty(e){let t=Ember.getOwner(this).resolveRegistration("config:environment")
 this.element&&"test"===t.environment&&(this.element.__mobiledoc_kit_editor=e)}})
-e.default=E})),define("koenig-editor/components/koenig-link-input",["exports","koenig-editor/templates/components/koenig-link-input","koenig-editor/lib/relative-to-absolute","koenig-editor/components/koenig-toolbar","koenig-editor/utils/markup-utils"],(function(e,t,n,i,r){"use strict"
+e.default=C})),define("koenig-editor/components/koenig-link-input",["exports","koenig-editor/templates/components/koenig-link-input","koenig-editor/lib/relative-to-absolute","koenig-editor/components/koenig-toolbar","koenig-editor/utils/markup-utils"],(function(e,t,n,i,r){"use strict"
 Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
-var a=Ember.Component.extend({config:Ember.inject.service(),layout:t.default,attributeBindings:["style"],classNames:["kg-input-bar","absolute","z-999"],editor:null,linkRange:null,selectedRange:null,top:null,left:null,right:null,href:"",_selectedRange:null,_windowRange:null,_onMousedownHandler:null,_onMouseupHandler:null,cancel(){},style:Ember.computed("top","left","right",(function(){let e=this.getProperties("top","left","right"),t=Object.keys(e).map(t=>{if(null!==e[t])return"".concat(t,": ").concat(e[t],"px")})
+var a=Ember.Component.extend({config:Ember.inject.service(),layout:t.default,attributeBindings:["style"],classNames:["kg-input-bar","absolute","z-999"],editor:null,linkRange:null,linkRect:null,selectedRange:null,top:null,left:null,right:null,href:"",_selectedRange:null,_windowRange:null,_onMousedownHandler:null,_onMouseupHandler:null,cancel(){},style:Ember.computed("top","left","right",(function(){let e=this.getProperties("top","left","right"),t=Object.keys(e).map(t=>{if(null!==e[t])return"".concat(t,": ").concat(e[t],"px")})
 return Ember.String.htmlSafe(t.compact().join("; "))})),init(){this._super(...arguments),this._selectedRange=this.selectedRange,this._linkRange=this.linkRange
 let e=this.editor.cursor,{head:t,tail:n}=this._linkRange,{node:i,offset:r}=e._findNodeForPosition(t),{node:a,offset:o}=e._findNodeForPosition(n),s=document.createRange()
 s.setStart(i,r),s.setEnd(a,o),this._windowRange=s,Ember.run.schedule("afterRender",this,(function(){this._positionToolbar(),this._focusInput()})),this._getHrefFromMarkup(),this._onMousedownHandler=Ember.run.bind(this,this._handleMousedown),window.addEventListener("mousedown",this._onMousedownHandler),this._onKeydownHandler=Ember.run.bind(this,this._handleKeydown),window.addEventListener("keydown",this._onKeydownHandler)},willDestroyElement(){this._super(...arguments),this._removeStyleElement(),window.removeEventListener("mousedown",this._onMousedownHandler),window.removeEventListener("keydown",this._onKeydownHandler)},actions:{inputKeydown(e){if("Enter"===e.key){e.preventDefault()
@@ -11168,7 +11174,7 @@ let n=t.builder.createMarkup("a",{href:e})
 t.toggleMarkup(n,this._linkRange)},_removeLinks(e){let{headMarker:t,tailMarker:n}=this.linkRange,i=t
 for(;i&&i!==n.next;)i.markups.filterBy("tagName","a").forEach(t=>{i.removeMarkup(t),e._markDirty(i)}),i=i.next},_cancelAndReselect(){this.cancel(),this._selectedRange&&this.editor.selectRange(this._selectedRange)},_focusInput(){let e=function e(t){const n=t instanceof HTMLElement&&window.getComputedStyle(t).overflowY
 return t?"visible"!==n&&"hidden"!==n&&t.scrollHeight>=t.clientHeight?t:e(t.parentNode)||document.body:null}(this.element),t=e.scrollTop
-this.element.querySelector("input").focus(),e.scrollTop=t},_positionToolbar(){let e=this.element.offsetParent.getBoundingClientRect(),t=this._windowRange.getBoundingClientRect(),{width:n,height:r}=this.element.getBoundingClientRect(),a={}
+this.element.querySelector("input").focus(),e.scrollTop=t},_positionToolbar(){let e=this.element.offsetParent.getBoundingClientRect(),t=this.linkRect||this._windowRange.getBoundingClientRect(),{width:n,height:r}=this.element.getBoundingClientRect(),a={}
 a={top:t.top-e.top-r-i.TOOLBAR_MARGIN,left:t.left-e.left+t.width/2-n/2,right:null}
 let o=50
 if(a.left<0){a.left=0,o=(t.left-e.left+t.width/2)/n*100,o<5&&(o=5)}if(a.left+n>e.width){a.left=null,a.right=0,o=100+(t.right-e.right-t.width/2)/n*100,o>95&&(o=95)}this._removeStyleElement(),50!==o&&this._addStyleElement("left: calc(".concat(o,"% - ").concat(8,"px)")),this.setProperties(a)},_addStyleElement(e){let t=document.createElement("style")
@@ -11180,15 +11186,18 @@ var r=Ember.Component.extend({config:Ember.inject.service(),layout:t.default,att
 return this.showToolbar?(t.push("pointer-events: auto !important"),t.push("padding-bottom: ".concat(12,"px"))):t.push("pointer-events: none !important"),Ember.String.htmlSafe(t.compact().join("; "))})),init(){this._super(...arguments),this._eventListeners=[]},didReceiveAttrs(){this._super(...arguments),this.linkRange||this.selectedRange&&!this.selectedRange.isCollapsed?(this._cancelTimeouts(),this.set("showToolbar",!1),this._canShowToolbar=!1):this._canShowToolbar=!0},didInsertElement(){this._super(...arguments)
 let e=this.container
 e.dataset.kgHasLinkToolbar=!0,this._addEventListener(e,"mouseover",this._handleMouseover),this._addEventListener(e,"mouseout",this._handleMouseout)},willDestroyElement(){this._super(...arguments),this._removeAllEventListeners()},actions:{edit(){let e=this._getLinkRange()
-this.editLink(e)},remove(){let e=this.editor,t=this._getLinkRange(),n=e.range
+this.editLink(e,this._targetRect)},remove(){let e=this.editor,t=this._getLinkRange(),n=e.range
 e.run(e=>{e.toggleMarkup("a",t)}),this.set("showToolbar",!1),e.selectRange(n)}},_getLinkRange(){if(!this._target)return
-let e=this.editor,t=this._target.getBoundingClientRect(),n=t.x+t.width/2,i=t.y+t.height/2,r=e.positionAtPoint(n,i),a=r.marker&&r.marker.markups.findBy("tagName","a")
-if(a){return r.toRange().expandByMarker(e=>!!e.markups.includes(a))}},_handleMouseover(e){if(this._canShowToolbar){let t=(0,i.getEventTargetMatchingTag)("a",e.target,this.container)
-t&&t.isContentEditable&&t.closest("[data-kg-has-link-toolbar=true]")===this.container&&(this._timeout=Ember.run.later(this,(function(){this._showToolbar(t)}),120))}},_handleMouseout(e){if(this._cancelTimeouts(),this.showToolbar){let t=e.toElement||e.relatedTarget
-t&&t!==this.element&&t!==this._target&&!t.closest("#".concat(this.elementId))&&this.set("showToolbar",!1)}},_showToolbar(e){this._target=e
-let t=e.getAttribute("href"),i=this.config.get("blogUrl")
-this.set("url",(0,n.default)(t,i)),this.set("showToolbar",!0),Ember.run.schedule("afterRender",this,(function(){this._positionToolbar(e)}))},_cancelTimeouts(){Ember.run.cancel(this._timeout),this._elementObserver&&this._elementObserver.cancel()},_positionToolbar(e){let t=this.element.offsetParent.getBoundingClientRect(),n=e.getBoundingClientRect(),{width:i,height:r}=this.element.getBoundingClientRect(),a={}
-a={top:n.top-t.top-r-8+12,left:n.left-t.left+n.width/2-i/2,right:null},a.left<0&&(a.left=0),a.left+i>t.width&&(a.left=null,a.right=0),this.setProperties(a)},_addStyleElement(e){let t=document.createElement("style")
+let e=this.editor,t=this._targetRect.x+this._targetRect.width/2,n=this._targetRect.y+this._targetRect.height/2,i=e.positionAtPoint(t,n),r=i.marker&&i.marker.markups.findBy("tagName","a")
+if(r){return i.toRange().expandByMarker(e=>!!e.markups.includes(r))}},_handleMouseover(e){if(this._canShowToolbar){let t=(0,i.getEventTargetMatchingTag)("a",e.target,this.container)
+t&&t.isContentEditable&&t.closest("[data-kg-has-link-toolbar=true]")===this.container&&(this._timeout=Ember.run.later(this,(function(){this._showToolbar(t,{x:e.clientX,y:e.clientY})}),120))}},_handleMouseout(e){if(this._cancelTimeouts(),this.showToolbar){let t=e.toElement||e.relatedTarget
+t&&t!==this.element&&t!==this._target&&!t.closest("#".concat(this.elementId))&&this.set("showToolbar",!1)}},_showToolbar(e,t){this._target=e
+let i=e.getAttribute("href"),r=this.config.get("blogUrl")
+this.set("url",(0,n.default)(i,r)),this.set("showToolbar",!0),Ember.run.schedule("afterRender",this,(function(){this._positionToolbar(e,t)}))},_cancelTimeouts(){Ember.run.cancel(this._timeout),this._elementObserver&&this._elementObserver.cancel()},_positionToolbar(e,{x:t,y:n}){let i=this.element.offsetParent.getBoundingClientRect()
+if(t&&n){let i=Array.prototype.slice.call(e.getClientRects())
+this._targetRect=i.find(e=>e.x-8<=t&&t<=e.x+e.width+8&&e.y-8<=n&&n<=e.y+e.height+8)}this._targetRect||(this._targetRect=e.getBoundingClientRect())
+let{width:r,height:a}=this.element.getBoundingClientRect(),o={}
+o={top:this._targetRect.top-i.top-a-8+12,left:this._targetRect.left-i.left+this._targetRect.width/2-r/2,right:null},o.left<0&&(o.left=0),o.left+r>i.width&&(o.left=null,o.right=0),this.setProperties(o)},_addStyleElement(e){let t=document.createElement("style")
 t.id="".concat(this.elementId,"-style"),t.innerHTML="#".concat(this.elementId," > ul:after { ").concat(e," }"),document.head.appendChild(t)},_removeStyleElement(){let e=document.querySelector("#".concat(this.elementId,"-style"))
 e&&e.remove()},_addEventListener(e,t,n){let i=Ember.run.bind(this,n)
 e.addEventListener(t,i),this._eventListeners.push([e,t,i])},_removeAllEventListeners(){this._eventListeners.forEach(([e,t,n])=>{e.removeEventListener(t,n)})}})
@@ -11531,7 +11540,7 @@ Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
 var t=Ember.HTMLBars.template({id:"mFJmhHLM",block:'{"symbols":["item","&default"],"statements":[[4,"if",[[23,0,["icon"]]],null,{"statements":[[0,"    "],[5,"sticky-element",[],[["@top","@bottom"],[[23,0,["iconTop"]],36]],{"statements":[[0,"\\n        "],[1,[28,"svg-jar",[[23,0,["icon"]]],[["class"],[[23,0,["iconClass"]]]]],false],[0,"\\n    "]],"parameters":[]}],[0,"\\n"]],"parameters":[]},null],[0,"\\n"],[14,2,[[28,"hash",null,[["CaptionInput","AltInput"],[[28,"component",["koenig-caption-input"],[["captureInput","addParagraphAfterCard","moveCursorToPrevSection","moveCursorToNextSection"],[[23,0,["isSelected"]],[23,0,["addParagraphAfterCard"]],[23,0,["moveCursorToPrevSection"]],[23,0,["moveCursorToNextSection"]]]]],[28,"component",["koenig-alt-input"],[["addParagraphAfterCard","moveCursorToPrevSection","moveCursorToNextSection"],[[23,0,["addParagraphAfterCard"]],[23,0,["moveCursorToPrevSection"]],[23,0,["moveCursorToNextSection"]]]]]]]]]],[0,"\\n\\n"],[4,"if",[[23,0,["toolbar"]]],null,{"statements":[[0,"    "],[5,"kg-action-bar",[],[["@class","@style","@isVisible"],["absolute",[23,0,["toolbarStyle"]],[23,0,["shouldShowToolbar"]]]],{"statements":[[0,"\\n"],[4,"each",[[23,0,["toolbar","items"]]],null,{"statements":[[4,"if",[[23,1,["divider"]]],null,{"statements":[[0,"                "],[7,"li",true],[10,"class","ma0 kg-action-bar-divider bg-darkgrey-d2 h5"],[8],[9],[0,"\\n"]],"parameters":[]},{"statements":[[0,"                "],[7,"li",true],[10,"class","ma0 lh-solid"],[8],[0,"\\n                    "],[7,"button",true],[11,"title",[23,1,["title"]]],[11,"class",[29,["dib dim-lite link h9 w9 nudge-top--1 justify-center ",[23,1,["buttonClass"]]]]],[11,"onmousedown",[28,"action",[[23,0,[]],[23,1,["action"]]],null]],[10,"type","button"],[8],[0,"\\n                        "],[4,"if",[[23,1,["icon"]]],null,{"statements":[[1,[28,"svg-jar",[[23,1,["icon"]]],[["class"],[[28,"concat",[[23,1,["iconClass"]],[28,"if",[[23,1,["text"]]," mr2"],null]," w4 h4"],null]]]],false],[0," "]],"parameters":[]},null],[1,[23,1,["text"]],false],[0,"\\n                    "],[9],[0,"\\n                "],[9],[0,"\\n"]],"parameters":[]}]],"parameters":[1]},null],[0,"    "]],"parameters":[]}],[0,"\\n"]],"parameters":[]},null]],"hasEval":false}',meta:{moduleName:"koenig-editor/templates/components/koenig-card.hbs"}})
 e.default=t})),define("koenig-editor/templates/components/koenig-editor",["exports"],(function(e){"use strict"
 Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
-var t=Ember.HTMLBars.template({id:"+nBCiEhx",block:'{"symbols":["card"],"statements":[[7,"div",true],[10,"class","koenig-editor__editor-wrapper"],[10,"data-kg","editor-wrapper"],[8],[0,"\\n    "],[7,"div",true],[10,"class","koenig-editor__editor"],[10,"data-gramm","false"],[10,"data-kg","editor"],[8],[9],[0,"\\n"],[9],[0,"\\n\\n"],[5,"koenig-toolbar",[],[["@editor","@editorRange","@activeMarkupTagNames","@activeSectionTagNames","@toggleMarkup","@toggleSection","@toggleHeaderSection","@editLink"],[[23,0,["editor"]],[23,0,["selectedRange"]],[23,0,["activeMarkupTagNames"]],[23,0,["activeSectionTagNames"]],[28,"action",[[23,0,[]],"toggleMarkup"],null],[28,"action",[[23,0,[]],"toggleSection"],null],[28,"action",[[23,0,[]],"toggleHeaderSection"],null],[28,"action",[[23,0,[]],"editLink"],null]]]],[0,"\\n\\n"],[5,"koenig-link-toolbar",[],[["@editor","@container","@linkRange","@selectedRange","@editLink"],[[23,0,["editor"]],[23,0,["element"]],[23,0,["linkRange"]],[23,0,["selectedRange"]],[28,"action",[[23,0,[]],"editLink"],null]]]],[0,"\\n\\n"],[4,"if",[[23,0,["linkRange"]]],null,{"statements":[[0,"    "],[5,"koenig-link-input",[],[["@editor","@linkRange","@selectedRange","@cancel"],[[23,0,["editor"]],[23,0,["linkRange"]],[23,0,["selectedRange"]],[28,"action",[[23,0,[]],"cancelEditLink"],null]]]],[0,"\\n"]],"parameters":[]},null],[0,"\\n"],[5,"koenig-plus-menu",[],[["@editor","@editorRange","@replaceWithCardSection"],[[23,0,["editor"]],[23,0,["selectedRange"]],[28,"action",[[23,0,[]],"replaceWithCardSection"],null]]]],[0,"\\n\\n"],[5,"koenig-slash-menu",[],[["@editor","@editorRange","@replaceWithCardSection"],[[23,0,["editor"]],[23,0,["selectedRange"]],[28,"action",[[23,0,[]],"replaceWithCardSection"],null]]]],[0,"\\n\\n"],[4,"each",[[23,0,["componentCards"]]],null,{"statements":[[4,"in-element",[[23,1,["destinationElement"]]],[["guid","nextSibling"],["%cursor:0%",null]],{"statements":[[0,"        "],[1,[28,"component",[[23,1,["componentName"]]],[["editor","postModel","cardName","payload","env","options","headerOffset","saveCard","cancelCard","removeCard","isSelected","isEditing","selectCard","deselectCard","editCard","deleteCard","moveCursorToPrevSection","moveCursorToNextSection","addParagraphAfterCard","registerComponent"],[[23,0,["editor"]],[23,1,["postModel"]],[23,1,["cardName"]],[23,1,["payload"]],[23,1,["env"]],[23,1,["options"]],[23,0,["headerOffset"]],[28,"action",[[23,0,[]],[23,1,["env","save"]]],null],[28,"action",[[23,0,[]],[23,1,["env","cancel"]]],null],[28,"action",[[23,0,[]],[23,1,["env","remove"]]],null],[23,1,["isSelected"]],[23,1,["isEditing"]],[28,"action",[[23,0,[]],"selectCard",[23,1,[]]],null],[28,"action",[[23,0,[]],"deselectCard",[23,1,[]]],null],[28,"action",[[23,0,[]],"editCard",[23,1,[]]],null],[28,"action",[[23,0,[]],"deleteCard",[23,1,[]]],null],[28,"action",[[23,0,[]],"moveCursorToPrevSection",[23,1,[]]],null],[28,"action",[[23,0,[]],"moveCursorToNextSection",[23,1,[]]],null],[28,"action",[[23,0,[]],"addParagraphAfterCard",[23,1,[]]],null],[28,"action",[[23,0,[]],[28,"mut",[[23,1,["component"]]],null]],null]]]],false],[0,"\\n"]],"parameters":[]},null]],"parameters":[1]},null]],"hasEval":false}',meta:{moduleName:"koenig-editor/templates/components/koenig-editor.hbs"}})
+var t=Ember.HTMLBars.template({id:"1T+ImOty",block:'{"symbols":["card"],"statements":[[7,"div",true],[10,"class","koenig-editor__editor-wrapper"],[10,"data-kg","editor-wrapper"],[8],[0,"\\n    "],[7,"div",true],[10,"class","koenig-editor__editor"],[10,"data-gramm","false"],[10,"data-kg","editor"],[8],[9],[0,"\\n"],[9],[0,"\\n\\n"],[5,"koenig-toolbar",[],[["@editor","@editorRange","@activeMarkupTagNames","@activeSectionTagNames","@toggleMarkup","@toggleSection","@toggleHeaderSection","@editLink"],[[23,0,["editor"]],[23,0,["selectedRange"]],[23,0,["activeMarkupTagNames"]],[23,0,["activeSectionTagNames"]],[28,"action",[[23,0,[]],"toggleMarkup"],null],[28,"action",[[23,0,[]],"toggleSection"],null],[28,"action",[[23,0,[]],"toggleHeaderSection"],null],[28,"action",[[23,0,[]],"editLink"],null]]]],[0,"\\n\\n"],[5,"koenig-link-toolbar",[],[["@editor","@container","@linkRange","@selectedRange","@editLink"],[[23,0,["editor"]],[23,0,["element"]],[23,0,["linkRange"]],[23,0,["selectedRange"]],[28,"action",[[23,0,[]],"editLink"],null]]]],[0,"\\n\\n"],[4,"if",[[23,0,["linkRange"]]],null,{"statements":[[0,"    "],[5,"koenig-link-input",[],[["@editor","@linkRange","@linkRect","@selectedRange","@cancel"],[[23,0,["editor"]],[23,0,["linkRange"]],[23,0,["linkRect"]],[23,0,["selectedRange"]],[28,"action",[[23,0,[]],"cancelEditLink"],null]]]],[0,"\\n"]],"parameters":[]},null],[0,"\\n"],[5,"koenig-plus-menu",[],[["@editor","@editorRange","@replaceWithCardSection"],[[23,0,["editor"]],[23,0,["selectedRange"]],[28,"action",[[23,0,[]],"replaceWithCardSection"],null]]]],[0,"\\n\\n"],[5,"koenig-slash-menu",[],[["@editor","@editorRange","@replaceWithCardSection"],[[23,0,["editor"]],[23,0,["selectedRange"]],[28,"action",[[23,0,[]],"replaceWithCardSection"],null]]]],[0,"\\n\\n"],[4,"each",[[23,0,["componentCards"]]],null,{"statements":[[4,"in-element",[[23,1,["destinationElement"]]],[["guid","nextSibling"],["%cursor:0%",null]],{"statements":[[0,"        "],[1,[28,"component",[[23,1,["componentName"]]],[["editor","postModel","cardName","payload","env","options","headerOffset","saveCard","cancelCard","removeCard","isSelected","isEditing","selectCard","deselectCard","editCard","deleteCard","moveCursorToPrevSection","moveCursorToNextSection","addParagraphAfterCard","registerComponent"],[[23,0,["editor"]],[23,1,["postModel"]],[23,1,["cardName"]],[23,1,["payload"]],[23,1,["env"]],[23,1,["options"]],[23,0,["headerOffset"]],[28,"action",[[23,0,[]],[23,1,["env","save"]]],null],[28,"action",[[23,0,[]],[23,1,["env","cancel"]]],null],[28,"action",[[23,0,[]],[23,1,["env","remove"]]],null],[23,1,["isSelected"]],[23,1,["isEditing"]],[28,"action",[[23,0,[]],"selectCard",[23,1,[]]],null],[28,"action",[[23,0,[]],"deselectCard",[23,1,[]]],null],[28,"action",[[23,0,[]],"editCard",[23,1,[]]],null],[28,"action",[[23,0,[]],"deleteCard",[23,1,[]]],null],[28,"action",[[23,0,[]],"moveCursorToPrevSection",[23,1,[]]],null],[28,"action",[[23,0,[]],"moveCursorToNextSection",[23,1,[]]],null],[28,"action",[[23,0,[]],"addParagraphAfterCard",[23,1,[]]],null],[28,"action",[[23,0,[]],[28,"mut",[[23,1,["component"]]],null]],null]]]],false],[0,"\\n"]],"parameters":[]},null]],"parameters":[1]},null]],"hasEval":false}',meta:{moduleName:"koenig-editor/templates/components/koenig-editor.hbs"}})
 e.default=t})),define("koenig-editor/templates/components/koenig-link-input",["exports"],(function(e){"use strict"
 Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
 var t=Ember.HTMLBars.template({id:"tXh9ETMU",block:'{"symbols":[],"statements":[[7,"input",true],[10,"placeholder","Enter url"],[11,"value",[22,"href"]],[10,"class","kg-link-input pa2 pr6 mih-100 ba br3 shadow-2 f8 lh-heading tracked-2 outline-0 b--blue h10 nudge-top--8"],[11,"oninput",[28,"action",[[23,0,[]],[28,"mut",[[24,["href"]]],null]],[["value"],["target.value"]]]],[11,"onkeydown",[28,"action",[[23,0,[]],"inputKeydown"],null]],[8],[9],[0,"\\n\\n"],[4,"if",[[24,["href"]]],null,{"statements":[[0,"    "],[7,"button",false],[12,"class","kg-input-bar-close"],[12,"type","button"],[3,"action",[[23,0,[]],"clear"]],[8],[0,"\\n        "],[1,[28,"svg-jar",["close"],[["class"],["ih2 stroke-midlightgrey-l2"]]],false],[0,"\\n    "],[9],[0,"\\n"]],"parameters":[]},null]],"hasEval":false}',meta:{moduleName:"koenig-editor/templates/components/koenig-link-input.hbs"}})
@@ -11963,26 +11972,7 @@ this.length=0}}e.default=n})),define("perf-primitives/hash-map",["exports","perf
 Object.defineProperty(e,"__esModule",{value:!0})
 e.default=class{constructor(e){if(this._data=new t.default,e)for(let t=0;t<e.length;t++)this.data[e[t][0]]=e[t][1]}forEach(e){for(let t in this._data)this._data[t]!==n.UNDEFINED_KEY&&e(this._data[t],t)
 return this}get(e){let t=this._data[e]
-return t===n.UNDEFINED_KEY?void 0:t}set(e,t){return this._data[e]=t,this}delete(e){return this._data[e]=n.UNDEFINED_KEY,!0}}}))
-var __ember_auto_import__=function(e){function t(t){for(var i,o,s=t[0],l=t[1],u=t[2],d=0,h=[];d<s.length;d++)o=s[d],r[o]&&h.push(r[o][0]),r[o]=0
-for(i in l)Object.prototype.hasOwnProperty.call(l,i)&&(e[i]=l[i])
-for(c&&c(t);h.length;)h.shift()()
-return a.push.apply(a,u||[]),n()}function n(){for(var e,t=0;t<a.length;t++){for(var n=a[t],i=!0,s=1;s<n.length;s++){var l=n[s]
-0!==r[l]&&(i=!1)}i&&(a.splice(t--,1),e=o(o.s=n[0]))}return e}var i={},r={0:0},a=[]
-function o(t){if(i[t])return i[t].exports
-var n=i[t]={i:t,l:!1,exports:{}}
-return e[t].call(n.exports,n,n.exports,o),n.l=!0,n.exports}o.m=e,o.c=i,o.d=function(e,t,n){o.o(e,t)||Object.defineProperty(e,t,{enumerable:!0,get:n})},o.r=function(e){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},o.t=function(e,t){if(1&t&&(e=o(e)),8&t)return e
-if(4&t&&"object"==typeof e&&e&&e.__esModule)return e
-var n=Object.create(null)
-if(o.r(n),Object.defineProperty(n,"default",{enumerable:!0,value:e}),2&t&&"string"!=typeof e)for(var i in e)o.d(n,i,function(t){return e[t]}.bind(null,i))
-return n},o.n=function(e){var t=e&&e.__esModule?function(){return e.default}:function(){return e}
-return o.d(t,"a",t),t},o.o=function(e,t){return Object.prototype.hasOwnProperty.call(e,t)},o.p=""
-var s=window.webpackJsonp_ember_auto_import_=window.webpackJsonp_ember_auto_import_||[],l=s.push.bind(s)
-s.push=t,s=s.slice()
-for(var u=0;u<s.length;u++)t(s[u])
-var c=l
-return a.push([33,2]),n()}({33:function(e,t,n){n(4),e.exports=n(34)},34:function(e,t,n){var i,r,a
-"undefined"!=typeof document&&(n.p=(i=document.querySelectorAll("script"))[i.length-1].src.replace(/\/[^/]*$/,"/")),e.exports=(r=_eai_d,a=_eai_r,window.emberAutoImportDynamic=function(e){return a("_eai_dyn_"+e)},r("@tryghost/helpers",[],(function(){return n(35)})),r("@tryghost/kg-clean-basic-html",[],(function(){return n(2)})),r("@tryghost/kg-parser-plugins",[],(function(){return n(37)})),r("@tryghost/string",[],(function(){return n(38)})),r("@tryghost/timezone-data",[],(function(){return n(221)})),r("blueimp-md5",[],(function(){return n(222)})),r("element-resize-detector",[],(function(){return n(223)})),r("intersection-observer-admin",[],(function(){return n(234)})),r("markdown-it",[],(function(){return n(235)})),r("markdown-it-footnote",[],(function(){return n(290)})),r("markdown-it-lazy-headers",[],(function(){return n(291)})),r("markdown-it-mark",[],(function(){return n(292)})),r("raf-pool",[],(function(){return n(293)})),r("ua-parser-js",[],(function(){return n(294)})),void r("validator",[],(function(){return n(295)})))},4:function(e,t){window._eai_r=require,window._eai_d=define}});(window.webpackJsonp_ember_auto_import_=window.webpackJsonp_ember_auto_import_||[]).push([[2],[function(e,t,n){"use strict"
+return t===n.UNDEFINED_KEY?void 0:t}set(e,t){return this._data[e]=t,this}delete(e){return this._data[e]=n.UNDEFINED_KEY,!0}}})),(window.webpackJsonp_ember_auto_import_=window.webpackJsonp_ember_auto_import_||[]).push([[2],[function(e,t,n){"use strict"
 Object.defineProperty(t,"__esModule",{value:!0}),t.default=function(e){if(!("string"==typeof e||e instanceof String))throw new TypeError("This library (validator.js) validates strings only")},e.exports=t.default},function(e,t,n){"use strict"
 var i=Object.prototype.hasOwnProperty
 function r(e,t){return i.call(e,t)}function a(e){return!(e>=55296&&e<=57343||e>=64976&&e<=65007||65535==(65535&e)||65534==(65535&e)||e>=0&&e<=8||11===e||e>=14&&e<=31||e>=127&&e<=159||e>1114111)}function o(e){if(e>65535){var t=55296+((e-=65536)>>10),n=56320+(1023&e)
@@ -12921,10 +12911,10 @@ t=y}var v=e.reporter
 v||(v=l(!1===v))
 var M=b(e,"batchProcessor",c({reporter:v})),_={}
 _.callOnAdd=!!b(e,"callOnAdd",!0),_.debug=!!b(e,"debug",!1)
-var w,k=a(t),A=r({stateHandler:d}),E=b(e,"strategy","object"),C={reporter:v,batchProcessor:M,stateHandler:d,idHandler:t}
-if("scroll"===E&&(u.isLegacyOpera()?(v.warn("Scroll strategy is not supported on legacy Opera. Changing to object strategy."),E="object"):u.isIE(9)&&(v.warn("Scroll strategy is not supported on IE9. Changing to object strategy."),E="object")),"scroll"===E)w=p(C)
+var w,k=a(t),A=r({stateHandler:d}),E=b(e,"strategy","object"),C=b(e,"important",!1),x={reporter:v,batchProcessor:M,stateHandler:d,idHandler:t,important:C}
+if("scroll"===E&&(u.isLegacyOpera()?(v.warn("Scroll strategy is not supported on legacy Opera. Changing to object strategy."),E="object"):u.isIE(9)&&(v.warn("Scroll strategy is not supported on IE9. Changing to object strategy."),E="object")),"scroll"===E)w=p(x)
 else{if("object"!==E)throw new Error("Invalid strategy name: "+E)
-w=h(C)}var x={}
+w=h(x)}var S={}
 return{listenTo:function(e,n,r){function a(e){var t=k.get(e)
 i(t,(function(t){t(e)}))}function o(e,t,n){k.add(t,n),e&&n(t)}if(r||(r=n,n=e,e={}),!n)throw new Error("At least one element required.")
 if(!r)throw new Error("Listener required.")
@@ -12933,15 +12923,15 @@ else{if(!f(n))return v.error("Invalid arguments. Must be a DOM element or a coll
 n=m(n)}var s=0,l=b(e,"callOnAdd",_.callOnAdd),u=b(e,"onReady",(function(){})),c=b(e,"debug",_.debug)
 i(n,(function(e){d.getState(e)||(d.initState(e),t.set(e))
 var h=t.get(e)
-if(c&&v.log("Attaching listener to element",h,e),!A.isDetectable(e))return c&&v.log(h,"Not detectable."),A.isBusy(e)?(c&&v.log(h,"System busy making it detectable"),o(l,e,r),x[h]=x[h]||[],void x[h].push((function(){++s===n.length&&u()}))):(c&&v.log(h,"Making detectable..."),A.markBusy(e,!0),w.makeDetectable({debug:c},e,(function(e){if(c&&v.log(h,"onElementDetectable"),d.getState(e)){A.markAsDetectable(e),A.markBusy(e,!1),w.addListener(e,a),o(l,e,r)
+if(c&&v.log("Attaching listener to element",h,e),!A.isDetectable(e))return c&&v.log(h,"Not detectable."),A.isBusy(e)?(c&&v.log(h,"System busy making it detectable"),o(l,e,r),S[h]=S[h]||[],void S[h].push((function(){++s===n.length&&u()}))):(c&&v.log(h,"Making detectable..."),A.markBusy(e,!0),w.makeDetectable({debug:c,important:C},e,(function(e){if(c&&v.log(h,"onElementDetectable"),d.getState(e)){A.markAsDetectable(e),A.markBusy(e,!1),w.addListener(e,a),o(l,e,r)
 var t=d.getState(e)
 if(t&&t.startSize){var p=e.offsetWidth,f=e.offsetHeight
-t.startSize.width===p&&t.startSize.height===f||a(e)}x[h]&&i(x[h],(function(e){e()}))}else c&&v.log(h,"Element uninstalled before being detectable.")
-delete x[h],++s===n.length&&u()})))
+t.startSize.width===p&&t.startSize.height===f||a(e)}S[h]&&i(S[h],(function(e){e()}))}else c&&v.log(h,"Element uninstalled before being detectable.")
+delete S[h],++s===n.length&&u()})))
 c&&v.log(h,"Already detecable, adding listener."),o(l,e,r),s++})),s===n.length&&u()},removeListener:k.removeListener,removeAllListeners:k.removeAllListeners,uninstall:function(e){if(!e)return v.error("At least one element is required.")
 if(g(e))e=[e]
 else{if(!f(e))return v.error("Invalid arguments. Must be a DOM element or a collection of DOM elements.")
-e=m(e)}i(e,(function(e){k.removeAllListeners(e),w.uninstall(e),d.cleanState(e)}))}}}},function(e,t,n){"use strict"
+e=m(e)}i(e,(function(e){k.removeAllListeners(e),w.uninstall(e),d.cleanState(e)}))},initDocument:function(e){w.initDocument&&w.initDocument(e)}}}},function(e,t,n){"use strict"
 e.exports=function(e){var t=e.stateHandler.getState
 return{isDetectable:function(e){var n=t(e)
 return n&&!!n.isDetectable},markAsDetectable:function(e){t(e).isDetectable=!0},isBusy:function(e){return!!t(e).busy},markBusy:function(e,n){t(e).busy=!!n}}}},function(e,t,n){"use strict"
@@ -12976,68 +12966,71 @@ function i(e){return e._erd}e.exports={initState:function(e){return e._erd={},i(
 var i=n(13)
 e.exports=function(e){var t=(e=e||{}).reporter,n=e.batchProcessor,r=e.stateHandler.getState
 if(!t)throw new Error("Missing required dependency: reporter.")
-function a(e){return r(e).object}return{makeDetectable:function(e,a,o){o||(o=a,a=e,e=null),(e=e||{}).debug,i.isIE(8)?o(a):function(e,a){var o=!1,s=window.getComputedStyle(e),l=e.offsetWidth,u=e.offsetHeight
-function c(){function n(){if("static"===s.position){e.style.position="relative"
-var n=function(e,t,n,i){var r=n[i]
-"auto"!==r&&"0"!==function(e){return e.replace(/[^-\d\.]/g,"")}(r)&&(e.warn("An element that is positioned static has style."+i+"="+r+" which is ignored due to the static positioning. The element will need to be positioned relative, so the style."+i+" will be set to 0. Element: ",t),t.style[i]=0)}
-n(t,e,s,"top"),n(t,e,s,"right"),n(t,e,s,"bottom"),n(t,e,s,"left")}}""!==s.position&&(n(),o=!0)
-var l=document.createElement("object")
-l.style.cssText="display: block; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; padding: 0; margin: 0; opacity: 0; z-index: -1000; pointer-events: none;",l.tabIndex=-1,l.type="text/html",l.setAttribute("aria-hidden","true"),l.onload=function(){o||n(),function e(t,n){if(!t.contentDocument){var i=r(t)
-return i.checkForObjectDocumentTimeoutId&&window.clearTimeout(i.checkForObjectDocumentTimeoutId),void(i.checkForObjectDocumentTimeoutId=setTimeout((function(){i.checkForObjectDocumentTimeoutId=0,e(t,n)}),100))}n(t.contentDocument)}(this,(function(t){a(e)}))},i.isIE()||(l.data="about:blank"),e.appendChild(l),r(e).object=l,i.isIE()&&(l.data="about:blank")}r(e).startSize={width:l,height:u},n?n.add(c):c()}(a,o)},addListener:function(e,t){if(!a(e))throw new Error("Element is not detectable by this strategy.")
-function n(){t(e)}i.isIE(8)?(r(e).object={proxy:n},e.attachEvent("onresize",n)):a(e).contentDocument.defaultView.addEventListener("resize",n)},uninstall:function(e){i.isIE(8)?e.detachEvent("onresize",r(e).object.proxy):e.removeChild(a(e)),r(e).checkForObjectDocumentTimeoutId&&window.clearTimeout(r(e).checkForObjectDocumentTimeoutId),delete r(e).object}}}},function(e,t,n){"use strict"
+function a(t){var n=e.important?" !important; ":"; "
+return(t.join(n)+n).trim()}function o(e){return r(e).object}return{makeDetectable:function(e,o,s){s||(s=o,o=e,e=null),(e=e||{}).debug,i.isIE(8)?s(o):function(o,s){var l=a(["display: block","position: absolute","top: 0","left: 0","width: 100%","height: 100%","border: none","padding: 0","margin: 0","opacity: 0","z-index: -1000","pointer-events: none"]),u=!1,c=window.getComputedStyle(o),d=o.offsetWidth,h=o.offsetHeight
+function p(){function n(){if("static"===c.position){o.style.setProperty("position","relative",e.important?"important":"")
+var n=function(t,n,i,r){var a=i[r]
+"auto"!==a&&"0"!==function(e){return e.replace(/[^-\d\.]/g,"")}(a)&&(t.warn("An element that is positioned static has style."+r+"="+a+" which is ignored due to the static positioning. The element will need to be positioned relative, so the style."+r+" will be set to 0. Element: ",n),n.style.setProperty(r,"0",e.important?"important":""))}
+n(t,o,c,"top"),n(t,o,c,"right"),n(t,o,c,"bottom"),n(t,o,c,"left")}}""!==c.position&&(n(),u=!0)
+var a=document.createElement("object")
+a.style.cssText=l,a.tabIndex=-1,a.type="text/html",a.setAttribute("aria-hidden","true"),a.onload=function(){u||n(),function e(t,n){if(!t.contentDocument){var i=r(t)
+return i.checkForObjectDocumentTimeoutId&&window.clearTimeout(i.checkForObjectDocumentTimeoutId),void(i.checkForObjectDocumentTimeoutId=setTimeout((function(){i.checkForObjectDocumentTimeoutId=0,e(t,n)}),100))}n(t.contentDocument)}(this,(function(e){s(o)}))},i.isIE()||(a.data="about:blank"),r(o)&&(o.appendChild(a),r(o).object=a,i.isIE()&&(a.data="about:blank"))}r(o).startSize={width:d,height:h},n?n.add(p):p()}(o,s)},addListener:function(e,t){function n(){t(e)}if(i.isIE(8))r(e).object={proxy:n},e.attachEvent("onresize",n)
+else{var a=o(e)
+if(!a)throw new Error("Element is not detectable by this strategy.")
+a.contentDocument.defaultView.addEventListener("resize",n)}},uninstall:function(e){if(r(e)){var t=o(e)
+t&&(i.isIE(8)?e.detachEvent("onresize",t.proxy):e.removeChild(t),r(e).checkForObjectDocumentTimeoutId&&window.clearTimeout(r(e).checkForObjectDocumentTimeoutId),delete r(e).object)}}}}},function(e,t,n){"use strict"
 var i=n(12).forEach
 e.exports=function(e){var t=(e=e||{}).reporter,n=e.batchProcessor,r=e.stateHandler.getState,a=(e.stateHandler.hasState,e.idHandler)
 if(!n)throw new Error("Missing required dependency: batchProcessor")
 if(!t)throw new Error("Missing required dependency: reporter.")
 var o=function(){var e=document.createElement("div")
-e.style.cssText="position: absolute; width: 1000px; height: 1000px; visibility: hidden; margin: 0; padding: 0;"
+e.style.cssText=l(["position: absolute","width: 1000px","height: 1000px","visibility: hidden","margin: 0","padding: 0"])
 var t=document.createElement("div")
-t.style.cssText="position: absolute; width: 500px; height: 500px; overflow: scroll; visibility: none; top: -1500px; left: -1500px; visibility: hidden; margin: 0; padding: 0;",t.appendChild(e),document.body.insertBefore(t,document.body.firstChild)
+t.style.cssText=l(["position: absolute","width: 500px","height: 500px","overflow: scroll","visibility: none","top: -1500px","left: -1500px","visibility: hidden","margin: 0","padding: 0"]),t.appendChild(e),document.body.insertBefore(t,document.body.firstChild)
 var n=500-t.clientWidth,i=500-t.clientHeight
 return document.body.removeChild(t),{width:n,height:i}}()
-function s(e,n,i){if(e.addEventListener)e.addEventListener(n,i)
+function s(e){!function(e,t,n){if(!e.getElementById(t)){var i=n+"_animation",r="/* Created by the element-resize-detector library. */\n"
+r+="."+n+" > div::-webkit-scrollbar { "+l(["display: none"])+" }\n\n",r+=".erd_scroll_detection_container_animation_active { "+l(["-webkit-animation-duration: 0.1s","animation-duration: 0.1s","-webkit-animation-name: "+i,"animation-name: "+i])+" }\n",r+="@-webkit-keyframes "+i+" { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }\n",function(n,i){i=i||function(t){e.head.appendChild(t)}
+var r=e.createElement("style")
+r.innerHTML=n,r.id=t,i(r)}(r+="@keyframes "+i+" { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }")}}(e,"erd_scroll_detection_scrollbar_style","erd_scroll_detection_container")}function l(t){var n=e.important?" !important; ":"; "
+return(t.join(n)+n).trim()}function u(e,n,i){if(e.addEventListener)e.addEventListener(n,i)
 else{if(!e.attachEvent)return t.error("[scroll] Don't know how to add event listeners.")
-e.attachEvent("on"+n,i)}}function l(e,n,i){if(e.removeEventListener)e.removeEventListener(n,i)
+e.attachEvent("on"+n,i)}}function c(e,n,i){if(e.removeEventListener)e.removeEventListener(n,i)
 else{if(!e.detachEvent)return t.error("[scroll] Don't know how to remove event listeners.")
-e.detachEvent("on"+n,i)}}function u(e){return r(e).container.childNodes[0].childNodes[0].childNodes[0]}function c(e){return r(e).container.childNodes[0].childNodes[0].childNodes[1]}return function(e,t){if(!document.getElementById(e)){var n=t+"_animation",i="/* Created by the element-resize-detector library. */\n"
-i+="."+t+" > div::-webkit-scrollbar { display: none; }\n\n",i+="."+t+"_animation_active { -webkit-animation-duration: 0.1s; animation-duration: 0.1s; -webkit-animation-name: "+n+"; animation-name: "+n+"; }\n",i+="@-webkit-keyframes "+n+" { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }\n",function(t,n){n=n||function(e){document.head.appendChild(e)}
-var i=document.createElement("style")
-i.innerHTML=t,i.id=e,n(i)}(i+="@keyframes "+n+" { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }")}}("erd_scroll_detection_scrollbar_style","erd_scroll_detection_container"),{makeDetectable:function(e,l,d){function h(){if(e.debug){var n=Array.prototype.slice.call(arguments)
-if(n.unshift(a.get(l),"Scroll: "),t.log.apply)t.log.apply(null,n)
-else for(var i=0;i<n.length;i++)t.log(n[i])}}function p(e){var t=r(e).container.childNodes[0],n=window.getComputedStyle(t)
-return!n.width||-1===n.width.indexOf("px")}function f(){var e=window.getComputedStyle(l),t={}
-return t.position=e.position,t.width=l.offsetWidth,t.height=l.offsetHeight,t.top=e.top,t.right=e.right,t.bottom=e.bottom,t.left=e.left,t.widthCSS=e.width,t.heightCSS=e.height,t}function m(){if(h("storeStyle invoked."),r(l)){var e=f()
-r(l).style=e}else h("Aborting because element has been uninstalled")}function g(e,t,n){r(e).lastWidth=t,r(e).lastHeight=n}function b(){return 2*o.width+1}function y(){return 2*o.height+1}function v(e){return e+10+b()}function M(e){return e+10+y()}function _(e,t,n){var i=u(e),r=c(e),a=v(t),o=M(n),s=function(e){return 2*e+b()}(t),l=function(e){return 2*e+y()}(n)
-i.scrollLeft=a,i.scrollTop=o,r.scrollLeft=s,r.scrollTop=l}function w(){var e=r(l).container
-if(!e){(e=document.createElement("div")).className="erd_scroll_detection_container",e.style.cssText="visibility: hidden; display: inline; width: 0px; height: 0px; z-index: -1; overflow: hidden; margin: 0; padding: 0;",r(l).container=e,function(e){e.className+=" erd_scroll_detection_container_animation_active"}(e),l.appendChild(e)
-var t=function(){r(l).onRendered&&r(l).onRendered()}
-s(e,"animationstart",t),r(l).onAnimationStart=t}return e}function k(){if(h("Injecting elements"),r(l)){!function(){var e=r(l).style
-if("static"===e.position){l.style.position="relative"
-var n=function(e,t,n,i){var r=n[i]
+e.detachEvent("on"+n,i)}}function d(e){return r(e).container.childNodes[0].childNodes[0].childNodes[0]}function h(e){return r(e).container.childNodes[0].childNodes[0].childNodes[1]}return s(window.document),{makeDetectable:function(e,s,c){function p(){if(e.debug){var n=Array.prototype.slice.call(arguments)
+if(n.unshift(a.get(s),"Scroll: "),t.log.apply)t.log.apply(null,n)
+else for(var i=0;i<n.length;i++)t.log(n[i])}}function f(e){var t=r(e).container.childNodes[0],n=window.getComputedStyle(t)
+return!n.width||-1===n.width.indexOf("px")}function m(){var e=window.getComputedStyle(s),t={}
+return t.position=e.position,t.width=s.offsetWidth,t.height=s.offsetHeight,t.top=e.top,t.right=e.right,t.bottom=e.bottom,t.left=e.left,t.widthCSS=e.width,t.heightCSS=e.height,t}function g(){if(p("storeStyle invoked."),r(s)){var e=m()
+r(s).style=e}else p("Aborting because element has been uninstalled")}function b(e,t,n){r(e).lastWidth=t,r(e).lastHeight=n}function y(){return 2*o.width+1}function v(){return 2*o.height+1}function M(e){return e+10+y()}function _(e){return e+10+v()}function w(e,t,n){var i=d(e),r=h(e),a=M(t),o=_(n),s=function(e){return 2*e+y()}(t),l=function(e){return 2*e+v()}(n)
+i.scrollLeft=a,i.scrollTop=o,r.scrollLeft=s,r.scrollTop=l}function k(){var e=r(s).container
+if(!e){(e=document.createElement("div")).className="erd_scroll_detection_container",e.style.cssText=l(["visibility: hidden","display: inline","width: 0px","height: 0px","z-index: -1","overflow: hidden","margin: 0","padding: 0"]),r(s).container=e,function(e){e.className+=" erd_scroll_detection_container_animation_active"}(e),s.appendChild(e)
+var t=function(){r(s).onRendered&&r(s).onRendered()}
+u(e,"animationstart",t),r(s).onAnimationStart=t}return e}function A(){if(p("Injecting elements"),r(s)){!function(){var n=r(s).style
+if("static"===n.position){s.style.setProperty("position","relative",e.important?"important":"")
+var i=function(e,t,n,i){var r=n[i]
 "auto"!==r&&"0"!==function(e){return e.replace(/[^-\d\.]/g,"")}(r)&&(e.warn("An element that is positioned static has style."+i+"="+r+" which is ignored due to the static positioning. The element will need to be positioned relative, so the style."+i+" will be set to 0. Element: ",t),t.style[i]=0)}
-n(t,l,e,"top"),n(t,l,e,"right"),n(t,l,e,"bottom"),n(t,l,e,"left")}}()
-var e=r(l).container
-e||(e=w())
-var n,i,a,u,c=o.width,d=o.height,p="position: absolute; flex: none; overflow: hidden; z-index: -1; visibility: hidden; left: "+(n=(n=-(1+c))?n+"px":"0")+"; top: "+(i=(i=-(1+d))?i+"px":"0")+"; right: "+(u=(u=-c)?u+"px":"0")+"; bottom: "+(a=(a=-d)?a+"px":"0")+";",f=document.createElement("div"),m=document.createElement("div"),g=document.createElement("div"),b=document.createElement("div"),y=document.createElement("div"),v=document.createElement("div")
-f.dir="ltr",f.style.cssText="position: absolute; flex: none; overflow: hidden; z-index: -1; visibility: hidden; width: 100%; height: 100%; left: 0px; top: 0px;",f.className="erd_scroll_detection_container",m.className="erd_scroll_detection_container",m.style.cssText=p,g.style.cssText="position: absolute; flex: none; overflow: scroll; z-index: -1; visibility: hidden; width: 100%; height: 100%;",b.style.cssText="position: absolute; left: 0; top: 0;",y.style.cssText="position: absolute; flex: none; overflow: scroll; z-index: -1; visibility: hidden; width: 100%; height: 100%;",v.style.cssText="position: absolute; width: 200%; height: 200%;",g.appendChild(b),y.appendChild(v),m.appendChild(g),m.appendChild(y),f.appendChild(m),e.appendChild(f),s(g,"scroll",M),s(y,"scroll",_),r(l).onExpandScroll=M,r(l).onShrinkScroll=_}else h("Aborting because element has been uninstalled")
-function M(){r(l).onExpand&&r(l).onExpand()}function _(){r(l).onShrink&&r(l).onShrink()}}function A(){function o(e,t,n){var i=function(e){return u(e).childNodes[0]}(e),r=v(t),a=M(n)
-i.style.width=r+"px",i.style.height=a+"px"}function s(i){var s=l.offsetWidth,u=l.offsetHeight
-h("Storing current size",s,u),g(l,s,u),n.add(0,(function(){if(r(l))if(d()){if(e.debug){var n=l.offsetWidth,i=l.offsetHeight
-n===s&&i===u||t.warn(a.get(l),"Scroll: Size changed before updating detector elements.")}o(l,s,u)}else h("Aborting because element container has not been initialized")
-else h("Aborting because element has been uninstalled")})),n.add(1,(function(){r(l)?d()?_(l,s,u):h("Aborting because element container has not been initialized"):h("Aborting because element has been uninstalled")})),i&&n.add(2,(function(){r(l)?d()?i():h("Aborting because element container has not been initialized"):h("Aborting because element has been uninstalled")}))}function d(){return!!r(l).container}function f(){h("notifyListenersIfNeeded invoked")
-var e=r(l)
-return void 0===r(l).lastNotifiedWidth&&e.lastWidth===e.startSize.width&&e.lastHeight===e.startSize.height?h("Not notifying: Size is the same as the start size, and there has been no notification yet."):e.lastWidth===e.lastNotifiedWidth&&e.lastHeight===e.lastNotifiedHeight?h("Not notifying: Size already notified"):(h("Current size not notified, notifying..."),e.lastNotifiedWidth=e.lastWidth,e.lastNotifiedHeight=e.lastHeight,void i(r(l).listeners,(function(e){e(l)})))}function m(){if(h("Scroll detected."),p(l))h("Scroll event fired while unrendered. Ignoring...")
-else{var e=l.offsetWidth,t=l.offsetHeight
-e!==r(l).lastWidth||t!==r(l).lastHeight?(h("Element size changed."),s(f)):h("Element size has not changed ("+e+"x"+t+").")}}if(h("registerListenersAndPositionElements invoked."),r(l)){r(l).onRendered=function(){if(h("startanimation triggered."),p(l))h("Ignoring since element is still unrendered...")
-else{h("Element rendered.")
-var e=u(l),t=c(l)
-0!==e.scrollLeft&&0!==e.scrollTop&&0!==t.scrollLeft&&0!==t.scrollTop||(h("Scrollbars out of sync. Updating detector elements..."),s(f))}},r(l).onExpand=m,r(l).onShrink=m
-var b=r(l).style
-o(l,b.width,b.height)}else h("Aborting because element has been uninstalled")}function E(){if(h("finalizeDomMutation invoked."),r(l)){var e=r(l).style
-g(l,e.width,e.height),_(l,e.width,e.height)}else h("Aborting because element has been uninstalled")}function C(){d(l)}function x(){var e
-h("Installing..."),r(l).listeners=[],e=f(),r(l).startSize={width:e.width,height:e.height},h("Element start size",r(l).startSize),n.add(0,m),n.add(1,k),n.add(2,A),n.add(3,E),n.add(4,C)}d||(d=l,l=e,e=null),e=e||{},h("Making detectable..."),function(e){return!function(e){return e===e.ownerDocument.body||e.ownerDocument.body.contains(e)}(e)||null===window.getComputedStyle(e)}(l)?(h("Element is detached"),w(),h("Waiting until element is attached..."),r(l).onRendered=function(){h("Element is now attached"),x()}):x()},addListener:function(e,t){if(!r(e).listeners.push)throw new Error("Cannot add listener to an element that is not detectable.")
+i(t,s,n,"top"),i(t,s,n,"right"),i(t,s,n,"bottom"),i(t,s,n,"left")}}()
+var n=r(s).container
+n||(n=k())
+var i,a,c,d,h=o.width,f=o.height,m=l(["position: absolute","flex: none","overflow: hidden","z-index: -1","visibility: hidden","width: 100%","height: 100%","left: 0px","top: 0px"]),g=l(["position: absolute","flex: none","overflow: hidden","z-index: -1","visibility: hidden"].concat(["left: "+(i=(i=-(1+h))?i+"px":"0"),"top: "+(a=(a=-(1+f))?a+"px":"0"),"right: "+(d=(d=-h)?d+"px":"0"),"bottom: "+(c=(c=-f)?c+"px":"0")])),b=l(["position: absolute","flex: none","overflow: scroll","z-index: -1","visibility: hidden","width: 100%","height: 100%"]),y=l(["position: absolute","flex: none","overflow: scroll","z-index: -1","visibility: hidden","width: 100%","height: 100%"]),v=l(["position: absolute","left: 0","top: 0"]),M=l(["position: absolute","width: 200%","height: 200%"]),_=document.createElement("div"),w=document.createElement("div"),A=document.createElement("div"),E=document.createElement("div"),C=document.createElement("div"),x=document.createElement("div")
+_.dir="ltr",_.style.cssText=m,_.className="erd_scroll_detection_container",w.className="erd_scroll_detection_container",w.style.cssText=g,A.style.cssText=b,E.style.cssText=v,C.style.cssText=y,x.style.cssText=M,A.appendChild(E),C.appendChild(x),w.appendChild(A),w.appendChild(C),_.appendChild(w),n.appendChild(_),u(A,"scroll",S),u(C,"scroll",O),r(s).onExpandScroll=S,r(s).onShrinkScroll=O}else p("Aborting because element has been uninstalled")
+function S(){r(s).onExpand&&r(s).onExpand()}function O(){r(s).onShrink&&r(s).onShrink()}}function E(){function o(t,n,i){var r=function(e){return d(e).childNodes[0]}(t),a=M(n),o=_(i)
+r.style.setProperty("width",a+"px",e.important?"important":""),r.style.setProperty("height",o+"px",e.important?"important":"")}function l(i){var l=s.offsetWidth,c=s.offsetHeight,d=l!==r(s).lastWidth||c!==r(s).lastHeight
+p("Storing current size",l,c),b(s,l,c),n.add(0,(function(){if(d)if(r(s))if(u()){if(e.debug){var n=s.offsetWidth,i=s.offsetHeight
+n===l&&i===c||t.warn(a.get(s),"Scroll: Size changed before updating detector elements.")}o(s,l,c)}else p("Aborting because element container has not been initialized")
+else p("Aborting because element has been uninstalled")})),n.add(1,(function(){r(s)?u()?w(s,l,c):p("Aborting because element container has not been initialized"):p("Aborting because element has been uninstalled")})),d&&i&&n.add(2,(function(){r(s)?u()?i():p("Aborting because element container has not been initialized"):p("Aborting because element has been uninstalled")}))}function u(){return!!r(s).container}function c(){p("notifyListenersIfNeeded invoked")
+var e=r(s)
+return void 0===r(s).lastNotifiedWidth&&e.lastWidth===e.startSize.width&&e.lastHeight===e.startSize.height?p("Not notifying: Size is the same as the start size, and there has been no notification yet."):e.lastWidth===e.lastNotifiedWidth&&e.lastHeight===e.lastNotifiedHeight?p("Not notifying: Size already notified"):(p("Current size not notified, notifying..."),e.lastNotifiedWidth=e.lastWidth,e.lastNotifiedHeight=e.lastHeight,void i(r(s).listeners,(function(e){e(s)})))}function m(){p("Scroll detected."),f(s)?p("Scroll event fired while unrendered. Ignoring..."):l(c)}if(p("registerListenersAndPositionElements invoked."),r(s)){r(s).onRendered=function(){if(p("startanimation triggered."),f(s))p("Ignoring since element is still unrendered...")
+else{p("Element rendered.")
+var e=d(s),t=h(s)
+0!==e.scrollLeft&&0!==e.scrollTop&&0!==t.scrollLeft&&0!==t.scrollTop||(p("Scrollbars out of sync. Updating detector elements..."),l(c))}},r(s).onExpand=m,r(s).onShrink=m
+var g=r(s).style
+o(s,g.width,g.height)}else p("Aborting because element has been uninstalled")}function C(){if(p("finalizeDomMutation invoked."),r(s)){var e=r(s).style
+b(s,e.width,e.height),w(s,e.width,e.height)}else p("Aborting because element has been uninstalled")}function x(){c(s)}function S(){var e
+p("Installing..."),r(s).listeners=[],e=m(),r(s).startSize={width:e.width,height:e.height},p("Element start size",r(s).startSize),n.add(0,g),n.add(1,A),n.add(2,E),n.add(3,C),n.add(4,x)}c||(c=s,s=e,e=null),e=e||{},p("Making detectable..."),function(e){return!function(e){return e===e.ownerDocument.body||e.ownerDocument.body.contains(e)}(e)||null===window.getComputedStyle(e)}(s)?(p("Element is detached"),k(),p("Waiting until element is attached..."),r(s).onRendered=function(){p("Element is now attached"),S()}):S()},addListener:function(e,t){if(!r(e).listeners.push)throw new Error("Cannot add listener to an element that is not detectable.")
 r(e).listeners.push(t)},uninstall:function(e){var t=r(e)
-t&&(t.onExpandScroll&&l(u(e),"scroll",t.onExpandScroll),t.onShrinkScroll&&l(c(e),"scroll",t.onShrinkScroll),t.onAnimationStart&&l(t.container,"animationstart",t.onAnimationStart),t.container&&e.removeChild(t.container))}}}},function(e,t,n){"use strict"
+t&&(t.onExpandScroll&&c(d(e),"scroll",t.onExpandScroll),t.onShrinkScroll&&c(h(e),"scroll",t.onShrinkScroll),t.onAnimationStart&&c(t.container,"animationstart",t.onAnimationStart),t.container&&e.removeChild(t.container))},initDocument:s}}},function(e,t,n){"use strict"
 n.r(t)
 var i,r=function(){function e(){this.registry=new WeakMap}return e.prototype.elementExists=function(e){return this.registry.has(e)},e.prototype.getElement=function(e){return this.registry.get(e)},e.prototype.addElement=function(e,t){e&&this.registry.set(e,t||{})},e.prototype.removeElement=function(e){this.registry.delete(e)},e.prototype.destroyRegistry=function(){this.registry=new WeakMap},e}(),a=function(){}
 !function(e){e.enter="enter",e.exit="exit"}(i||(i={}))
@@ -13769,3 +13762,22 @@ return c.join("@")}
 var i=a(n(23)),r=a(n(3))
 function a(e){return e&&e.__esModule?e:{default:e}}var o={all_lowercase:!0,gmail_lowercase:!0,gmail_remove_dots:!0,gmail_remove_subaddress:!0,gmail_convert_googlemaildotcom:!0,outlookdotcom_lowercase:!0,outlookdotcom_remove_subaddress:!0,yahoo_lowercase:!0,yahoo_remove_subaddress:!0,icloud_lowercase:!0,icloud_remove_subaddress:!0},s=["icloud.com","me.com"],l=["hotmail.at","hotmail.be","hotmail.ca","hotmail.cl","hotmail.co.il","hotmail.co.nz","hotmail.co.th","hotmail.co.uk","hotmail.com","hotmail.com.ar","hotmail.com.au","hotmail.com.br","hotmail.com.gr","hotmail.com.mx","hotmail.com.pe","hotmail.com.tr","hotmail.com.vn","hotmail.cz","hotmail.de","hotmail.dk","hotmail.es","hotmail.fr","hotmail.hu","hotmail.id","hotmail.ie","hotmail.in","hotmail.it","hotmail.jp","hotmail.kr","hotmail.lv","hotmail.my","hotmail.ph","hotmail.pt","hotmail.sa","hotmail.sg","hotmail.sk","live.be","live.co.uk","live.com","live.com.ar","live.com.mx","live.de","live.es","live.eu","live.fr","live.it","live.nl","msn.com","outlook.at","outlook.be","outlook.cl","outlook.co.il","outlook.co.nz","outlook.co.th","outlook.com","outlook.com.ar","outlook.com.au","outlook.com.br","outlook.com.gr","outlook.com.pe","outlook.com.tr","outlook.com.vn","outlook.cz","outlook.de","outlook.dk","outlook.es","outlook.fr","outlook.hu","outlook.id","outlook.ie","outlook.in","outlook.it","outlook.jp","outlook.kr","outlook.lv","outlook.my","outlook.ph","outlook.pt","outlook.sa","outlook.sg","outlook.sk","passport.com"],u=["rocketmail.com","yahoo.ca","yahoo.co.uk","yahoo.com","yahoo.de","yahoo.fr","yahoo.in","yahoo.it","ymail.com"]
 e.exports=t.default}]])
+var __ember_auto_import__=function(e){function t(t){for(var i,o,s=t[0],l=t[1],u=t[2],d=0,h=[];d<s.length;d++)o=s[d],r[o]&&h.push(r[o][0]),r[o]=0
+for(i in l)Object.prototype.hasOwnProperty.call(l,i)&&(e[i]=l[i])
+for(c&&c(t);h.length;)h.shift()()
+return a.push.apply(a,u||[]),n()}function n(){for(var e,t=0;t<a.length;t++){for(var n=a[t],i=!0,s=1;s<n.length;s++){var l=n[s]
+0!==r[l]&&(i=!1)}i&&(a.splice(t--,1),e=o(o.s=n[0]))}return e}var i={},r={0:0},a=[]
+function o(t){if(i[t])return i[t].exports
+var n=i[t]={i:t,l:!1,exports:{}}
+return e[t].call(n.exports,n,n.exports,o),n.l=!0,n.exports}o.m=e,o.c=i,o.d=function(e,t,n){o.o(e,t)||Object.defineProperty(e,t,{enumerable:!0,get:n})},o.r=function(e){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},o.t=function(e,t){if(1&t&&(e=o(e)),8&t)return e
+if(4&t&&"object"==typeof e&&e&&e.__esModule)return e
+var n=Object.create(null)
+if(o.r(n),Object.defineProperty(n,"default",{enumerable:!0,value:e}),2&t&&"string"!=typeof e)for(var i in e)o.d(n,i,function(t){return e[t]}.bind(null,i))
+return n},o.n=function(e){var t=e&&e.__esModule?function(){return e.default}:function(){return e}
+return o.d(t,"a",t),t},o.o=function(e,t){return Object.prototype.hasOwnProperty.call(e,t)},o.p=""
+var s=window.webpackJsonp_ember_auto_import_=window.webpackJsonp_ember_auto_import_||[],l=s.push.bind(s)
+s.push=t,s=s.slice()
+for(var u=0;u<s.length;u++)t(s[u])
+var c=l
+return a.push([33,2]),n()}({33:function(e,t,n){n(4),e.exports=n(34)},34:function(e,t,n){var i,r,a
+"undefined"!=typeof document&&(n.p=(i=document.querySelectorAll("script"))[i.length-1].src.replace(/\/[^/]*$/,"/")),e.exports=(r=_eai_d,a=_eai_r,window.emberAutoImportDynamic=function(e){return a("_eai_dyn_"+e)},r("@tryghost/helpers",[],(function(){return n(35)})),r("@tryghost/kg-clean-basic-html",[],(function(){return n(2)})),r("@tryghost/kg-parser-plugins",[],(function(){return n(37)})),r("@tryghost/string",[],(function(){return n(38)})),r("@tryghost/timezone-data",[],(function(){return n(221)})),r("blueimp-md5",[],(function(){return n(222)})),r("element-resize-detector",[],(function(){return n(223)})),r("intersection-observer-admin",[],(function(){return n(234)})),r("markdown-it",[],(function(){return n(235)})),r("markdown-it-footnote",[],(function(){return n(290)})),r("markdown-it-lazy-headers",[],(function(){return n(291)})),r("markdown-it-mark",[],(function(){return n(292)})),r("raf-pool",[],(function(){return n(293)})),r("ua-parser-js",[],(function(){return n(294)})),void r("validator",[],(function(){return n(295)})))},4:function(e,t){window._eai_r=require,window._eai_d=define}})
