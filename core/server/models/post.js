@@ -9,7 +9,7 @@ const htmlToText = require('html-to-text');
 const ghostBookshelf = require('./base');
 const config = require('../config');
 const settingsCache = require('../services/settings/cache');
-const converters = require('../lib/mobiledoc/converters');
+const renderers = require('../lib/mobiledoc/renderers');
 const relations = require('./relations');
 const urlUtils = require('../lib/url-utils');
 const MOBILEDOC_REVISIONS_COUNT = 10;
@@ -365,7 +365,7 @@ Post = ghostBookshelf.Model.extend({
         }
 
         if (!this.get('mobiledoc')) {
-            this.set('mobiledoc', JSON.stringify(converters.mobiledocConverter.blankStructure()));
+            this.set('mobiledoc', JSON.stringify(renderers.mobiledocHtmlRenderer.blankStructure()));
         }
 
         // ensure all URLs are stored as relative
@@ -405,7 +405,7 @@ Post = ghostBookshelf.Model.extend({
         // CASE: html is null, but mobiledoc exists (only important for migrations & importing)
         if (this.hasChanged('mobiledoc') || (!this.get('html') && (options.migrating || options.importing))) {
             try {
-                this.set('html', converters.mobiledocConverter.render(JSON.parse(this.get('mobiledoc'))));
+                this.set('html', renderers.mobiledocHtmlRenderer.render(JSON.parse(this.get('mobiledoc'))));
             } catch (err) {
                 throw new common.errors.ValidationError({
                     message: 'Invalid mobiledoc structure.',
@@ -934,7 +934,7 @@ Post = ghostBookshelf.Model.extend({
     },
 
     // NOTE: the `authors` extension is the parent of the post model. It also has a permissible function.
-    permissible: function permissible(postModel, action, context, unsafeAttrs, loadedPermissions, hasUserPermission, hasAppPermission, hasApiKeyPermission) {
+    permissible: function permissible(postModel, action, context, unsafeAttrs, loadedPermissions, hasUserPermission, hasApiKeyPermission) {
         let isContributor;
         let isOwner;
         let isAdmin;
@@ -989,7 +989,7 @@ Post = ghostBookshelf.Model.extend({
             excludedAttrs.push('tags');
         }
 
-        if (hasUserPermission && hasApiKeyPermission && hasAppPermission) {
+        if (hasUserPermission && hasApiKeyPermission) {
             return Promise.resolve({excludedAttrs});
         }
 
