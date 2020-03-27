@@ -1,11 +1,12 @@
 const SimpleDom = require('simple-dom');
 const Renderer = require('mobiledoc-dom-renderer').default;
 const common = require('../../common');
-const mobiledoc = require('../');
+const atoms = require('../atoms');
+const cards = require('../cards');
 const options = {
     dom: new SimpleDom.Document(),
-    cards: mobiledoc.cards,
-    atoms: mobiledoc.atoms,
+    cards: cards,
+    atoms: atoms,
     unknownCardHandler: function (args) {
         common.logging.error(new common.errors.InternalServerError({
             message: 'Mobiledoc card \'' + args.env.name + '\' not found.'

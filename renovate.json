@@ -4,9 +4,16 @@
     "@tryghost:groupTestLint",
     "@tryghost:groupCSS",
     "@tryghost:groupBuildTools",
-    "@tryghost:automergeSilentTestLintNonMajor",
-    "@tryghost:automergePatchBranch"
+    "@tryghost:automergeSilentTestLintNonMajor"
   ],
+  "travis": { "enabled": true },
+  "node": {
+    "supportPolicy": ["lts"]
+   },
+  "separateMinorPatch": true,
+  "patch": {
+    "automerge": true
+  },
   "ignoreDeps": [
       "got",
       "intl-messageformat",

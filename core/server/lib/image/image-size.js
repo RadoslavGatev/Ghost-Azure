@@ -6,8 +6,7 @@ const Promise = require('bluebird');
 const _ = require('lodash');
 const request = require('../request');
 const urlUtils = require('../../lib/url-utils');
-const {i18n} = require('../common');
-const errors = require('@tryghost/errors');
+const common = require('../common');
 const config = require('../../config');
 const storage = require('../../adapters/storage');
 const storageUtils = require('../../adapters/storage/utils');
@@ -55,7 +54,7 @@ function _probeImageSizeFromUrl(url) {
     // probe-image-size uses `request` npm module which doesn't have our `got`
     // override with custom URL validation so it needs duplicating here
     if (_.isEmpty(url) || !validator.isURL(url)) {
-        return Promise.reject(new errors.InternalServerError({
+        return Promise.reject(new common.errors.InternalServerError({
             message: 'URL empty or invalid.',
             code: 'URL_MISSING_INVALID',
             context: url
@@ -148,32 +147,32 @@ const getImageSizeFromUrl = (imagePath) => {
             height: dimensions.height
         };
     }).catch({code: 'URL_MISSING_INVALID'}, (err) => {
-        return Promise.reject(new errors.InternalServerError({
+        return Promise.reject(new common.errors.InternalServerError({
             message: err.message,
             code: 'IMAGE_SIZE_URL',
             statusCode: err.statusCode,
             context: err.url || imagePath
         }));
     }).catch({code: 'ETIMEDOUT'}, {statusCode: 408}, (err) => {
-        return Promise.reject(new errors.InternalServerError({
+        return Promise.reject(new common.errors.InternalServerError({
             message: 'Request timed out.',
             code: 'IMAGE_SIZE_URL',
             statusCode: err.statusCode,
             context: err.url || imagePath
         }));
     }).catch({code: 'ENOENT'}, {statusCode: 404}, (err) => {
-        return Promise.reject(new errors.NotFoundError({
+        return Promise.reject(new common.errors.NotFoundError({
             message: 'Image not found.',
             code: 'IMAGE_SIZE_URL',
             statusCode: err.statusCode,
             context: err.url || imagePath
         }));
     }).catch(function (err) {
-        if (errors.utils.isIgnitionError(err)) {
+        if (common.errors.utils.isIgnitionError(err)) {
             return Promise.reject(err);
         }
 
-        return Promise.reject(new errors.InternalServerError({
+        return Promise.reject(new common.errors.InternalServerError({
             message: 'Unknown Request error.',
             code: 'IMAGE_SIZE_URL',
             statusCode: err.statusCode,
@@ -222,7 +221,7 @@ const getImageSizeFromStoragePath = (imagePath) => {
             };
         })
         .catch({code: 'ENOENT'}, (err) => {
-            return Promise.reject(new errors.NotFoundError({
+            return Promise.reject(new common.errors.NotFoundError({
                 message: err.message,
                 code: 'IMAGE_SIZE_STORAGE',
                 err: err,
@@ -233,11 +232,11 @@ const getImageSizeFromStoragePath = (imagePath) => {
                 }
             }));
         }).catch((err) => {
-            if (errors.utils.isIgnitionError(err)) {
+            if (common.errors.utils.isIgnitionError(err)) {
                 return Promise.reject(err);
             }
 
-            return Promise.reject(new errors.InternalServerError({
+            return Promise.reject(new common.errors.InternalServerError({
                 message: err.message,
                 code: 'IMAGE_SIZE_STORAGE',
                 err: err,
@@ -280,8 +279,8 @@ const getImageSizeFromPath = (path) => {
                 height: dimensions.height
             });
         } catch (err) {
-            return reject(new errors.ValidationError({
-                message: i18n.t('errors.utils.images.invalidDimensions', {
+            return reject(new common.errors.ValidationError({
+                message: common.i18n.t('errors.utils.images.invalidDimensions', {
                     file: path,
                     error: err.message
                 })

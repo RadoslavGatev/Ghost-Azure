@@ -19,7 +19,6 @@ let parentApp;
 
 // Frontend Components
 const themeService = require('../frontend/services/themes');
-const appService = require('../frontend/services/apps');
 
 function initialiseServices() {
     // CASE: When Ghost is ready with bootstrapping (db migrations etc.), we can trigger the router creation.
@@ -31,6 +30,7 @@ function initialiseServices() {
     routing.bootstrap.start(themeService.getApiVersion());
 
     const permissions = require('./services/permissions'),
+        apps = require('./services/apps'),
         xmlrpc = require('./services/xmlrpc'),
         slack = require('./services/slack'),
         {mega} = require('./services/mega'),
@@ -46,7 +46,7 @@ function initialiseServices() {
         slack.listen(),
         mega.listen(),
         webhooks.listen(),
-        appService.init(),
+        apps.init(),
         scheduling.init({
             schedulerUrl: config.get('scheduling').schedulerUrl,
             active: config.get('scheduling').active,

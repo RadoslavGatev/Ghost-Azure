@@ -1,7 +1,7 @@
 var got = require('got'),
     _ = require('lodash'),
     validator = require('../data/validation').validator,
-    errors = require('@tryghost/errors'),
+    common = require('./common'),
     ghostVersion = require('./ghost-version');
 
 var defaultOptions = {
@@ -12,7 +12,7 @@ var defaultOptions = {
 
 module.exports = function request(url, options) {
     if (_.isEmpty(url) || !validator.isURL(url)) {
-        return Promise.reject(new errors.InternalServerError({
+        return Promise.reject(new common.errors.InternalServerError({
             message: 'URL empty or invalid.',
             code: 'URL_MISSING_INVALID',
             context: url
