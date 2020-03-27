@@ -47,9 +47,20 @@ module.exports = {
     exportCSV(models, apiConfig, frame) {
         debug('exportCSV');
 
-        const fields = ['id', 'email', 'name', 'note', 'subscribed_to_emails', 'complimentary_plan', 'stripe_customer_id', 'created_at', 'deleted_at', 'labels'];
+        const fields = [
+            'id',
+            'email',
+            'name',
+            'note',
+            'subscribed_to_emails',
+            'complimentary_plan',
+            'stripe_customer_id',
+            'created_at',
+            'deleted_at',
+            'labels'
+        ];
 
-        models.members = models.members.map((member) => {
+        const members = models.members.map((member) => {
             member = mapper.mapMember(member, frame);
             let stripeCustomerId;
 
@@ -69,13 +80,13 @@ module.exports = {
                 subscribed_to_emails: member.subscribed,
                 complimentary_plan: member.comped,
                 stripe_customer_id: stripeCustomerId,
-                created_at: member.created_at,
-                deleted_at: member.deleted_at,
+                created_at: JSON.stringify(member.created_at),
+                deleted_at: JSON.stringify(member.deleted_at),
                 labels: labels
             };
         });
 
-        frame.response = formatCSV(models.members, fields);
+        frame.response = formatCSV(members, fields);
     },
 
     importCSV(data, apiConfig, frame) {

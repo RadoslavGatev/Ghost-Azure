@@ -14,6 +14,10 @@ module.exports = {
         return shared.pipeline(require('./db'), localUtils);
     },
 
+    get identities() {
+        return shared.pipeline(require('./identities'), localUtils);
+    },
+
     get integrations() {
         return shared.pipeline(require('./integrations'), localUtils);
     },
@@ -69,6 +73,10 @@ module.exports = {
 
     get members() {
         return shared.pipeline(require('./members'), localUtils);
+    },
+
+    get memberSigninUrls() {
+        return shared.pipeline(require('./memberSigninUrls.js'), localUtils);
     },
 
     get labels() {

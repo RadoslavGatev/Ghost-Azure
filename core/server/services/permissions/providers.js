@@ -5,7 +5,7 @@ var _ = require('lodash'),
 
 module.exports = {
     user: function (id) {
-        return models.User.findOne({id: id, status: 'all'}, {withRelated: ['permissions', 'roles', 'roles.permissions']})
+        return models.User.findOne({id: id, status: 'active'}, {withRelated: ['permissions', 'roles', 'roles.permissions']})
             .then(function (foundUser) {
                 // CASE: {context: {user: id}} where the id is not in our database
                 if (!foundUser) {
@@ -41,17 +41,6 @@ module.exports = {
                 // Permissions is an array of models
                 // Roles is a JSON array
                 return {permissions: allPerms, roles: user.roles};
-            });
-    },
-
-    app: function (appName) {
-        return models.App.findOne({name: appName}, {withRelated: ['permissions']})
-            .then(function (foundApp) {
-                if (!foundApp) {
-                    return [];
-                }
-
-                return {permissions: foundApp.related('permissions').models};
             });
     },
 

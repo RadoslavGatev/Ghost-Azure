@@ -1,6 +1,6 @@
 // This file defines everything that helpers "require"
 // With the exception of modules like lodash, Bluebird
-// We can later refactor to enforce this something like we do in apps
+// We can later refactor to enforce this something like we did in apps
 var hbs = require('../services/themes/engine'),
     settingsCache = require('../../server/services/settings/cache'),
     config = require('../../server/config');
@@ -27,6 +27,9 @@ module.exports = {
     errors: require('../../server/lib/common/errors'),
     i18n: require('../../server/lib/common/i18n'),
     logging: require('../../server/lib/common/logging'),
+
+    // Theme i18n is separate to common i18n
+    themeI18n: require('../services/themes/i18n'),
 
     // This is used to detect if "isPost" is true in prevNext.
     checks: require('../../server/data/schema').checks,
