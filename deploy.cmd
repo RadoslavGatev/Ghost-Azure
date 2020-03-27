@@ -97,11 +97,12 @@ IF /I "%IN_PLACE_DEPLOYMENT%" NEQ "1" (
 :: 2. Select node version
 call :SelectNodeVersion
 
-:: 3. Install npm packages
+:: 3. Install and rebuild npm packages
 IF EXIST "%DEPLOYMENT_TARGET%\package.json" (
   pushd "%DEPLOYMENT_TARGET%"
   call :ExecuteCmd !NPM_CMD! config set scripts-prepend-node-path true
   call :ExecuteCmd !NPM_CMD! install --production
+  call :ExecuteCmd !NPM_CMD! rebuild --production
   IF !ERRORLEVEL! NEQ 0 goto error
   popd
 )
