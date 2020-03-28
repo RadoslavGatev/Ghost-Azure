@@ -107,7 +107,6 @@
           "apiVersion": "2016-08-01",
           "dependsOn": [
             "[resourceId('Microsoft.Web/sites', parameters('siteName'))]",
-            "[resourceId('Microsoft.Web/sites/sourcecontrols', parameters('siteName'), 'web')]",
             "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
           ],
           "properties": {
@@ -127,7 +126,8 @@
           "type": "sourcecontrols",
           "apiVersion": "2016-08-01",
           "dependsOn": [
-            "[resourceId('Microsoft.Web/sites', parameters('siteName'))]"
+            "[resourceId('Microsoft.Web/sites', parameters('siteName'))]",
+            "[resourceId('Microsoft.Web/sites/config', parameters('siteName'), 'appsettings')]"
           ],
           "properties": {
             "repoUrl": "[parameters('repoUrl')]",
