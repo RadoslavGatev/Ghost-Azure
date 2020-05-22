@@ -1,10 +1,10 @@
-var fs = require('fs-extra'),
-    os = require('os'),
-    path = require('path'),
-    config = require('../../../server/config'),
-    security = require('../../../server/lib/security'),
-    {zipFolder} = require('@tryghost/zip'),
-    LocalFileStorage = require('../../../server/adapters/storage/LocalFileStorage');
+const fs = require('fs-extra');
+const os = require('os');
+const path = require('path');
+const config = require('../../../server/config');
+const security = require('../../../server/lib/security');
+const {compress} = require('@tryghost/zip');
+const LocalFileStorage = require('../../../server/adapters/storage/LocalFileStorage');
 
 /**
  * @TODO: combine with loader.js?
@@ -21,26 +21,28 @@ class ThemeStorage extends LocalFileStorage {
     }
 
     serve(options) {
-        var self = this;
+        const self = this;
 
         return function downloadTheme(req, res, next) {
-            var themeName = options.name,
-                themePath = path.join(self.storagePath, themeName),
-                zipName = themeName + '.zip',
-                // store this in a unique temporary folder
-                zipBasePath = path.join(os.tmpdir(), security.identifier.uid(10)),
-                zipPath = path.join(zipBasePath, zipName),
-                stream;
+            const themeName = options.name;
+            const themePath = path.join(self.storagePath, themeName);
+            const zipName = themeName + '.zip';
+
+            // store this in a unique temporary folder
+            const zipBasePath = path.join(os.tmpdir(), security.identifier.uid(10));
+
+            const zipPath = path.join(zipBasePath, zipName);
+            let stream;
 
             fs.ensureDir(zipBasePath)
                 .then(function () {
-                    return zipFolder(themePath, zipPath);
+                    return compress(themePath, zipPath);
                 })
-                .then(function (length) {
+                .then(function (result) {
                     res.set({
                         'Content-disposition': 'attachment; filename={themeName}.zip'.replace('{themeName}', themeName),
                         'Content-Type': 'application/zip',
-                        'Content-Length': length
+                        'Content-Length': result.size
                     });
 
                     stream = fs.createReadStream(zipPath);

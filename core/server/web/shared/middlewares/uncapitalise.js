@@ -12,8 +12,9 @@
 //  req.baseUrl = /blog
 //  req.path =  /ghost/signin/
 
+const errors = require('@tryghost/errors');
 const urlUtils = require('../../../lib/url-utils');
-const common = require('../../../lib/common');
+const {i18n} = require('../../../lib/common');
 const localUtils = require('../utils');
 
 const uncapitalise = (req, res, next) => {
@@ -21,8 +22,8 @@ const uncapitalise = (req, res, next) => {
     let redirectPath;
     let decodedURI;
 
-    const isSignupOrReset = pathToTest.match(/^(.*\/ghost\/(signup|reset)\/)/i),
-        isAPI = pathToTest.match(/^(.*\/ghost\/api\/(v[\d.]+|canary)\/.*?\/)/i);
+    const isSignupOrReset = pathToTest.match(/^(.*\/ghost\/(signup|reset)\/)/i);
+    const isAPI = pathToTest.match(/^(.*\/ghost\/api\/(v[\d.]+|canary)\/.*?\/)/i);
 
     if (isSignupOrReset) {
         pathToTest = isSignupOrReset[1];
@@ -36,8 +37,8 @@ const uncapitalise = (req, res, next) => {
     try {
         decodedURI = decodeURIComponent(pathToTest);
     } catch (err) {
-        return next(new common.errors.NotFoundError({
-            message: common.i18n.t('errors.errors.pageNotFound'),
+        return next(new errors.NotFoundError({
+            message: i18n.t('errors.errors.pageNotFound'),
             err: err
         }));
     }

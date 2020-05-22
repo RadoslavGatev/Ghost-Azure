@@ -1,17 +1,17 @@
-var _ = require('lodash'),
-    Promise = require('bluebird'),
-    semver = require('semver'),
-    common = require('../../../../lib/common'),
-    debug = require('ghost-ignition').debug('importer:data'),
-    sequence = require('../../../../lib/promise/sequence'),
-    models = require('../../../../models'),
-    PostsImporter = require('./posts'),
-    TagsImporter = require('./tags'),
-    SettingsImporter = require('./settings'),
-    UsersImporter = require('./users'),
-    RolesImporter = require('./roles'),
-    importers = {},
-    DataImporter;
+const _ = require('lodash');
+const Promise = require('bluebird');
+const semver = require('semver');
+const common = require('../../../../lib/common');
+const debug = require('ghost-ignition').debug('importer:data');
+const sequence = require('../../../../lib/promise/sequence');
+const models = require('../../../../models');
+const PostsImporter = require('./posts');
+const TagsImporter = require('./tags');
+const SettingsImporter = require('./settings');
+const UsersImporter = require('./users');
+const RolesImporter = require('./roles');
+let importers = {};
+let DataImporter;
 
 DataImporter = {
     type: 'data',
@@ -35,7 +35,11 @@ DataImporter = {
     doImport: function doImport(importData, importOptions) {
         importOptions = importOptions || {};
 
-        var ops = [], errors = [], results = [], modelOptions = {
+        const ops = [];
+        let errors = [];
+        let results = [];
+
+        const modelOptions = {
             importing: true,
             context: {
                 internal: true
@@ -51,26 +55,25 @@ DataImporter = {
         }
 
         if (!importData.meta) {
-            throw new common.errors.IncorrectUsageError({
+            return Promise.reject(new common.errors.IncorrectUsageError({
                 message: 'Wrong importer structure. `meta` is missing.',
                 help: 'https://ghost.org/docs/api/migration/#json-file-structure'
-            });
+            }));
         }
 
         if (!importData.meta.version) {
-            throw new common.errors.IncorrectUsageError({
+            return Promise.reject(new common.errors.IncorrectUsageError({
                 message: 'Wrong importer structure. `meta.version` is missing.',
                 help: 'https://ghost.org/docs/api/migration/#json-file-structure'
-            });
+            }));
         }
 
-        // CASE: We deny LTS imports, because these are two major version jumps. We only support previous (v1) and latest (v2).
+        // CASE: We deny LTS imports, because these are major version jumps. Only imports from v1 until the latest are supported.
         //       We can detect a wrong structure by checking the meta version field. Ghost v0 doesn't use semver compliant versions.
-        //       Same applies to WP exports. It currently uses the same meta version notation (000) - https://github.com/TryGhost/wp-ghost-exporter/issues/12
         if (!semver.valid(importData.meta.version)) {
-            return Promise.reject(new common.errors.InternalServerError({
+            return Promise.reject(new common.errors.IncorrectUsageError({
                 message: 'Detected unsupported file structure.',
-                help: 'Please install Ghost 1.0, import the file and then update your blog to Ghost 2.0.\nVisit https://ghost.org/faq/upgrade-to-ghost-1-0 or ask for help in our https://forum.ghost.org.'
+                help: 'Please install Ghost 1.0, import the file and then update your blog to the latest Ghost version.\nVisit https://ghost.org/update/?v=0.1 or ask for help in our https://forum.ghost.org.'
             }));
         }
 
@@ -129,7 +132,7 @@ DataImporter = {
              * originalData: data from the json file
              * problems: warnings
              */
-            var toReturn = {
+            const toReturn = {
                 data: {},
                 originalData: importData.data,
                 problems: []

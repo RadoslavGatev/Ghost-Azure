@@ -1,8 +1,29 @@
-const common = require('../../lib/common');
-const constants = require('../../lib/constants');
-const shared = require('../../web/shared');
+const {logging} = require('../../lib/common');
+const config = require('../../config');
 const labsService = require('../labs');
 const membersService = require('./index');
+const urlUtils = require('../../lib/url-utils');
+const ghostVersion = require('../../lib/ghost-version');
+const settingsCache = require('../settings/cache');
+
+// @TODO: This piece of middleware actually belongs to the frontend, not to the member app
+// Need to figure a way to separate these things (e.g. frontend actually talks to members API)
+const loadMemberSession = async function (req, res, next) {
+    if (!labsService.isSet('members')) {
+        req.member = null;
+        return next();
+    }
+    try {
+        const member = await membersService.ssr.getMemberDataFromSession(req, res);
+        Object.assign(req, {member});
+        res.locals.member = req.member;
+        next();
+    } catch (err) {
+        logging.warn(err.message);
+        Object.assign(req, {member: null});
+        next();
+    }
+};
 
 const getIdentityToken = async function (req, res) {
     try {
@@ -10,7 +31,7 @@ const getIdentityToken = async function (req, res) {
         res.writeHead(200);
         res.end(token);
     } catch (err) {
-        common.logging.warn(err.message);
+        logging.warn(err.message);
         res.writeHead(err.statusCode);
         res.end(err.message);
     }
@@ -22,84 +43,93 @@ const deleteSession = async function (req, res) {
         res.writeHead(204);
         res.end();
     } catch (err) {
-        common.logging.warn(err.message);
+        logging.warn(err.message);
         res.writeHead(err.statusCode);
         res.end(err.message);
     }
 };
 
-const getMemberDataFromSession = async function (req, res, next) {
-    if (!labsService.isSet('members')) {
-        req.member = null;
-        return next();
-    }
+const getMemberData = async function (req, res) {
     try {
         const member = await membersService.ssr.getMemberDataFromSession(req, res);
-        Object.assign(req, {member});
-        next();
+        if (member) {
+            res.json({
+                uuid: member.uuid,
+                email: member.email,
+                name: member.name,
+                firstname: member.name && member.name.split(' ')[0],
+                avatar_image: member.avatar_image,
+                subscriptions: member.stripe.subscriptions,
+                paid: member.stripe.subscriptions.length !== 0
+            });
+        } else {
+            res.json(null);
+        }
     } catch (err) {
-        common.logging.warn(err.message);
-        Object.assign(req, {member: null});
-        next();
+        logging.warn(err.message);
+        res.writeHead(err.statusCode);
+        res.end(err.message);
     }
 };
 
-const exchangeTokenForSession = async function (req, res, next) {
-    if (!labsService.isSet('members')) {
-        return next();
+const getMemberSiteData = async function (req, res) {
+    const response = {
+        title: settingsCache.get('title'),
+        description: settingsCache.get('description'),
+        logo: settingsCache.get('logo'),
+        brand: settingsCache.get('brand'),
+        url: urlUtils.urlFor('home', true),
+        version: ghostVersion.safe,
+        plans: membersService.config.getPublicPlans(),
+        allowSelfSignup: membersService.config.getAllowSelfSignup()
+    };
+
+    // Brand is currently an experimental feature
+    if (!config.get('enableDeveloperExperiments')) {
+        delete response.brand;
     }
+
+    res.json({site: response});
+};
+
+const createSessionFromMagicLink = async function (req, res, next) {
     if (!req.url.includes('token=')) {
         return next();
     }
+
+    // req.query is a plain object, copy it to a URLSearchParams object so we can call toString()
+    const searchParams = new URLSearchParams('');
+    Object.keys(req.query).forEach((param) => {
+        // don't copy the token param
+        if (param !== 'token') {
+            searchParams.set(param, req.query[param]);
+        }
+    });
+
+    // We need to include the subdirectory,
+    // members is already removed from the path by express because it's a mount path
+    let redirectPath = `${urlUtils.getSubdir()}${req.path}`;
+
     try {
-        const member = await membersService.ssr.exchangeTokenForSession(req, res);
-        Object.assign(req, {member});
-        next();
+        await membersService.ssr.exchangeTokenForSession(req, res);
+
+        // Do a standard 302 redirect, with success=true
+        searchParams.set('success', true);
     } catch (err) {
-        common.logging.warn(err.message);
-        return next();
+        logging.warn(err.message);
+        searchParams.set('success', false);
+    } finally {
+        res.redirect(`${redirectPath}?${searchParams.toString()}`);
     }
 };
 
-const decorateResponse = function (req, res, next) {
-    res.locals.member = req.member;
-    next();
-};
-
-// @TODO only loads this stuff if members is enabled
 // Set req.member & res.locals.member if a cookie is set
 module.exports = {
-    public: [
-        shared.middlewares.labs.members,
-        shared.middlewares.servePublicFile.createPublicFileMiddleware(
-            'public/members.js',
-            'application/javascript',
-            constants.ONE_YEAR_S
-        )
-    ],
-    publicMinified: [
-        shared.middlewares.labs.members,
-        shared.middlewares.servePublicFile.createPublicFileMiddleware(
-            'public/members.min.js',
-            'application/javascript',
-            constants.ONE_YEAR_S
-        )
-    ],
-    createSessionFromToken: [
-        getMemberDataFromSession,
-        exchangeTokenForSession,
-        decorateResponse
-    ],
-    getIdentityToken: [
-        shared.middlewares.labs.members,
-        getIdentityToken
-    ],
-    deleteSession: [
-        shared.middlewares.labs.members,
-        deleteSession
-    ],
-    stripeWebhooks: [
-        shared.middlewares.labs.members,
-        (req, res, next) => membersService.api.middleware.handleStripeWebhook(req, res, next)
-    ]
+    loadMemberSession,
+    createSessionFromMagicLink,
+    getIdentityToken,
+    getMemberData,
+    getMemberSiteData,
+    deleteSession,
+    stripeWebhooks: (req, res, next) => membersService.api.middleware.handleStripeWebhook(req, res, next)
 };
