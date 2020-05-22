@@ -1,10 +1,12 @@
 const fs = require('fs-extra');
-const express = require('express');
+const express = require('../../../../shared/express');
 const url = require('url');
 const path = require('path');
 const debug = require('ghost-ignition').debug('web:shared:mw:custom-redirects');
 const config = require('../../../config');
-const common = require('../../../lib/common');
+const urlUtils = require('../../../lib/url-utils');
+const errors = require('@tryghost/errors');
+const {logging, i18n} = require('../../../lib/common');
 const redirectsService = require('../../../../frontend/services/redirects');
 
 const _private = {};
@@ -14,7 +16,7 @@ let customRedirectsRouter;
 _private.registerRoutes = () => {
     debug('redirects loading');
 
-    customRedirectsRouter = express.Router();
+    customRedirectsRouter = express.Router('redirects');
 
     try {
         let redirects = fs.readFileSync(path.join(config.getContentPath('data'), 'redirects.json'), 'utf-8');
@@ -50,13 +52,17 @@ _private.registerRoutes = () => {
             debug('register', redirect.from);
             customRedirectsRouter.get(new RegExp(redirect.from, options), function (req, res) {
                 const maxAge = redirect.permanent ? config.get('caching:customRedirects:maxAge') : 0;
-                const fromURL = url.parse(req.originalUrl);
                 const toURL = url.parse(redirect.to);
+                const currentURL = url.parse(req.originalUrl);
 
-                toURL.pathname = (toURL.hostname)
-                    ? toURL.pathname
-                    : fromURL.pathname.replace(new RegExp(redirect.from, options), toURL.pathname);
-                toURL.search = fromURL.search;
+                // if the URL points to an external website, remove Ghost's base path
+                /** @see https://github.com/TryGhost/Ghost/issues/10776 */
+                const currentPath = (toURL.hostname)
+                    ? currentURL.pathname.replace(urlUtils.getSubdir(), '')
+                    : currentURL.pathname;
+
+                toURL.pathname = currentPath.replace(new RegExp(redirect.from, options), toURL.pathname);
+                toURL.search = currentURL.search;
 
                 res.set({
                     'Cache-Control': `public, max-age=${maxAge}`
@@ -66,11 +72,11 @@ _private.registerRoutes = () => {
             });
         });
     } catch (err) {
-        if (common.errors.utils.isIgnitionError(err)) {
-            common.logging.error(err);
+        if (errors.utils.isIgnitionError(err)) {
+            logging.error(err);
         } else if (err.code !== 'ENOENT') {
-            common.logging.error(new common.errors.IncorrectUsageError({
-                message: common.i18n.t('errors.middleware.redirects.register'),
+            logging.error(new errors.IncorrectUsageError({
+                message: i18n.t('errors.middleware.redirects.register'),
                 context: err.message,
                 help: 'https://ghost.org/docs/api/handlebars-themes/routing/redirects/'
             }));

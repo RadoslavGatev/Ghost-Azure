@@ -14,7 +14,7 @@ module.exports = {
     // Init themes module
     // TODO: move this once we're clear what needs to happen here
     init: function initThemes() {
-        var activeThemeName = settingsCache.get('active_theme');
+        const activeThemeName = settingsCache.get('active_theme');
 
         i18n.init();
 
@@ -105,5 +105,6 @@ module.exports = {
             });
     },
     storage: require('./storage'),
-    middleware: require('./middleware')
+    middleware: require('./middleware'),
+    loadCoreHelpers: require('./handlebars/helpers').loadCoreHelpers
 };

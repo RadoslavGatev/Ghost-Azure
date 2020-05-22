@@ -1,37 +1,38 @@
-var common = require('../lib/common'),
-    request = require('../lib/request'),
-    imageLib = require('../lib/image'),
-    urlUtils = require('../lib/url-utils'),
-    urlService = require('../../frontend/services/url'),
-    settingsCache = require('./settings/cache'),
-    schema = require('../data/schema').checks,
-    moment = require('moment'),
+const errors = require('@tryghost/errors');
+const {events, i18n, logging} = require('../lib/common');
+const request = require('../lib/request');
+const imageLib = require('../lib/image');
+const urlUtils = require('../lib/url-utils');
+const urlService = require('../../frontend/services/url');
+const settingsCache = require('./settings/cache');
+const schema = require('../data/schema').checks;
+const moment = require('moment');
 
-    defaultPostSlugs = [
-        'welcome',
-        'the-editor',
-        'using-tags',
-        'managing-users',
-        'private-sites',
-        'advanced-markdown',
-        'themes'
-    ];
+const defaultPostSlugs = [
+    'welcome',
+    'the-editor',
+    'using-tags',
+    'managing-users',
+    'private-sites',
+    'advanced-markdown',
+    'themes'
+];
 
 function getSlackSettings() {
-    var setting = settingsCache.get('slack');
+    const setting = settingsCache.get('slack');
     // This might one day have multiple entries, for now its always a array
     // and we return the first item or an empty object
     return setting ? setting[0] : {};
 }
 
 function ping(post) {
-    let message,
-        title,
-        author,
-        description,
-        slackData = {},
-        slackSettings = getSlackSettings(),
-        blogTitle = settingsCache.get('title');
+    let message;
+    let title;
+    let author;
+    let description;
+    let slackData = {};
+    let slackSettings = getSlackSettings();
+    let blogTitle = settingsCache.get('title');
 
     // If this is a post, we want to send the link of the post
     if (schema.isPost(post)) {
@@ -123,10 +124,10 @@ function ping(post) {
                 'Content-type': 'application/json'
             }
         }).catch(function (err) {
-            common.logging.error(new common.errors.GhostError({
+            logging.error(new errors.GhostError({
                 err: err,
-                context: common.i18n.t('errors.services.ping.requestFailed.error', {service: 'slack'}),
-                help: common.i18n.t('errors.services.ping.requestFailed.help', {url: 'https://ghost.org/docs/'})
+                context: i18n.t('errors.services.ping.requestFailed.error', {service: 'slack'}),
+                help: i18n.t('errors.services.ping.requestFailed.help', {url: 'https://ghost.org/docs/'})
             }));
         });
     }
@@ -149,8 +150,8 @@ function testPing() {
 }
 
 function listen() {
-    common.events.on('post.published', listener);
-    common.events.on('slack.test', testPing);
+    events.on('post.published', listener);
+    events.on('slack.test', testPing);
 }
 
 // Public API

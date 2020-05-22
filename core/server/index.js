@@ -12,7 +12,7 @@ require('./overrides');
 const debug = require('ghost-ignition').debug('boot:init');
 const Promise = require('bluebird');
 const config = require('./config');
-const common = require('./lib/common');
+const {events, i18n, logging} = require('./lib/common');
 const migrator = require('./data/db/migrator');
 const urlUtils = require('./lib/url-utils');
 let parentApp;
@@ -30,12 +30,12 @@ function initialiseServices() {
     // We pass the themeService API version here, so that the frontend services are less tightly-coupled
     routing.bootstrap.start(themeService.getApiVersion());
 
-    const permissions = require('./services/permissions'),
-        xmlrpc = require('./services/xmlrpc'),
-        slack = require('./services/slack'),
-        {mega} = require('./services/mega'),
-        webhooks = require('./services/webhooks'),
-        scheduling = require('./adapters/scheduling');
+    const permissions = require('./services/permissions');
+    const xmlrpc = require('./services/xmlrpc');
+    const slack = require('./services/slack');
+    const {mega} = require('./services/mega');
+    const webhooks = require('./services/webhooks');
+    const scheduling = require('./adapters/scheduling');
 
     debug('`initialiseServices` Start...');
 
@@ -84,7 +84,7 @@ const minimalRequiredSetupToStartGhost = (dbState) => {
     let ghostServer;
 
     // Initialize Ghost core internationalization
-    common.i18n.init();
+    i18n.init();
     debug('Default i18n done for core');
 
     models.init();
@@ -103,7 +103,7 @@ const minimalRequiredSetupToStartGhost = (dbState) => {
         .then(() => {
             debug('Themes done');
 
-            parentApp = require('./web/parent-app')();
+            parentApp = require('./web/parent/app')();
             debug('Express Apps done');
 
             return new GhostServer(parentApp);
@@ -113,7 +113,7 @@ const minimalRequiredSetupToStartGhost = (dbState) => {
 
             // CASE: all good or db was just initialised
             if (dbState === 1 || dbState === 2) {
-                common.events.emit('db.ready');
+                events.emit('db.ready');
 
                 return initialiseServices()
                     .then(() => {
@@ -123,24 +123,24 @@ const minimalRequiredSetupToStartGhost = (dbState) => {
 
             // CASE: migrations required, put blog into maintenance mode
             if (dbState === 4) {
-                common.logging.info('Blog is in maintenance mode.');
+                logging.info('Blog is in maintenance mode.');
 
                 config.set('maintenance:enabled', true);
 
                 migrator.migrate()
                     .then(() => {
-                        common.events.emit('db.ready');
+                        events.emit('db.ready');
                         return initialiseServices();
                     })
                     .then(() => {
                         config.set('maintenance:enabled', false);
-                        common.logging.info('Blog is out of maintenance mode.');
+                        logging.info('Blog is out of maintenance mode.');
                         return GhostServer.announceServerStart();
                     })
                     .catch((err) => {
                         return GhostServer.announceServerStopped(err)
                             .finally(() => {
-                                common.logging.error(err);
+                                logging.error(err);
                                 setTimeout(() => {
                                     process.exit(-1);
                                 }, 100);

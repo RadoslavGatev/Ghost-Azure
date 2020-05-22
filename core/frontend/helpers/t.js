@@ -10,11 +10,11 @@
 // because often other helpers need that (t) returns a string to be able to work as subexpression; e.g.:
 // {{tags prefix=(t " on ")}}
 
-const {themeI18n} = require('./proxy');
+const {themeI18n} = require('../services/proxy');
 
 module.exports = function t(text, options) {
-    var bindings = {},
-        prop;
+    const bindings = {};
+    let prop;
     for (prop in options.hash) {
         if (Object.prototype.hasOwnProperty.call(options.hash, prop)) {
             bindings[prop] = options.hash[prop];

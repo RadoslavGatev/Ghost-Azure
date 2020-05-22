@@ -1,19 +1,17 @@
-const express = require('express');
+const express = require('../../../../../shared/express');
 const apiv2 = require('../../../../api/v2');
 const mw = require('./middleware');
+const apiMw = require('../../middleware');
 
 const shared = require('../../../shared');
 
-// Handling uploads & imports
-const upload = shared.middlewares.upload;
-
 module.exports = function apiRoutes() {
-    const router = express.Router();
+    const router = express.Router('v2 admin');
 
     // alias delete with del
     router.del = router.delete;
 
-    router.use(shared.middlewares.api.cors);
+    router.use(apiMw.cors);
 
     const http = apiv2.http;
 
@@ -54,8 +52,8 @@ module.exports = function apiRoutes() {
     router.get('/settings/routes/yaml', mw.authAdminApi, http(apiv2.settings.download));
     router.post('/settings/routes/yaml',
         mw.authAdminApi,
-        upload.single('routes'),
-        shared.middlewares.validation.upload({type: 'routes'}),
+        apiMw.upload.single('routes'),
+        apiMw.upload.validation({type: 'routes'}),
         http(apiv2.settings.upload)
     );
 
@@ -99,8 +97,8 @@ module.exports = function apiRoutes() {
 
     router.post('/themes/upload',
         mw.authAdminApi,
-        upload.single('file'),
-        shared.middlewares.validation.upload({type: 'themes'}),
+        apiMw.upload.single('file'),
+        apiMw.upload.validation({type: 'themes'}),
         http(apiv2.themes.upload)
     );
 
@@ -123,8 +121,8 @@ module.exports = function apiRoutes() {
     router.get('/db', mw.authAdminApi, http(apiv2.db.exportContent));
     router.post('/db',
         mw.authAdminApi,
-        upload.single('importfile'),
-        shared.middlewares.validation.upload({type: 'db'}),
+        apiMw.upload.single('importfile'),
+        apiMw.upload.validation({type: 'db'}),
         http(apiv2.db.importContent)
     );
     router.del('/db', mw.authAdminApi, http(apiv2.db.deleteAllContent));
@@ -166,9 +164,9 @@ module.exports = function apiRoutes() {
     // ## Images
     router.post('/images/upload',
         mw.authAdminApi,
-        upload.single('file'),
-        shared.middlewares.validation.upload({type: 'images'}),
-        shared.middlewares.image.normalize,
+        apiMw.upload.single('file'),
+        apiMw.upload.validation({type: 'images'}),
+        apiMw.normalizeImage,
         http(apiv2.images.upload)
     );
 
@@ -182,8 +180,8 @@ module.exports = function apiRoutes() {
     router.get('/redirects/json', mw.authAdminApi, http(apiv2.redirects.download));
     router.post('/redirects/json',
         mw.authAdminApi,
-        upload.single('redirects'),
-        shared.middlewares.validation.upload({type: 'redirects'}),
+        apiMw.upload.single('redirects'),
+        apiMw.upload.validation({type: 'redirects'}),
         http(apiv2.redirects.upload)
     );
 

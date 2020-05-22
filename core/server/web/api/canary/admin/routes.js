@@ -1,19 +1,17 @@
-const express = require('express');
+const express = require('../../../../../shared/express');
 const apiCanary = require('../../../../api/canary');
+const apiMw = require('../../middleware');
 const mw = require('./middleware');
 
 const shared = require('../../../shared');
 
-// Handling uploads & imports
-const upload = shared.middlewares.upload;
-
 module.exports = function apiRoutes() {
-    const router = express.Router();
+    const router = express.Router('canary admin');
 
     // alias delete with del
     router.del = router.delete;
 
-    router.use(shared.middlewares.api.cors);
+    router.use(apiMw.cors);
 
     const http = apiCanary.http;
 
@@ -44,6 +42,7 @@ module.exports = function apiRoutes() {
     router.get('/integrations', mw.authAdminApi, http(apiCanary.integrations.browse));
     router.get('/integrations/:id', mw.authAdminApi, http(apiCanary.integrations.read));
     router.post('/integrations', mw.authAdminApi, http(apiCanary.integrations.add));
+    router.post('/integrations/:id/api_key/:keyid/refresh', mw.authAdminApi, http(apiCanary.integrations.edit));
     router.put('/integrations/:id', mw.authAdminApi, http(apiCanary.integrations.edit));
     router.del('/integrations/:id', mw.authAdminApi, http(apiCanary.integrations.destroy));
 
@@ -54,8 +53,8 @@ module.exports = function apiRoutes() {
     router.get('/settings/routes/yaml', mw.authAdminApi, http(apiCanary.settings.download));
     router.post('/settings/routes/yaml',
         mw.authAdminApi,
-        upload.single('routes'),
-        shared.middlewares.validation.upload({type: 'routes'}),
+        apiMw.upload.single('routes'),
+        apiMw.upload.validation({type: 'routes'}),
         http(apiCanary.settings.upload)
     );
 
@@ -91,8 +90,8 @@ module.exports = function apiRoutes() {
     router.post('/members/csv',
         shared.middlewares.labs.members,
         mw.authAdminApi,
-        upload.single('membersfile'),
-        shared.middlewares.validation.upload({type: 'members'}),
+        apiMw.upload.single('membersfile'),
+        apiMw.upload.validation({type: 'members'}),
         http(apiCanary.members.importCSV)
     );
 
@@ -126,8 +125,8 @@ module.exports = function apiRoutes() {
 
     router.post('/themes/upload',
         mw.authAdminApi,
-        upload.single('file'),
-        shared.middlewares.validation.upload({type: 'themes'}),
+        apiMw.upload.single('file'),
+        apiMw.upload.validation({type: 'themes'}),
         http(apiCanary.themes.upload)
     );
 
@@ -150,8 +149,8 @@ module.exports = function apiRoutes() {
     router.get('/db', mw.authAdminApi, http(apiCanary.db.exportContent));
     router.post('/db',
         mw.authAdminApi,
-        upload.single('importfile'),
-        shared.middlewares.validation.upload({type: 'db'}),
+        apiMw.upload.single('importfile'),
+        apiMw.upload.validation({type: 'db'}),
         http(apiCanary.db.importContent)
     );
     router.del('/db', mw.authAdminApi, http(apiCanary.db.deleteAllContent));
@@ -196,9 +195,9 @@ module.exports = function apiRoutes() {
     // ## Images
     router.post('/images/upload',
         mw.authAdminApi,
-        upload.single('file'),
-        shared.middlewares.validation.upload({type: 'images'}),
-        shared.middlewares.image.normalize,
+        apiMw.upload.single('file'),
+        apiMw.upload.validation({type: 'images'}),
+        apiMw.normalizeImage,
         http(apiCanary.images.upload)
     );
 
@@ -212,8 +211,8 @@ module.exports = function apiRoutes() {
     router.get('/redirects/json', mw.authAdminApi, http(apiCanary.redirects.download));
     router.post('/redirects/json',
         mw.authAdminApi,
-        upload.single('redirects'),
-        shared.middlewares.validation.upload({type: 'redirects'}),
+        apiMw.upload.single('redirects'),
+        apiMw.upload.validation({type: 'redirects'}),
         http(apiCanary.redirects.upload)
     );
 

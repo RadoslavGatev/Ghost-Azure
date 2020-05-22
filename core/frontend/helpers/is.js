@@ -1,13 +1,13 @@
 // # Is Helper
 // Usage: `{{#is "paged"}}`, `{{#is "index, paged"}}`
 // Checks whether we're in a given context.
-const {logging, i18n} = require('./proxy');
+const {logging, i18n} = require('../services/proxy');
 const _ = require('lodash');
 
 module.exports = function is(context, options) {
     options = options || {};
 
-    var currentContext = options.data.root.context;
+    const currentContext = options.data.root.context;
 
     if (!_.isString(context)) {
         logging.warn(i18n.t('warnings.helpers.is.invalidAttribute'));

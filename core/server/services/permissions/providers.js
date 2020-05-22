@@ -1,31 +1,38 @@
-var _ = require('lodash'),
-    Promise = require('bluebird'),
-    models = require('../../models'),
-    common = require('../../lib/common');
+const _ = require('lodash');
+const Promise = require('bluebird');
+const models = require('../../models');
+const errors = require('@tryghost/errors');
+const {i18n} = require('../../lib/common');
 
 module.exports = {
     user: function (id) {
-        return models.User.findOne({id: id, status: 'active'}, {withRelated: ['permissions', 'roles', 'roles.permissions']})
+        return models.User.findOne({id: id}, {withRelated: ['permissions', 'roles', 'roles.permissions']})
             .then(function (foundUser) {
-                // CASE: {context: {user: id}} where the id is not in our database
+            // CASE: {context: {user: id}} where the id is not in our database
                 if (!foundUser) {
-                    return Promise.reject(new common.errors.NotFoundError({
-                        message: common.i18n.t('errors.models.user.userNotFound')
+                    return Promise.reject(new errors.NotFoundError({
+                        message: i18n.t('errors.models.user.userNotFound')
                     }));
                 }
 
-                var seenPerms = {},
-                    rolePerms = _.map(foundUser.related('roles').models, function (role) {
-                        return role.related('permissions').models;
-                    }),
-                    allPerms = [],
-                    user = foundUser.toJSON();
+                if (foundUser.get('status') !== 'active') {
+                    return Promise.reject(new errors.UnauthorizedError());
+                }
+
+                const seenPerms = {};
+
+                const rolePerms = _.map(foundUser.related('roles').models, function (role) {
+                    return role.related('permissions').models;
+                });
+
+                const allPerms = [];
+                const user = foundUser.toJSON();
 
                 rolePerms.push(foundUser.related('permissions').models);
 
                 _.each(rolePerms, function (rolePermGroup) {
                     _.each(rolePermGroup, function (perm) {
-                        var key = perm.get('action_type') + '-' + perm.get('object_type') + '-' + perm.get('object_id');
+                        const key = perm.get('action_type') + '-' + perm.get('object_type') + '-' + perm.get('object_id');
 
                         // Only add perms once
                         if (seenPerms[key]) {
@@ -48,8 +55,8 @@ module.exports = {
         return models.ApiKey.findOne({id}, {withRelated: ['role', 'role.permissions']})
             .then((foundApiKey) => {
                 if (!foundApiKey) {
-                    throw new common.errors.NotFoundError({
-                        message: common.i18n.t('errors.models.api_key.apiKeyNotFound')
+                    throw new errors.NotFoundError({
+                        message: i18n.t('errors.models.api_key.apiKeyNotFound')
                     });
                 }
 

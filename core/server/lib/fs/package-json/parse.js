@@ -2,9 +2,10 @@
  * Dependencies
  */
 
-var Promise = require('bluebird'),
-    fs = require('fs-extra'),
-    common = require('../../common');
+const Promise = require('bluebird');
+
+const fs = require('fs-extra');
+const {i18n} = require('../../common');
 
 /**
  * Parse package.json and validate it has
@@ -14,13 +15,15 @@ var Promise = require('bluebird'),
 function parsePackageJson(path) {
     return fs.readFile(path)
         .catch(function () {
-            var err = new Error(common.i18n.t('errors.utils.parsepackagejson.couldNotReadPackage'));
+            const err = new Error(i18n.t('errors.utils.parsepackagejson.couldNotReadPackage'));
             err.context = path;
 
             return Promise.reject(err);
         })
         .then(function (source) {
-            var hasRequiredKeys, json, err;
+            let hasRequiredKeys;
+            let json;
+            let err;
 
             try {
                 json = JSON.parse(source);
@@ -28,18 +31,18 @@ function parsePackageJson(path) {
                 hasRequiredKeys = json.name && json.version;
 
                 if (!hasRequiredKeys) {
-                    err = new Error(common.i18n.t('errors.utils.parsepackagejson.nameOrVersionMissing'));
+                    err = new Error(i18n.t('errors.utils.parsepackagejson.nameOrVersionMissing'));
                     err.context = path;
-                    err.help = common.i18n.t('errors.utils.parsepackagejson.willBeRequired', {url: 'https://ghost.org/docs/api/handlebars-themes/'});
+                    err.help = i18n.t('errors.utils.parsepackagejson.willBeRequired', {url: 'https://ghost.org/docs/api/handlebars-themes/'});
 
                     return Promise.reject(err);
                 }
 
                 return json;
             } catch (parseError) {
-                err = new Error(common.i18n.t('errors.utils.parsepackagejson.themeFileIsMalformed'));
+                err = new Error(i18n.t('errors.utils.parsepackagejson.themeFileIsMalformed'));
                 err.context = path;
-                err.help = common.i18n.t('errors.utils.parsepackagejson.willBeRequired', {url: 'https://ghost.org/docs/api/handlebars-themes/'});
+                err.help = i18n.t('errors.utils.parsepackagejson.willBeRequired', {url: 'https://ghost.org/docs/api/handlebars-themes/'});
 
                 return Promise.reject(err);
             }

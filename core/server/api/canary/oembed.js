@@ -29,8 +29,8 @@ async function fetchBookmarkData(url, html) {
             html = response.body;
         }
         scraperResponse = await metascraper({html, url});
-    } catch (e) {
-        return Promise.reject();
+    } catch (err) {
+        return Promise.reject(err);
     }
 
     const metadata = Object.assign({}, scraperResponse, {
@@ -83,7 +83,7 @@ function unknownProvider(url) {
 }
 
 function knownProvider(url) {
-    return extract(url).catch((err) => {
+    return extract(url, {maxwidth: 1280}).catch((err) => {
         return Promise.reject(new common.errors.InternalServerError({
             message: err.message
         }));
