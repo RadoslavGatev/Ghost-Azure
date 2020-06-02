@@ -1,8 +1,9 @@
 const _ = require('lodash');
 const errors = require('@tryghost/errors');
-const {i18n, logging} = require('../../lib/common');
+const {i18n} = require('../../lib/common');
+const logging = require('../../../shared/logging');
 const mailgunProvider = require('./mailgun');
-const configService = require('../../config');
+const configService = require('../../../shared/config');
 const settingsCache = require('../settings/cache');
 const sentry = require('../../../shared/sentry');
 

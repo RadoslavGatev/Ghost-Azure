@@ -1,13 +1,13 @@
 const models = require('../../models');
 const {i18n} = require('../../lib/common');
 const errors = require('@tryghost/errors');
-const urlUtils = require('../../lib/url-utils');
+const urlUtils = require('../../../shared/url-utils');
 const {mega} = require('../../services/mega');
 const membersService = require('../../services/members');
 const allowedIncludes = ['tags', 'authors', 'authors.roles', 'email'];
 const unsafeAttrs = ['status', 'authors', 'visibility'];
 const _ = require('lodash');
-const config = require('../../config');
+const config = require('../../../shared/config');
 
 module.exports = {
     docName: 'posts',

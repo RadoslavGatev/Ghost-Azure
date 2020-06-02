@@ -6,11 +6,12 @@ const fs = require('fs-extra');
 const path = require('path');
 const Promise = require('bluebird');
 const moment = require('moment');
-const config = require('../../config');
-const {logging, i18n} = require('../../lib/common');
+const config = require('../../../shared/config');
+const {i18n} = require('../../lib/common');
+const logging = require('../../../shared/logging');
 const errors = require('@tryghost/errors');
 const constants = require('../../lib/constants');
-const urlUtils = require('../../lib/url-utils');
+const urlUtils = require('../../../shared/url-utils');
 const StorageBase = require('ghost-storage-base');
 
 class LocalFileStore extends StorageBase {

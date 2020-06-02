@@ -1,7 +1,8 @@
 const _ = require('lodash');
 const debug = require('ghost-ignition').debug('services:url:urls');
-const urlUtils = require('../../../server/lib/url-utils');
-const {logging, events} = require('../../../server/lib/common');
+const {events} = require('../../../server/lib/common');
+const urlUtils = require('../../../shared/url-utils');
+const logging = require('../../../shared/logging');
 const errors = require('@tryghost/errors');
 
 /**

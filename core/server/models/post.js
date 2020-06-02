@@ -8,11 +8,11 @@ const {i18n} = require('../lib/common');
 const errors = require('@tryghost/errors');
 const htmlToText = require('html-to-text');
 const ghostBookshelf = require('./base');
-const config = require('../config');
+const config = require('../../shared/config');
 const settingsCache = require('../services/settings/cache');
 const mobiledocLib = require('../lib/mobiledoc');
 const relations = require('./relations');
-const urlUtils = require('../lib/url-utils');
+const urlUtils = require('../../shared/url-utils');
 const MOBILEDOC_REVISIONS_COUNT = 10;
 const ALL_STATUSES = ['published', 'draft', 'scheduled'];
 

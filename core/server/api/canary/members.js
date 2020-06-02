@@ -3,11 +3,12 @@
 const Promise = require('bluebird');
 const moment = require('moment-timezone');
 const errors = require('@tryghost/errors');
-const config = require('../../config');
+const config = require('../../../shared/config');
 const models = require('../../models');
 const membersService = require('../../services/members');
 const settingsCache = require('../../services/settings/cache');
-const {i18n, logging} = require('../../lib/common');
+const {i18n} = require('../../lib/common');
+const logging = require('../../../shared/logging');
 const fsLib = require('../../lib/fs');
 const db = require('../../data/db');
 const _ = require('lodash');
@@ -104,7 +105,8 @@ const members = {
             'filter',
             'order',
             'debug',
-            'page'
+            'page',
+            'search'
         ],
         permissions: true,
         validation: {},
