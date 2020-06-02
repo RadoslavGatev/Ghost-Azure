@@ -1,9 +1,21 @@
 const MembersSSR = require('@tryghost/members-ssr');
 
+const MembersConfigProvider = require('./config');
 const createMembersApiInstance = require('./api');
-const {events, logging} = require('../../lib/common');
-const urlUtils = require('../../lib/url-utils');
+const {events} = require('../../lib/common');
+const logging = require('../../../shared/logging');
+const urlUtils = require('../../../shared/url-utils');
 const settingsCache = require('../settings/cache');
+const config = require('../../../shared/config');
+const ghostVersion = require('../../lib/ghost-version');
+
+const membersConfig = new MembersConfigProvider({
+    config,
+    settingsCache,
+    urlUtils,
+    logging,
+    ghostVersion
+});
 
 let membersApi;
 
@@ -13,7 +25,7 @@ events.on('settings.edited', function updateSettingFromModel(settingModel) {
         return;
     }
 
-    const reconfiguredMembersAPI = createMembersApiInstance();
+    const reconfiguredMembersAPI = createMembersApiInstance(membersConfig);
     reconfiguredMembersAPI.bus.on('ready', function () {
         membersApi = reconfiguredMembersAPI;
     });
@@ -25,11 +37,11 @@ events.on('settings.edited', function updateSettingFromModel(settingModel) {
 const membersService = {
     contentGating: require('./content-gating'),
 
-    config: require('./config'),
+    config: membersConfig,
 
     get api() {
         if (!membersApi) {
-            membersApi = createMembersApiInstance();
+            membersApi = createMembersApiInstance(membersConfig);
 
             membersApi.bus.on('error', function (err) {
                 logging.error(err);
@@ -44,7 +56,9 @@ const membersService = {
         cookieName: 'ghost-members-ssr',
         cookieCacheName: 'ghost-members-ssr-cache',
         getMembersApi: () => membersService.api
-    })
+    }),
+
+    stripeConnect: require('./stripe-connect')
 };
 
 module.exports = membersService;

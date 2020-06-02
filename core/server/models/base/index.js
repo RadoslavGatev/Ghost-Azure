@@ -13,13 +13,14 @@ const moment = require('moment');
 const Promise = require('bluebird');
 const ObjectId = require('bson-objectid');
 const debug = require('ghost-ignition').debug('models:base');
-const config = require('../../config');
+const config = require('../../../shared/config');
 const db = require('../../data/db');
-const {logging, events, i18n} = require('../../lib/common');
+const {events, i18n} = require('../../lib/common');
+const logging = require('../../../shared/logging');
 const errors = require('@tryghost/errors');
 const security = require('../../lib/security');
 const schema = require('../../data/schema');
-const urlUtils = require('../../lib/url-utils');
+const urlUtils = require('../../../shared/url-utils');
 const validation = require('../../data/validation');
 const plugins = require('../plugins');
 let ghostBookshelf;
@@ -37,6 +38,9 @@ ghostBookshelf.plugin(plugins.transactionEvents);
 
 // Load the Ghost filter plugin, which handles applying a 'filter' to findPage requests
 ghostBookshelf.plugin(plugins.filter);
+
+// Load the Ghost search plugin, which handles applying a search query to findPage requests
+ghostBookshelf.plugin(plugins.search);
 
 // Load the Ghost include count plugin, which allows for the inclusion of cross-table counts
 ghostBookshelf.plugin(plugins.includeCount);
@@ -884,6 +888,9 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
 
         // Add Filter behaviour
         itemCollection.applyDefaultAndCustomFilters(options);
+
+        // Apply model-specific search behaviour
+        itemCollection.applySearchQuery(options);
 
         // Ensure only valid fields/columns are added to query
         // and append default columns to fetch

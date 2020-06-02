@@ -1,9 +1,9 @@
 const _ = require('lodash');
-const {logging} = require('../../lib/common');
-const config = require('../../config');
+const logging = require('../../../shared/logging');
+const config = require('../../../shared/config');
 const labsService = require('../labs');
 const membersService = require('./index');
-const urlUtils = require('../../lib/url-utils');
+const urlUtils = require('../../../shared/url-utils');
 const ghostVersion = require('../../lib/ghost-version');
 const settingsCache = require('../settings/cache');
 const {formattedMemberResponse} = require('./utils');
@@ -68,7 +68,7 @@ const getMemberData = async function (req, res) {
 
 const updateMemberData = async function (req, res) {
     try {
-        const data = _.pick(req.body, 'email', 'name', 'subscribed');
+        const data = _.pick(req.body, 'name', 'subscribed');
         const member = await membersService.ssr.getMemberDataFromSession(req, res);
         if (member) {
             const updatedMember = await membersService.api.members.update(data, {id: member.id});
