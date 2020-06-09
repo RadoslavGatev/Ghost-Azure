@@ -351,6 +351,7 @@
             "settings": {
                 "problemFindingSetting": "Problem finding setting: {key}",
                 "accessCoreSettingFromExtReq": "Attempted to access core setting from external request",
+                "invalidEmailReceived": "Please send a valid email",
                 "activeThemeSetViaAPI": {
                     "error": "Attempted to change active_theme via settings API",
                     "help": "Please activate theme via the themes API endpoints instead"
@@ -367,13 +368,18 @@
             },
             "members": {
                 "memberNotFound": "Member not found.",
-                "memberAlreadyExists": "Email address is already member."
+                "memberAlreadyExists": "Email address is already member.",
+                "stripeCustomerNotFound": {
+                    "context": "The customer does not exist in currently linked Stripe account.",
+                    "help": "Connect the correct Stripe account, and re-run the import."
+                }
             },
             "tags": {
                 "tagNotFound": "Tag not found."
             },
             "labels": {
-                "labelNotFound": "Label not found."
+                "labelNotFound": "Label not found.",
+                "labelAlreadyExists": "Label already exists"
             },
             "themes": {
                 "noPermissionToBrowseThemes": "You do not have permission to browse themes.",
@@ -433,6 +439,7 @@
             },
             "oembed": {
                 "noUrlProvided": "No url provided.",
+                "insufficientMetadata": "URL contains insufficient metadata for bookmark card.",
                 "unknownProvider": "No provider found for supplied URL."
             },
             "userMessages": {
