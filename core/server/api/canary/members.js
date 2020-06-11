@@ -67,7 +67,11 @@ const sanitizeInput = (members) => {
 };
 
 function serializeMemberLabels(labels) {
-    if (labels) {
+    if (_.isString(labels)) {
+        return [{
+            name: labels.trim()
+        }];
+    } else if (labels) {
         return labels.filter((label) => {
             return !!label;
         }).map((label) => {
@@ -94,6 +98,27 @@ const listMembers = async function (options) {
         members: members,
         meta: res.meta
     };
+};
+
+const createLabels = async (labels, options) => {
+    const api = require('./index');
+
+    return await Promise.all(labels.map((label) => {
+        return api.labels.add.query({
+            data: {
+                labels: [label]
+            },
+            options: {
+                context: options.context
+            }
+        }).catch((error) => {
+            if (error.errorType === 'ValidationError') {
+                return;
+            }
+
+            throw error;
+        });
+    }));
 };
 
 const members = {
@@ -165,6 +190,14 @@ const members = {
                 const member = model.toJSON(frame.options);
 
                 if (frame.data.members[0].stripe_customer_id) {
+                    if (!membersService.config.isStripeConnected()) {
+                        throw new errors.ValidationError({
+                            message: i18n.t('errors.api.members.stripeNotConnected.message'),
+                            context: i18n.t('errors.api.members.stripeNotConnected.context'),
+                            help: i18n.t('errors.api.members.stripeNotConnected.help')
+                        });
+                    }
+
                     await membersService.api.members.linkStripeCustomer(frame.data.members[0].stripe_customer_id, member);
                 }
 
@@ -183,7 +216,14 @@ const members = {
                 }
 
                 // NOTE: failed to link Stripe customer/plan/subscription
-                if (model && error.message && (error.message.indexOf('customer') || error.message.indexOf('plan') || error.message.indexOf('subscription'))) {
+                const isStripeLinkingError = error.message && error.message.match(/customer|plan|subscription|Stripe account/g);
+                if (model && isStripeLinkingError) {
+                    if (error.message.indexOf('customer') && error.code === 'resource_missing') {
+                        error.message = `Member not imported, ${error.message}`;
+                        error.context = i18n.t('errors.api.members.stripeCustomerNotFound.context');
+                        error.help = i18n.t('errors.api.members.stripeCustomerNotFound.help');
+                    }
+
                     const api = require('./index');
 
                     await api.members.destroy.query({
@@ -341,6 +381,11 @@ const members = {
                 lookup: /created_at/i
             }];
 
+            // NOTE: custom labels have to be created in advance otherwise there are conflicts
+            //       when processing member creation in parallel later on in import process
+            const importSetLabels = serializeMemberLabels(frame.data.labels);
+            await createLabels(importSetLabels, frame.options);
+
             return fsLib.readCSV({
                 path: filePath,
                 columnsToExtract: columnsToExtract
@@ -352,6 +397,8 @@ const members = {
                     const api = require('./index');
                     entry.labels = (entry.labels && entry.labels.split(',')) || [];
                     const entryLabels = serializeMemberLabels(entry.labels);
+                    const mergedLabels = _.unionBy(entryLabels, importSetLabels, 'name');
+
                     cleanupUndefined(entry);
 
                     let subscribed;
@@ -370,7 +417,7 @@ const members = {
                                 subscribed: subscribed,
                                 stripe_customer_id: entry.stripe_customer_id,
                                 comped: (String(entry.complimentary_plan).toLocaleLowerCase() === 'true'),
-                                labels: entryLabels,
+                                labels: mergedLabels,
                                 created_at: entry.created_at === '' ? undefined : entry.created_at
                             }]
                         },
@@ -384,15 +431,16 @@ const members = {
                         if (inspection.isFulfilled()) {
                             fulfilled = fulfilled + 1;
                         } else {
-                            if (inspection.reason() instanceof errors.ValidationError) {
+                            const error = inspection.reason();
+                            if (error instanceof errors.ValidationError && !(error.message.match(/Stripe/g))) {
                                 duplicates = duplicates + 1;
                             } else {
                                 // NOTE: if the error happens as a result of pure API call it doesn't get logged anywhere
                                 //       for this reason we have to make sure any unexpected errors are logged here
-                                if (Array.isArray(inspection.reason())) {
-                                    logging.error(inspection.reason()[0]);
+                                if (Array.isArray(error)) {
+                                    logging.error(error[0]);
                                 } else {
-                                    logging.error(inspection.reason());
+                                    logging.error(error);
                                 }
 
                                 invalid = invalid + 1;

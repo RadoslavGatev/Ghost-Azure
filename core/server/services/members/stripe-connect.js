@@ -4,7 +4,8 @@ const {URL} = require('url');
 
 const STATE_PROP = 'stripe-connect-state';
 
-const clientID = 'ca_8LBuZWhYshxF0A55KgCXu8PRTquCKC5x';
+const liveClientID = 'ca_8LBuZWhYshxF0A55KgCXu8PRTquCKC5x';
+const testClientID = 'ca_8LBum4Ctv3mmJ1oD0ZRmxjdAhNrrBUy3';
 const redirectURI = 'https://stripe.ghost.org';
 
 /**
@@ -12,13 +13,20 @@ const redirectURI = 'https://stripe.ghost.org';
  * @desc Returns a url for the auth endpoint for Stripe Connect, generates state and stores it on the session.
  *
  * @param {(prop: string, val: any) => Promise<void>} setSessionProp - A function to set data on the current session
+ * @param {'live' | 'test'} mode - Which stripe mode to set up
  *
  * @returns {Promise<URL>}
  */
-async function getStripeConnectOAuthUrl(setSessionProp) {
-    const state = randomBytes(16).toString('hex');
+async function getStripeConnectOAuthUrl(setSessionProp, mode = 'live') {
+    const randomState = randomBytes(16).toString('hex');
+    const state = Buffer.from(JSON.stringify({
+        mode,
+        randomState
+    })).toString('base64');
 
     await setSessionProp(STATE_PROP, state);
+
+    const clientID = mode === 'live' ? liveClientID : testClientID;
 
     const authUrl = new URL('https://connect.stripe.com/oauth/authorize');
     authUrl.searchParams.set('response_type', 'code');
@@ -51,7 +59,9 @@ async function getStripeConnectTokenData(encodedData, getSessionProp) {
     return {
         public_key: data.p,
         secret_key: data.a,
-        livemode: data.l
+        livemode: data.l,
+        display_name: data.n,
+        account_id: data.i
     };
 }
 
