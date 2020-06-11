@@ -451,17 +451,7 @@
     "@tryghost/kg-markdown-html-renderer" "^2.0.1"
     "@tryghost/url-utils" "^0.6.14"
 
-"@tryghost/kg-markdown-html-renderer@2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@tryghost/kg-markdown-html-renderer/-/kg-markdown-html-renderer-2.0.0.tgz#a54e571dff69aa25a4af4345fd290eb7f60848a9"
-  integrity sha512-bIh0te/NBgb9ZP12a6CDYQR92zD7mFINNW8MJEleYQEinJT38PSRborKDtcXID4yTVCY44n2ux5FnSSFi1XChg==
-  dependencies:
-    markdown-it "^11.0.0"
-    markdown-it-footnote "^3.0.2"
-    markdown-it-lazy-headers "^0.1.3"
-    markdown-it-mark "^3.0.0"
-
-"@tryghost/kg-markdown-html-renderer@^2.0.1":
+"@tryghost/kg-markdown-html-renderer@2.0.1", "@tryghost/kg-markdown-html-renderer@^2.0.1":
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/@tryghost/kg-markdown-html-renderer/-/kg-markdown-html-renderer-2.0.1.tgz#2932b540c743aa59554f427b7debee527763d700"
   integrity sha512-NWRMnpcmqsLsjylqS6+EclLP0+mlAmCT1pjwcehlp+P8UWfWopwdOEOgfQO0lYOxlq3LIj2vfarXxEJoTV43GA==
@@ -471,10 +461,10 @@
     markdown-it-lazy-headers "^0.1.3"
     markdown-it-mark "^3.0.0"
 
-"@tryghost/kg-mobiledoc-html-renderer@3.0.0":
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/@tryghost/kg-mobiledoc-html-renderer/-/kg-mobiledoc-html-renderer-3.0.0.tgz#06e529bc83aeeae658a5d98d8c7011e8461ad5c9"
-  integrity sha512-ziatszJCXvYA30xFtuNxm7PDvZfIMHEjU+iUoMfn4WznkC2rYyHYMemCFzt6v4WcjAZV1aZW8mQ1vQQ5AXV1cQ==
+"@tryghost/kg-mobiledoc-html-renderer@3.0.1":
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/@tryghost/kg-mobiledoc-html-renderer/-/kg-mobiledoc-html-renderer-3.0.1.tgz#b9aef8dec965f5f90eab8a530f44cc4e26cd305a"
+  integrity sha512-ss4EIv/g9Ezn7wuPyI0tyEgZK2lDbKZ0WLQDM2HjnQwayKCMna/p6DQNPNXneYOj3qN4xx/9dvd/+oJlS0fnFA==
   dependencies:
     mobiledoc-dom-renderer "^0.7.0"
     simple-dom "^1.4.0"
