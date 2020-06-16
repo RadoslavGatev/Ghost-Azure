@@ -216,15 +216,15 @@ Post = ghostBookshelf.Model.extend({
          * For the reason above, `detached` handler is using the scope of `detaching`
          * to access the models that are not present in `detached`.
          */
-        model.related('tags').once('detaching', function onDetached(collection, tag) {
-            model.related('tags').once('detached', function onDetached(detachedCollection, response, options) {
+        model.related('tags').once('detaching', function detachingTags(collection, tag) {
+            model.related('tags').once('detached', function detachedTags(detachedCollection, response, options) {
                 tag.emitChange('detached', options);
                 model.emitChange('tag.detached', options);
             });
         });
 
-        model.related('tags').once('attaching', function onDetached(collection, tags) {
-            model.related('tags').once('attached', function onDetached(detachedCollection, response, options) {
+        model.related('tags').once('attaching', function tagsAttaching(collection, tags) {
+            model.related('tags').once('attached', function tagsAttached(detachedCollection, response, options) {
                 tags.forEach((tag) => {
                     tag.emitChange('attached', options);
                     model.emitChange('tag.attached', options);
@@ -232,14 +232,14 @@ Post = ghostBookshelf.Model.extend({
             });
         });
 
-        model.related('authors').once('detaching', function onDetached(collection, author) {
-            model.related('authors').once('detached', function onDetached(detachedCollection, response, options) {
+        model.related('authors').once('detaching', function authorsDetaching(collection, author) {
+            model.related('authors').once('detached', function authorsDetached(detachedCollection, response, options) {
                 author.emitChange('detached', options);
             });
         });
 
-        model.related('authors').once('attaching', function onDetached(collection, authors) {
-            model.related('authors').once('attached', function onDetached(detachedCollection, response, options) {
+        model.related('authors').once('attaching', function authorsAttaching(collection, authors) {
+            model.related('authors').once('attached', function authorsAttached(detachedCollection, response, options) {
                 authors.forEach(author => author.emitChange('attached', options));
             });
         });
@@ -389,24 +389,29 @@ Post = ghostBookshelf.Model.extend({
             }
         };
 
-        Object.entries(urlTransformMap).forEach(([attr, transform]) => {
+        Object.entries(urlTransformMap).forEach(([attrToTransform, transform]) => {
             let method = transform;
-            let options = {};
+            let transformOptions = {};
 
             if (typeof transform === 'object') {
                 method = transform.method;
-                options = transform.options || {};
+                transformOptions = transform.options || {};
             }
 
-            if (this.hasChanged(attr) && this.get(attr)) {
-                const transformedValue = urlUtils[method](this.get(attr), options);
-                this.set(attr, transformedValue);
+            if (this.hasChanged(attrToTransform) && this.get(attrToTransform)) {
+                const transformedValue = urlUtils[method](this.get(attrToTransform), transformOptions);
+                this.set(attrToTransform, transformedValue);
             }
         });
 
         // CASE: mobiledoc has changed, generate html
+        // CASE: ?force_rerender=true passed via Admin API
         // CASE: html is null, but mobiledoc exists (only important for migrations & importing)
-        if (this.hasChanged('mobiledoc') || (!this.get('html') && (options.migrating || options.importing))) {
+        if (
+            this.hasChanged('mobiledoc')
+            || options.force_rerender
+            || (!this.get('html') && (options.migrating || options.importing))
+        ) {
             try {
                 this.set('html', mobiledocLib.mobiledocHtmlRenderer.render(JSON.parse(this.get('mobiledoc'))));
             } catch (err) {
@@ -488,7 +493,7 @@ Post = ghostBookshelf.Model.extend({
                         // After the new slug is found, do another generate for the old title to compare it to the old slug
                         return ghostBookshelf.Model.generateSlug(Post, prevTitle,
                             {status: 'all', transacting: options.transacting, importing: options.importing}
-                        ).then(function then(prevTitleSlug) {
+                        ).then(function prevTitleSlugGenerated(prevTitleSlug) {
                             // If the old slug is the same as the slug that was generated from the old title
                             // then set a new slug. If it is not the same, means was set by the user
                             if (prevTitleSlug === prevSlug) {
@@ -781,7 +786,7 @@ Post = ghostBookshelf.Model.extend({
             findPage: ['status'],
             findAll: ['columns', 'filter'],
             destroy: ['destroyAll', 'destroyBy'],
-            edit: ['filter', 'send_email_when_published']
+            edit: ['filter', 'send_email_when_published', 'force_rerender']
         };
 
         // The post model additionally supports having a formats option

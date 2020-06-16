@@ -50,11 +50,18 @@ const privateBlogging = {
     },
 
     filterPrivateRoutes: function filterPrivateRoutes(req, res, next) {
-        if (!res.isPrivateBlog || req.url.lastIndexOf(privateRoute, 0) === 0) {
+        // If this site is not in private mode, skip
+        if (!res.isPrivateBlog) {
             return next();
         }
 
-        if (req.url.lastIndexOf('/robots.txt', 0) === 0) {
+        // CASE: this is the /private/ page, continue (allow this to be rendered)
+        if (req.path === `${privateRoute}`) {
+            return next();
+        }
+
+        // CASE: this is the robots.txt file, serve a special private version
+        if (req.path === '/robots.txt') {
             return fs.readFile(path.resolve(__dirname, '../', 'robots.txt'), function readFile(err, buf) {
                 if (err) {
                     return next(err);
@@ -71,9 +78,9 @@ const privateBlogging = {
         }
 
         // CASE: Allow private RSS feed urls.
-        // Any url which contains the hash and the postfix /rss is allowed to access a private rss feed without
-        // a session. As soon as a path matches, we rewrite the url. Even Express uses rewriting when using `app.use()`.
-        if (req.url.indexOf(settingsCache.get('public_hash') + '/rss') !== -1) {
+        // If the path matches the private rss feed URL we rewrite the url. Even Express uses rewriting when using `app.use()`.
+        let isPrivateRSS = new RegExp(`/${settingsCache.get('public_hash')}/rss(/)?$`);
+        if (isPrivateRSS.test(req.path)) {
             req.url = req.url.replace(settingsCache.get('public_hash') + '/', '');
             return next();
         }
@@ -81,7 +88,7 @@ const privateBlogging = {
         // NOTE: Redirect to /private if the session does not exist.
         privateBlogging.authenticatePrivateSession(req, res, function onSessionVerified() {
             // CASE: RSS is disabled for private blogging e.g. they create overhead
-            if (req.path.match(/\/rss(\/?|\/\d+\/?)$/)) {
+            if (req.path.match(/\/rss\/$/)) {
                 return next(new errors.NotFoundError({
                     message: i18n.t('errors.errors.pageNotFound')
                 }));
@@ -95,19 +102,19 @@ const privateBlogging = {
         const hash = req.session.token || '';
         const salt = req.session.salt || '';
         const isVerified = verifySessionHash(salt, hash);
-        let url;
 
         if (isVerified) {
             return next();
         } else {
-            url = urlUtils.urlFor({relativeUrl: privateRoute});
-            url += '?r=' + encodeURIComponent(req.url);
-            return res.redirect(url);
+            let redirectUrl = urlUtils.urlFor({relativeUrl: privateRoute});
+            redirectUrl += '?r=' + encodeURIComponent(req.url);
+
+            return res.redirect(redirectUrl);
         }
     },
 
     // This is here so a call to /private/ after a session is verified will redirect to home;
-    isPrivateSessionAuth: function isPrivateSessionAuth(req, res, next) {
+    redirectPrivateToHomeIfLoggedIn: function redirectPrivateToHomeIfLoggedIn(req, res, next) {
         if (!res.isPrivateBlog) {
             return res.redirect(urlUtils.urlFor('home', true));
         }
@@ -124,7 +131,7 @@ const privateBlogging = {
         }
     },
 
-    authenticateProtection: function authenticateProtection(req, res, next) {
+    doLoginToPrivateSite: function doLoginToPrivateSite(req, res, next) {
         // if errors have been generated from the previous call
         if (res.error) {
             return next();
@@ -148,6 +155,27 @@ const privateBlogging = {
             };
             return next();
         }
+    },
+
+    /**
+     * We should never render a 404 error for private sites, as these can leak information
+     */
+    handle404: function handle404(err, req, res, next) {
+        // CASE: not a private site, skip to next handler
+        if (!res.isPrivateBlog) {
+            return next(err);
+        }
+
+        // CASE: not a private 404, something else went wrong, show an error
+        if (err.statusCode !== 404) {
+            return next(err);
+        }
+
+        // CASE: 404 - redirect this page back to /private/ if the user isn't verified
+        return privateBlogging.authenticatePrivateSession(req, res, function onSessionVerified() {
+            // CASE: User is logged in, render an error
+            return next(err);
+        });
     }
 };
 
