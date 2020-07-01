@@ -37,21 +37,15 @@ function finaliseStructuredData(metaData) {
 }
 
 function getMembersHelper() {
-    const stripePaymentProcessor = settingsCache.get('members_subscription_settings').paymentProcessors.find(
-        paymentProcessor => paymentProcessor.adapter === 'stripe'
-    );
-    const stripeSecretToken = stripePaymentProcessor.config.secret_token;
-    const stripePublicToken = stripePaymentProcessor.config.public_token;
-
-    const stripeConnectIntegration = settingsCache.get('stripe_connect_integration');
+    const stripeDirectSecretKey = settingsCache.get('stripe_secret_key');
+    const stripeDirectPublishableKey = settingsCache.get('stripe_publishable_key');
+    const stripeConnectAccountId = settingsCache.get('stripe_connect_account_id');
 
     let membersHelper = `<script defer src="${getAssetUrl('public/members.js', true)}"></script>`;
     if (config.get('enableDeveloperExperiments')) {
-        const siteUrl = urlUtils.getSiteUrl().replace(/\/$/, '');
-        membersHelper = `<meta name="ghost:site" content='${siteUrl}' />`;
-        membersHelper += `<script defer src="https://unpkg.com/@tryghost/members-js@latest/umd/members.min.js"></script>`;
+        membersHelper += `<script defer src="https://unpkg.com/@tryghost/members-js@latest/umd/members.min.js" data-ghost="${urlUtils.getSiteUrl()}"></script>`;
     }
-    if ((!!stripeSecretToken && !!stripePublicToken) || !!stripeConnectIntegration.account_id) {
+    if ((!!stripeDirectSecretKey && !!stripeDirectPublishableKey) || !!stripeConnectAccountId) {
         membersHelper += '<script src="https://js.stripe.com/v3/"></script>';
     }
     return membersHelper;
@@ -105,7 +99,7 @@ module.exports = function ghost_head(options) { // eslint-disable-line camelcase
     const context = dataRoot._locals.context ? dataRoot._locals.context : null;
     const safeVersion = dataRoot._locals.safeVersion;
     const postCodeInjection = dataRoot && dataRoot.post ? dataRoot.post.codeinjection_head : null;
-    const globalCodeinjection = settingsCache.get('ghost_head');
+    const globalCodeinjection = settingsCache.get('codeinjection_head');
     const useStructuredData = !config.isPrivacyDisabled('useStructuredData');
     const referrerPolicy = config.get('referrerPolicy') ? config.get('referrerPolicy') : 'no-referrer-when-downgrade';
     const favicon = blogIcon.getIconUrl();
@@ -132,7 +126,11 @@ module.exports = function ghost_head(options) { // eslint-disable-line camelcase
                     head.push('<meta name="description" content="' + escapeExpression(metaData.metaDescription) + '" />');
                 }
 
-                head.push('<link rel="shortcut icon" href="' + favicon + '" type="image/' + iconType + '" />');
+                // no output in head if a publication icon is not set
+                if (settingsCache.get('icon')) {
+                    head.push('<link rel="icon" href="' + favicon + '" type="image/' + iconType + '" />');
+                }
+
                 head.push('<link rel="canonical" href="' +
                     escapeExpression(metaData.canonicalUrl) + '" />');
                 head.push('<meta name="referrer" content="' + referrerPolicy + '" />');

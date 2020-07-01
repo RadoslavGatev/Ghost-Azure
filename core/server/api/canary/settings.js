@@ -8,17 +8,11 @@ const {BadRequestError, NoPermissionError, NotFoundError} = require('@tryghost/e
 const settingsCache = require('../../services/settings/cache');
 const membersService = require('../../services/members');
 
-const SETTINGS_BLACKLIST = [
-    'members_public_key',
-    'members_private_key',
-    'members_session_secret'
-];
-
 module.exports = {
     docName: 'settings',
 
     browse: {
-        options: ['type'],
+        options: ['type', 'group'],
         permissions: true,
         query(frame) {
             let settings = settingsCache.getAll();
@@ -26,16 +20,15 @@ module.exports = {
             // CASE: no context passed (functional call)
             if (!frame.options.context) {
                 return Promise.resolve(settings.filter((setting) => {
-                    return setting.type === 'blog';
+                    return setting.group === 'site';
                 }));
             }
 
             // CASE: omit core settings unless internal request
             if (!frame.options.context.internal) {
                 settings = _.filter(settings, (setting) => {
-                    const isCore = setting.type === 'core';
-                    const isBlacklisted = SETTINGS_BLACKLIST.includes(setting.key);
-                    return !isBlacklisted && !isCore;
+                    const isCore = setting.group === 'core';
+                    return !isCore;
                 });
             }
 
@@ -69,7 +62,7 @@ module.exports = {
             }
 
             // @TODO: handle in settings model permissible fn
-            if (setting.type === 'core' && !(frame.options.context && frame.options.context.internal)) {
+            if (setting.group === 'core' && !(frame.options.context && frame.options.context.internal)) {
                 return Promise.reject(new NoPermissionError({
                     message: i18n.t('errors.api.settings.accessCoreSettingFromExtReq')
                 }));
@@ -99,12 +92,9 @@ module.exports = {
                 try {
                     const updatedFromAddress = membersService.settings.getEmailFromToken({token: frame.options.token});
                     if (updatedFromAddress) {
-                        let subscriptionSetting = settingsCache.get('members_subscription_settings', {resolve: false});
-                        const settingsValue = subscriptionSetting.value ? JSON.parse(subscriptionSetting.value) : {};
-                        settingsValue.fromAddress = updatedFromAddress;
                         return models.Settings.edit({
-                            key: 'members_subscription_settings',
-                            value: JSON.stringify(settingsValue)
+                            key: 'members_from_address',
+                            value: updatedFromAddress
                         }).then(() => {
                             // Redirect to Ghost-Admin settings page
                             const adminLink = membersService.settings.getAdminRedirectLink();
@@ -162,10 +152,22 @@ module.exports = {
                 });
             }
 
-            return models.Settings.edit({
-                key: 'stripe_connect_integration',
-                value: '{}'
-            }, frame.options);
+            return models.Settings.edit([{
+                key: 'stripe_connect_publishable_key',
+                value: null
+            }, {
+                key: 'stripe_connect_secret_key',
+                value: null
+            }, {
+                key: 'stripe_connect_livemode',
+                value: null
+            }, {
+                key: 'stripe_connect_display_name',
+                value: null
+            }, {
+                key: 'stripe_connect_account_id',
+                value: null
+            }], frame.options);
         }
     },
 
@@ -182,7 +184,7 @@ module.exports = {
                     return;
                 }
 
-                const firstCoreSetting = frame.data.settings.find(setting => setting.type === 'core');
+                const firstCoreSetting = frame.data.settings.find(setting => setting.group === 'core');
                 if (firstCoreSetting) {
                     throw new NoPermissionError({
                         message: i18n.t('errors.api.settings.accessCoreSettingFromExtReq')
@@ -193,10 +195,16 @@ module.exports = {
         async query(frame) {
             const stripeConnectIntegrationToken = frame.data.settings.find(setting => setting.key === 'stripe_connect_integration_token');
 
-            // The `stripe_connect_integration_token` "setting" is only used to set the `stripe_connect_integration` setting.
-            // The `stripe_connect_integration` setting is not allowed to be set directly.
+            // The `stripe_connect_integration_token` "setting" is only used to set the `stripe_connect_*` settings.
             const settings = frame.data.settings.filter((setting) => {
-                return !['stripe_connect_integration', 'stripe_connect_integration_token'].includes(setting.key);
+                return ![
+                    'stripe_connect_integration_token',
+                    'stripe_connect_publishable_key',
+                    'stripe_connect_secret_key',
+                    'stripe_connect_livemode',
+                    'stripe_connect_account_id',
+                    'stripe_connect_display_name'
+                ].includes(setting.key);
             });
 
             const getSetting = setting => settingsCache.get(setting.key, {resolve: false});
@@ -212,7 +220,7 @@ module.exports = {
             }
 
             if (!(frame.options.context && frame.options.context.internal)) {
-                const firstCoreSetting = settings.find(setting => getSetting(setting).type === 'core');
+                const firstCoreSetting = settings.find(setting => getSetting(setting).group === 'core');
                 if (firstCoreSetting) {
                     throw new NoPermissionError({
                         message: i18n.t('errors.api.settings.accessCoreSettingFromExtReq')
@@ -225,8 +233,24 @@ module.exports = {
                 try {
                     const data = await membersService.stripeConnect.getStripeConnectTokenData(stripeConnectIntegrationToken.value, getSessionProp);
                     settings.push({
-                        key: 'stripe_connect_integration',
-                        value: JSON.stringify(data)
+                        key: 'stripe_connect_publishable_key',
+                        value: data.public_key
+                    });
+                    settings.push({
+                        key: 'stripe_connect_secret_key',
+                        value: data.secret_key
+                    });
+                    settings.push({
+                        key: 'stripe_connect_livemode',
+                        value: data.livemode
+                    });
+                    settings.push({
+                        key: 'stripe_connect_display_name',
+                        value: data.display_name
+                    });
+                    settings.push({
+                        key: 'stripe_connect_account_id',
+                        value: data.account_id
                     });
                 } catch (err) {
                     throw new BadRequestError({

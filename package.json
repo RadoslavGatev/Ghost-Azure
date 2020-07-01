@@ -1,6 +1,6 @@
 {
   "name": "ghost",
-  "version": "3.21.0",
+  "version": "3.22.1",
   "description": "The professional publishing platform",
   "author": "Ghost Foundation",
   "homepage": "https://ghost.org",
@@ -40,14 +40,14 @@
   },
   "dependencies": {
     "@nexes/nql": "0.4.0",
-    "@sentry/node": "5.17.0",
+    "@sentry/node": "5.18.1",
     "@tryghost/adapter-manager": "0.1.6",
     "@tryghost/errors": "0.2.0",
     "@tryghost/helpers": "1.1.27",
     "@tryghost/image-transform": "0.2.4",
     "@tryghost/kg-card-factory": "2.1.1",
     "@tryghost/kg-default-atoms": "2.0.1",
-    "@tryghost/kg-default-cards": "2.3.1",
+    "@tryghost/kg-default-cards": "2.3.2",
     "@tryghost/kg-markdown-html-renderer": "2.0.1",
     "@tryghost/kg-mobiledoc-html-renderer": "3.0.1",
     "@tryghost/magic-link": "0.4.9",
@@ -138,7 +138,7 @@
   "devDependencies": {
     "@lodder/grunt-postcss": "2.0.4",
     "cssnano": "4.1.10",
-    "eslint": "7.3.0",
+    "eslint": "7.3.1",
     "eslint-plugin-ghost": "1.5.0",
     "grunt": "1.1.0",
     "grunt-bg-shell": "2.3.3",

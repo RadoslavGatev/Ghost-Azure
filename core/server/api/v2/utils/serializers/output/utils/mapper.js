@@ -84,6 +84,19 @@ const mapPost = (model, frame) => {
 const mapSettings = (attrs, frame) => {
     url.forSettings(attrs);
     extraAttrs.forSettings(attrs, frame);
+
+    if (_.isArray(attrs)) {
+        attrs = _.filter(attrs, (o) => {
+            return o.key !== 'lang' && o.key !== 'timezone' && o.key !== 'accent_color';
+        });
+    } else {
+        delete attrs.lang;
+        delete attrs.timezone;
+        delete attrs.codeinjection_head;
+        delete attrs.codeinjection_foot;
+        delete attrs.accent_color;
+    }
+
     return attrs;
 };
 
