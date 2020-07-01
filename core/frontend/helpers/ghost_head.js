@@ -37,19 +37,15 @@ function finaliseStructuredData(metaData) {
 }
 
 function getMembersHelper() {
-    const stripePaymentProcessor = settingsCache.get('members_subscription_settings').paymentProcessors.find(
-        paymentProcessor => paymentProcessor.adapter === 'stripe'
-    );
-    const stripeSecretToken = stripePaymentProcessor.config.secret_token;
-    const stripePublicToken = stripePaymentProcessor.config.public_token;
-
-    const stripeConnectIntegration = settingsCache.get('stripe_connect_integration');
+    const stripeDirectSecretKey = settingsCache.get('stripe_secret_key');
+    const stripeDirectPublishableKey = settingsCache.get('stripe_publishable_key');
+    const stripeConnectAccountId = settingsCache.get('stripe_connect_account_id');
 
     let membersHelper = `<script defer src="${getAssetUrl('public/members.js', true)}"></script>`;
     if (config.get('enableDeveloperExperiments')) {
         membersHelper += `<script defer src="https://unpkg.com/@tryghost/members-js@latest/umd/members.min.js" data-ghost="${urlUtils.getSiteUrl()}"></script>`;
     }
-    if ((!!stripeSecretToken && !!stripePublicToken) || !!stripeConnectIntegration.account_id) {
+    if ((!!stripeDirectSecretKey && !!stripeDirectPublishableKey) || !!stripeConnectAccountId) {
         membersHelper += '<script src="https://js.stripe.com/v3/"></script>';
     }
     return membersHelper;
@@ -129,8 +125,12 @@ module.exports = function ghost_head(options) { // eslint-disable-line camelcase
                 if (metaData.metaDescription && metaData.metaDescription.length > 0) {
                     head.push('<meta name="description" content="' + escapeExpression(metaData.metaDescription) + '" />');
                 }
+                
+                // no output in head if a publication icon is not set
+                if (settingsCache.get('icon')) {
+                    head.push('<link rel="icon" href="' + favicon + '" type="image/' + iconType + '" />');
+                }
 
-                head.push('<link rel="shortcut icon" href="' + favicon + '" type="image/' + iconType + '" />');
                 head.push('<link rel="canonical" href="' +
                     escapeExpression(metaData.canonicalUrl) + '" />');
                 head.push('<meta name="referrer" content="' + referrerPolicy + '" />');

@@ -225,11 +225,16 @@ const members = {
                 return decorateWithSubscriptions(member);
             } catch (error) {
                 if (error.code && error.message.toLowerCase().indexOf('unique') !== -1) {
-                    throw new errors.ValidationError({message: i18n.t('errors.api.members.memberAlreadyExists')});
+                    throw new errors.ValidationError({
+                        message: i18n.t('errors.api.members.memberAlreadyExists.message'),
+                        context: i18n.t('errors.api.members.memberAlreadyExists.context')
+                    });
                 }
 
-                // NOTE: failed to link Stripe customer/plan/subscription
-                const isStripeLinkingError = error.message && error.message.match(/customer|plan|subscription|Stripe account/g);
+                // NOTE: failed to link Stripe customer/plan/subscription or have thrown custom Stripe connection error.
+                //       It's a bit ugly doing regex matching to detect errors, but it's the easiest way that works without
+                //       introducing additional logic/data format into current error handling
+                const isStripeLinkingError = error.message && (error.message.match(/customer|plan|subscription/g) || error.context === i18n.t('errors.api.members.stripeNotConnected.context'));
                 if (model && isStripeLinkingError) {
                     if (error.message.indexOf('customer') && error.code === 'resource_missing') {
                         error.message = `Member not imported. ${error.message}`;
@@ -482,7 +487,7 @@ const members = {
             }).then(() => {
                 // NOTE: grouping by context because messages can contain unique data like "customer_id"
                 const groupedErrors = _.groupBy(invalid.errors, 'context');
-                const uniqueErrors = _.uniq(invalid.errors, 'context');
+                const uniqueErrors = _.uniqBy(invalid.errors, 'context');
 
                 const outputErrors = uniqueErrors.map((error) => {
                     let errorGroup = groupedErrors[error.context];
@@ -532,7 +537,7 @@ const members = {
         async query(frame) {
             const dateFormat = 'YYYY-MM-DD HH:mm:ss';
             const isSQLite = config.get('database:client') === 'sqlite3';
-            const siteTimezone = settingsCache.get('active_timezone');
+            const siteTimezone = settingsCache.get('timezone');
             const tzOffsetMins = moment.tz(siteTimezone).utcOffset();
 
             const days = frame.options.days === 'all-time' ? 'all-time' : Number(frame.options.days || 30);

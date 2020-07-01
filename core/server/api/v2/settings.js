@@ -6,12 +6,6 @@ const {i18n} = require('../../lib/common');
 const {NoPermissionError, NotFoundError} = require('@tryghost/errors');
 const settingsCache = require('../../services/settings/cache');
 
-const SETTINGS_BLACKLIST = [
-    'members_public_key',
-    'members_private_key',
-    'members_session_secret'
-];
-
 module.exports = {
     docName: 'settings',
 
@@ -24,16 +18,15 @@ module.exports = {
             // CASE: no context passed (functional call)
             if (!frame.options.context) {
                 return Promise.resolve(settings.filter((setting) => {
-                    return setting.type === 'blog';
+                    return setting.group === 'site';
                 }));
             }
 
             // CASE: omit core settings unless internal request
             if (!frame.options.context.internal) {
                 settings = _.filter(settings, (setting) => {
-                    const isCore = setting.type === 'core';
-                    const isBlacklisted = SETTINGS_BLACKLIST.includes(setting.key);
-                    return !isBlacklisted && !isCore;
+                    const isCore = setting.group === 'core';
+                    return !isCore;
                 });
             }
 
@@ -67,7 +60,7 @@ module.exports = {
             }
 
             // @TODO: handle in settings model permissible fn
-            if (setting.type === 'core' && !(frame.options.context && frame.options.context.internal)) {
+            if (setting.group === 'core' && !(frame.options.context && frame.options.context.internal)) {
                 return Promise.reject(new NoPermissionError({
                     message: i18n.t('errors.api.settings.accessCoreSettingFromExtReq')
                 }));
@@ -91,7 +84,7 @@ module.exports = {
                 const errors = [];
 
                 frame.data.settings.map((setting) => {
-                    if (setting.type === 'core' && !(frame.options.context && frame.options.context.internal)) {
+                    if (setting.group === 'core' && !(frame.options.context && frame.options.context.internal)) {
                         errors.push(new NoPermissionError({
                             message: i18n.t('errors.api.settings.accessCoreSettingFromExtReq')
                         }));
@@ -127,7 +120,7 @@ module.exports = {
                             key: setting.key
                         })
                     }));
-                } else if (settingFromCache.type === 'core' && !(frame.options.context && frame.options.context.internal)) {
+                } else if (settingFromCache.core === 'core' && !(frame.options.context && frame.options.context.internal)) {
                     // @TODO: handle in settings model permissible fn
                     errors.push(new NoPermissionError({
                         message: i18n.t('errors.api.settings.accessCoreSettingFromExtReq')

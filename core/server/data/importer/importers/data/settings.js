@@ -4,8 +4,17 @@ const _ = require('lodash');
 const BaseImporter = require('./base');
 const models = require('../../../../models');
 const defaultSettings = require('../../../schema').defaultSettings;
-const labsDefaults = JSON.parse(defaultSettings.blog.labs.defaultValue);
-const deprecatedSettings = ['active_apps', 'installed_apps'];
+const keyGroupMapper = require('../../../../api/shared/serializers/input/utils/settings-key-group-mapper');
+const keyTypeMapper = require('../../../../api/shared/serializers/input/utils/settings-key-type-mapper');
+
+const labsDefaults = JSON.parse(defaultSettings.labs.labs.defaultValue);
+const ignoredSettings = ['active_apps', 'installed_apps'];
+const deprecatedSupportedSettingsMap = {
+    default_locale: 'lang',
+    active_timezone: 'timezone',
+    ghost_head: 'codeinjection_head',
+    ghost_foot: 'codeinjection_foot'
+};
 
 const isFalse = (value) => {
     // Catches false, null, undefined, empty string
@@ -68,26 +77,33 @@ class SettingsImporter extends BaseImporter {
 
         // Don't import any old, deprecated settings
         this.dataToImport = _.filter(this.dataToImport, (data) => {
-            return !_.includes(deprecatedSettings, data.key);
+            return !_.includes(ignoredSettings, data.key);
         });
 
-        const permalinks = _.find(this.dataToImport, {key: 'permalinks'});
+        // NOTE: import settings removed in v3 and move them to ignored once Ghost v4 changes are done
+        this.dataToImport = this.dataToImport.map((data) => {
+            if (deprecatedSupportedSettingsMap[data.key]) {
+                data.key = deprecatedSupportedSettingsMap[data.key];
+            }
 
-        if (permalinks) {
-            this.problems.push({
-                message: 'Permalink Setting was removed. Please configure permalinks in your routes.yaml.',
-                help: this.modelName,
-                context: JSON.stringify(permalinks)
-            });
+            return data;
+        });
 
-            this.dataToImport = _.filter(this.dataToImport, (data) => {
-                return data.key !== 'permalinks';
-            });
-        }
+        // NOTE: keep back compatibility with settings object structure present before migration
+        //       ref. https://github.com/TryGhost/Ghost/issues/10318
+        this.dataToImport = this.dataToImport.map((data) => {
+            // group property wasn't present in previous version of settings
+            if (!data.group && data.type) {
+                data.group = keyGroupMapper(data.key);
+                data.type = keyTypeMapper(data.key);
+            }
+
+            return data;
+        });
 
         // Remove core and theme data types
         this.dataToImport = _.filter(this.dataToImport, (data) => {
-            return ['core', 'theme'].indexOf(data.type) === -1;
+            return ['core', 'theme'].indexOf(data.group) === -1;
         });
 
         const newIsPrivate = _.find(this.dataToImport, {key: 'is_private'});
@@ -99,6 +115,10 @@ class SettingsImporter extends BaseImporter {
 
         this.dataToImport = _.filter(this.dataToImport, (data) => {
             return data.key !== 'password';
+        });
+
+        this.dataToImport = _.filter(this.dataToImport, (data) => {
+            return !(['members_subscription_settings', 'stripe_connect_integration'].includes(data.key));
         });
 
         // Only show warning if we are importing a private site into a non-private site.
@@ -123,10 +143,8 @@ class SettingsImporter extends BaseImporter {
             }
 
             // CASE: we do not import "from address" for members settings as that needs to go via validation with magic link
-            if (obj.key === 'members_subscription_settings' && obj.value) {
-                const oldMemberSettings = _.find(this.existingData, {key: 'members_subscription_settings'}) || {};
-                const oldMemberSettingsVal = oldMemberSettings.value ? JSON.parse(oldMemberSettings.value) : {};
-                obj.value = JSON.stringify(_.assign({}, JSON.parse(obj.value), {fromAddress: oldMemberSettingsVal.fromAddress}));
+            if (obj.key === 'members_from_address') {
+                obj.value = null;
             }
 
             // CASE: export files might contain "0" or "1" for booleans. Model layer needs real booleans.

@@ -2,7 +2,6 @@ const _ = require('lodash');
 const utils = require('../../index');
 const mapper = require('./utils/mapper');
 const _private = {};
-const deprecatedSettings = ['force_i18n', 'permalinks'];
 
 /**
  * ### Settings Filter
@@ -13,13 +12,13 @@ const deprecatedSettings = ['force_i18n', 'permalinks'];
  * @returns {*}
  */
 _private.settingsFilter = (settings, filter) => {
-    let filteredTypes = filter ? filter.split(',') : false;
+    let filteredGroups = filter ? filter.split(',') : false;
     return _.filter(settings, (setting) => {
-        if (filteredTypes) {
-            return _.includes(filteredTypes, setting.type) && !_.includes(deprecatedSettings, setting.key);
+        if (filteredGroups) {
+            return _.includes(filteredGroups, setting.group);
         }
 
-        return !_.includes(deprecatedSettings, setting.key);
+        return true;
     });
 };
 
@@ -31,7 +30,7 @@ module.exports = {
         if (utils.isContentAPI(frame)) {
             filteredSettings = models;
         } else {
-            filteredSettings = _.values(_private.settingsFilter(models, frame.options.type));
+            filteredSettings = _.values(_private.settingsFilter(models, frame.options.group));
         }
 
         frame.response = {
@@ -39,10 +38,16 @@ module.exports = {
             meta: {}
         };
 
-        if (frame.options.type) {
-            frame.response.meta.filters = {
-                type: frame.options.type
-            };
+        if (frame.options.type || frame.options.group) {
+            frame.response.meta.filters = {};
+
+            if (frame.options.type) {
+                frame.response.meta.filters.type = frame.options.type;
+            }
+
+            if (frame.options.group) {
+                frame.response.meta.filters.group = frame.options.group;
+            }
         }
     },
 

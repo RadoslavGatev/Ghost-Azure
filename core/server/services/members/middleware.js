@@ -84,19 +84,13 @@ const updateMemberData = async function (req, res) {
 };
 
 const getMemberSiteData = async function (req, res) {
-    const stripePaymentProcessor = settingsCache.get('members_subscription_settings').paymentProcessors.find(
-        paymentProcessor => paymentProcessor.adapter === 'stripe'
-    );
-    const stripeSecretToken = stripePaymentProcessor && stripePaymentProcessor.config.secret_token;
-    const stripePublicToken = stripePaymentProcessor && stripePaymentProcessor.config.public_token;
-    const stripeConnectIntegration = settingsCache.get('stripe_connect_integration');
+    const isStripeConfigured = membersService.config.isStripeConnected();
 
-    const isStripeConfigured = (!!stripeSecretToken && !!stripePublicToken) || !!(stripeConnectIntegration && stripeConnectIntegration.account_id);
     const response = {
         title: settingsCache.get('title'),
         description: settingsCache.get('description'),
         logo: settingsCache.get('logo'),
-        brand: settingsCache.get('brand'),
+        accent_color: settingsCache.get('accent_color'),
         url: urlUtils.urlFor('home', true),
         version: ghostVersion.safe,
         plans: membersService.config.getPublicPlans(),
@@ -107,9 +101,9 @@ const getMemberSiteData = async function (req, res) {
         portal_plans: settingsCache.get('portal_plans')
     };
 
-    // Brand is currently an experimental feature
+    // accent_color is currently an experimental feature
     if (!config.get('enableDeveloperExperiments')) {
-        delete response.brand;
+        delete response.accent_color;
     }
 
     res.json({site: response});

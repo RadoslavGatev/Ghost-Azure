@@ -1,5 +1,5 @@
 /**
- * The settings with type "blog" were originally meant to be public
+ * The settings with type "site" were originally meant to be public
  * This has been misused - unsplash and slack are incorrectly stored there
  * https://github.com/TryGhost/Ghost/issues/10318
  *
@@ -11,15 +11,14 @@ module.exports = {
     description: 'description',
     logo: 'logo',
     icon: 'icon',
-    brand: 'brand',
+    accent_color: 'accent_color',
     cover_image: 'cover_image',
     facebook: 'facebook',
     twitter: 'twitter',
-    default_locale: 'lang',
-    active_timezone: 'timezone',
-    // TODO: substitute ghost_head and ghost_foot with codeinjection_* when we drop v2 (Ghost 4.0)
-    ghost_head: 'ghost_head',
-    ghost_foot: 'ghost_foot',
+    lang: 'lang',
+    timezone: 'timezone',
+    codeinjection_head: 'codeinjection_head',
+    codeinjection_foot: 'codeinjection_foot',
     navigation: 'navigation',
     secondary_navigation: 'secondary_navigation',
     meta_title: 'meta_title',
