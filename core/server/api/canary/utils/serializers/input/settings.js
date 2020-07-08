@@ -48,6 +48,10 @@ module.exports = {
             return !settingFlagsArr.includes('RO');
         });
 
+        frame.data.settings = frame.data.settings.filter((setting) => {
+            return setting.key !== 'bulk_email_settings';
+        });
+
         frame.data.settings.forEach((setting) => {
             // CASE: transform objects/arrays into string (we store stringified objects in the db)
             // @TODO: This belongs into the model layer. We should stringify before saving and parse when fetching from db.
@@ -87,14 +91,8 @@ module.exports = {
                 setting.key = 'lang';
             }
 
-            if (['cover_image', 'icon', 'logo'].includes(setting.key)) {
+            if (['cover_image', 'icon', 'logo', 'portal_button_icon'].includes(setting.key)) {
                 setting = url.forSetting(setting);
-            }
-
-            //CASE: Ensure we don't store calculated fields `isEnabled/Config` in bulk email settings
-            if (setting.key === 'bulk_email_settings') {
-                const {apiKey = '', domain = '', baseUrl = '', provider = 'mailgun'} = setting.value ? JSON.parse(setting.value) : {};
-                setting.value = JSON.stringify({apiKey, domain, baseUrl, provider});
             }
         });
     }

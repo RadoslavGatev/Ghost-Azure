@@ -62,7 +62,7 @@ class MembersConfigProvider {
         };
 
         try {
-            const plans = this._settingsCache.get('stripe_plans');
+            const plans = this._settingsCache.get('stripe_plans') || [];
 
             const priceData = plans.reduce((prices, plan) => {
                 const numberAmount = 0 + plan.amount;
@@ -73,7 +73,7 @@ class MembersConfigProvider {
             }, {});
 
             priceData.currency = plans[0].currency || 'USD';
-            priceData.currency_symbol = CURRENCY_SYMBOLS[priceData.currency];
+            priceData.currency_symbol = CURRENCY_SYMBOLS[priceData.currency.toUpperCase()];
 
             if (Number.isInteger(priceData.monthly) && Number.isInteger(priceData.yearly)) {
                 return priceData;
@@ -177,7 +177,7 @@ class MembersConfigProvider {
             product: {
                 name: this._settingsCache.get('stripe_product_name')
             },
-            plans: [COMPLIMENTARY_PLAN].concat(this._settingsCache.get('stripe_plans')),
+            plans: [COMPLIMENTARY_PLAN].concat(this._settingsCache.get('stripe_plans') || []),
             appInfo: {
                 name: 'Ghost',
                 partner_id: 'pp_partner_DKmRVtTs4j9pwZ',
