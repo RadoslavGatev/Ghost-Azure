@@ -133,7 +133,7 @@ class MembersConfigProvider {
     getStripeUrlConfig() {
         const siteUrl = this._urlUtils.getSiteUrl();
 
-        const webhookHandlerUrl = new URL('/members/webhooks/stripe', siteUrl);
+        const webhookHandlerUrl = new URL('members/webhooks/stripe/', siteUrl);
 
         const checkoutSuccessUrl = new URL(siteUrl);
         checkoutSuccessUrl.searchParams.set('stripe', 'success');
@@ -174,6 +174,10 @@ class MembersConfigProvider {
             billingSuccessUrl: urls.billingSuccess,
             billingCancelUrl: urls.billingCancel,
             webhookHandlerUrl: urls.webhookHandler,
+            webhook: {
+                id: this._settingsCache.get('members_stripe_webhook_id'),
+                secret: this._settingsCache.get('members_stripe_webhook_secret')
+            },
             product: {
                 name: this._settingsCache.get('stripe_product_name')
             },
