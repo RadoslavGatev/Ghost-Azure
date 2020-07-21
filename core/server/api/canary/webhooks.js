@@ -10,16 +10,6 @@ module.exports = {
         headers: {},
         options: [],
         data: [],
-        validation: {
-            data: {
-                event: {
-                    required: true
-                },
-                target_url: {
-                    required: true
-                }
-            }
-        },
         permissions: true,
         query(frame) {
             return models.Webhook.getByEventAndTarget(
@@ -108,7 +98,7 @@ module.exports = {
                             if (webhook.get('integration_id') !== frame.options.context.api_key.id) {
                                 throw new errors.NoPermissionError({
                                     message: i18n.t('errors.api.webhooks.noPermissionToEdit.message', {
-                                        method: 'destory'
+                                        method: 'destroy'
                                     }),
                                     context: i18n.t('errors.api.webhooks.noPermissionToEdit.context', {
                                         method: 'destroy'
