@@ -253,10 +253,19 @@
     "@sinonjs/commons" "^1"
     "@sinonjs/samsam" "^5.0.2"
 
-"@sinonjs/samsam@^5.0.2", "@sinonjs/samsam@^5.0.3":
+"@sinonjs/samsam@^5.0.2":
   version "5.0.3"
   resolved "https://registry.yarnpkg.com/@sinonjs/samsam/-/samsam-5.0.3.tgz#86f21bdb3d52480faf0892a480c9906aa5a52938"
   integrity sha512-QucHkc2uMJ0pFGjJUDP3F9dq5dx8QIaqISl9QgwLOh6P9yv877uONPGXh/OH/0zmM3tW1JjuJltAZV2l7zU+uQ==
+  dependencies:
+    "@sinonjs/commons" "^1.6.0"
+    lodash.get "^4.4.2"
+    type-detect "^4.0.8"
+
+"@sinonjs/samsam@^5.1.0":
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/@sinonjs/samsam/-/samsam-5.1.0.tgz#3afe719232b541bb6cf3411a4c399a188de21ec0"
+  integrity sha512-42nyaQOVunX5Pm6GRJobmzbS7iLI+fhERITnETXzzwDZh+TtDr/Au3yAvXVjFmZ4wEUaE4Y3NFZfKv0bV0cbtg==
   dependencies:
     "@sinonjs/commons" "^1.6.0"
     lodash.get "^4.4.2"
@@ -281,24 +290,24 @@
   dependencies:
     defer-to-connect "^2.0.0"
 
-"@tryghost/adapter-manager@0.1.8":
-  version "0.1.8"
-  resolved "https://registry.yarnpkg.com/@tryghost/adapter-manager/-/adapter-manager-0.1.8.tgz#22e55583bce2111089ae451b1ec8e107c559caf7"
-  integrity sha512-dREvENcjqd+HMMM16qRLwqi4lwHE20l8o0YuFtoZLrJ3FUuRhbyNbH81jC36mjIGKGfUB3Nyti2k6383cQPL7w==
+"@tryghost/adapter-manager@0.1.9":
+  version "0.1.9"
+  resolved "https://registry.yarnpkg.com/@tryghost/adapter-manager/-/adapter-manager-0.1.9.tgz#624b98271ad0557ea18c0c8ea68042ce1ce88927"
+  integrity sha512-pLlCfugECweDSHr2aiI6SA3qQNH+emopa7Y0ESROhyiNAMGW6ewhYzTwfIbWcKl/VW2/JRpu1R17uA+GfTHUTA==
   dependencies:
-    "@tryghost/errors" "^0.2.1"
+    "@tryghost/errors" "^0.2.2"
 
 "@tryghost/bootstrap-socket@0.2.0":
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/@tryghost/bootstrap-socket/-/bootstrap-socket-0.2.0.tgz#efc7291b346b633117d8d5e0fca7e52c6913a9f2"
   integrity sha512-Ao9REMMiorIdEtVDkS0xdCnnvwQU9zd3bsz7521RCeDBT3pi5AbrFrV9LwG+XnCgw9NvbmTv0aidxpiEQV1aSQ==
 
-"@tryghost/errors@0.2.1", "@tryghost/errors@^0.2.1":
-  version "0.2.1"
-  resolved "https://registry.yarnpkg.com/@tryghost/errors/-/errors-0.2.1.tgz#c479af3694aec5401df237536e75a3c48f12c150"
-  integrity sha512-Oh/iW7+nEAs+l1XHgu8SXU5sm0o59Rt9Defs2CwVlFKSwYwJZLT1q+39UZrjGhf2lc3f1xU/IuY6wEfbitdVEg==
+"@tryghost/errors@0.2.2", "@tryghost/errors@^0.2.2":
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/@tryghost/errors/-/errors-0.2.2.tgz#ff70a5f895c84b84c47d71b9a16cba55c52f89ff"
+  integrity sha512-83er1JBMq5YKiXM3wvrP999eyhdVr2fQNCmYqmGc5gKxzpC7iMlD1FBkJe2E3UceOA9+IqucTrqf38uHrpEouw==
   dependencies:
-    ghost-ignition "4.2.1"
+    ghost-ignition "4.2.2"
     lodash "4.17.19"
 
 "@tryghost/helpers@1.1.28":
@@ -317,12 +326,12 @@
     "@tryghost/mobiledoc-kit" "^0.12.4-ghost.1"
     jsdom "16.3.0"
 
-"@tryghost/image-transform@1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@tryghost/image-transform/-/image-transform-1.0.1.tgz#fb62673856311c1ec4f5cec51d55c21ec20071e1"
-  integrity sha512-MJTEmzgjiVP76B+vaQTpJ3QHJxA+QWFrO1acVBP4liP0UBdc9WmHXBTuRb1biBEBO21436Bt8OHXNts1iPEr0w==
+"@tryghost/image-transform@1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@tryghost/image-transform/-/image-transform-1.0.2.tgz#a6705b6eb61d8a2500061021da8d68e0587e16e6"
+  integrity sha512-7R6OuLv4okagOnD0mwOA0QQrUNDFH+RSGKd8vYDgWe6P5gGRBIDR8byR7wiUhZq89ujWGWHUMY/PcRbvMKNO+A==
   dependencies:
-    "@tryghost/errors" "^0.2.1"
+    "@tryghost/errors" "^0.2.2"
     bluebird "3.7.2"
     fs-extra "9.0.1"
   optionalDependencies:
@@ -443,12 +452,12 @@
     chalk "4.1.0"
     sywac "1.3.0"
 
-"@tryghost/session-service@0.1.6":
-  version "0.1.6"
-  resolved "https://registry.yarnpkg.com/@tryghost/session-service/-/session-service-0.1.6.tgz#951644958276e7f38168654fba6079910c3598eb"
-  integrity sha512-0Qakv4m+/8xCBpiYXhMkKF1MBHndCMhlPZ2scCGMccsiRIzgWvJ0XcqxJ9LedV97125ulcGM3bVSd6tjjko8tg==
+"@tryghost/session-service@0.1.7":
+  version "0.1.7"
+  resolved "https://registry.yarnpkg.com/@tryghost/session-service/-/session-service-0.1.7.tgz#9af4adca4bd301e95e47b9065cbc6b8e396ae20d"
+  integrity sha512-USr4hC1usB7B0FTkBgMUhVg6I9MzRtNXBdqc/EXNe7zuTo5TyxEpXR4PAojbl7PI3VPG9vb2FgycmmbAIyhtCA==
   dependencies:
-    "@tryghost/errors" "^0.2.1"
+    "@tryghost/errors" "^0.2.2"
 
 "@tryghost/social-urls@0.1.10":
   version "0.1.10"
@@ -490,13 +499,13 @@
     remark-footnotes "^1.0.0"
     unist-util-visit "^2.0.0"
 
-"@tryghost/vhost-middleware@1.0.6":
-  version "1.0.6"
-  resolved "https://registry.yarnpkg.com/@tryghost/vhost-middleware/-/vhost-middleware-1.0.6.tgz#fc48659f267b0f9607db1eac936b5a3cccb8004f"
-  integrity sha512-ogeQQdQMw8EX+av1+qNnv1uKa1sRkrmmscwiiSGYiHEsnETug/KaAnZYvKyJZtNQ7ilUAwK+uyJ8n8S5YtPqzQ==
+"@tryghost/vhost-middleware@1.0.7":
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/@tryghost/vhost-middleware/-/vhost-middleware-1.0.7.tgz#e938185d2cf81468a5b9b1488d5ee4907514dd34"
+  integrity sha512-JU/YPEBLqxL981lK/nkBoi6ypfLAViw9swHGVUoIwvdtJPg/UfliThfdJjTFrozzNaIg5rk4tg1IhFGXReOSTA==
   dependencies:
     bluebird "3.7.2"
-    ghost-ignition "4.2.1"
+    ghost-ignition "4.2.2"
     lodash "4.17.19"
 
 "@tryghost/zip@1.1.2":
@@ -6189,7 +6198,7 @@ nice-try@^1.0.4:
   resolved "https://registry.yarnpkg.com/nice-try/-/nice-try-1.0.5.tgz#a3378a7696ce7d223e88fc9b764bd7ef1089e366"
   integrity sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==
 
-nise@^4.0.1:
+nise@^4.0.4:
   version "4.0.4"
   resolved "https://registry.yarnpkg.com/nise/-/nise-4.0.4.tgz#d73dea3e5731e6561992b8f570be9e363c4512dd"
   integrity sha512-bTTRUNlemx6deJa+ZyoCUTRvH3liK5+N6VQZ4NIw90AgDXY6iPnsqplNFf6STcj+ePk0H/xqxnP75Lr0J0Fq3A==
@@ -8068,17 +8077,17 @@ simple-swizzle@^0.2.2:
     rai "~0.1.11"
     xoauth2 "~0.1.8"
 
-sinon@9.0.2:
-  version "9.0.2"
-  resolved "https://registry.yarnpkg.com/sinon/-/sinon-9.0.2.tgz#b9017e24633f4b1c98dfb6e784a5f0509f5fd85d"
-  integrity sha512-0uF8Q/QHkizNUmbK3LRFqx5cpTttEVXudywY9Uwzy8bTfZUhljZ7ARzSxnRHWYWtVTeh4Cw+tTb3iU21FQVO9A==
+sinon@9.0.3:
+  version "9.0.3"
+  resolved "https://registry.yarnpkg.com/sinon/-/sinon-9.0.3.tgz#bffc3ec28c936332cd2a41833547b9eed201ecff"
+  integrity sha512-IKo9MIM111+smz9JGwLmw5U1075n1YXeAq8YeSFlndCLhAL5KGn6bLgu7b/4AYHTV/LcEMcRm2wU2YiL55/6Pg==
   dependencies:
     "@sinonjs/commons" "^1.7.2"
     "@sinonjs/fake-timers" "^6.0.1"
     "@sinonjs/formatio" "^5.0.1"
-    "@sinonjs/samsam" "^5.0.3"
+    "@sinonjs/samsam" "^5.1.0"
     diff "^4.0.2"
-    nise "^4.0.1"
+    nise "^4.0.4"
     supports-color "^7.1.0"
 
 slice-ansi@^2.1.0:
