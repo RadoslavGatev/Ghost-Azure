@@ -7,6 +7,7 @@ const {events, i18n} = require('../../lib/common');
 const logging = require('../../../shared/logging');
 const membersService = require('../members');
 const bulkEmailService = require('../bulk-email');
+const jobService = require('../jobs');
 const models = require('../../models');
 const postEmailSerializer = require('./post-email-serializer');
 
@@ -60,7 +61,7 @@ const sendEmail = async (postModel, memberModels) => {
 
 const sendTestEmail = async (postModel, toEmails) => {
     const recipients = await Promise.all(toEmails.map(async (email) => {
-        const member = await models.Member.findOne({email});
+        const member = await membersService.api.members.get({email});
         return member || new models.Member({email});
     }));
     const {emailTmpl, emails, emailData} = await getEmailData(postModel, recipients);
@@ -87,7 +88,7 @@ const addEmail = async (postModel, options) => {
 
     const startRetrieve = Date.now();
     debug('addEmail: retrieving members count');
-    const {meta: {pagination: {total: membersCount}}} = await models.Member.findPage(Object.assign({}, knexOptions, filterOptions));
+    const {meta: {pagination: {total: membersCount}}} = await membersService.api.members.list(Object.assign({}, knexOptions, filterOptions));
     debug(`addEmail: retrieved members count - ${membersCount} members (${Date.now() - startRetrieve}ms)`);
 
     // NOTE: don't create email object when there's nobody to send the email to
@@ -184,18 +185,8 @@ async function handleUnsubscribeRequest(req) {
     }
 }
 
-async function pendingEmailHandler(emailModel, options) {
-    // CASE: do not send email if we import a database
-    // TODO: refactor post.published events to never fire on importing
-    if (options && options.importing) {
-        return;
-    }
+async function sendEmailJob({emailModel, options}) {
     const postModel = await models.Post.findOne({id: emailModel.get('post_id')}, {withRelated: ['authors']});
-
-    if (emailModel.get('status') !== 'pending') {
-        return;
-    }
-
     let meta = [];
     let error = null;
     let startEmailSend = null;
@@ -214,7 +205,7 @@ async function pendingEmailHandler(emailModel, options) {
 
         const startRetrieve = Date.now();
         debug('pendingEmailHandler: retrieving members list');
-        const {data: members} = await models.Member.findPage(Object.assign({}, knexOptions, filterOptions));
+        const {data: members} = await membersService.api.members.list(Object.assign({}, knexOptions, filterOptions));
         debug(`pendingEmailHandler: retrieved members list - ${members.length} members (${Date.now() - startRetrieve}ms)`);
 
         if (!members.length) {
@@ -262,13 +253,27 @@ async function pendingEmailHandler(emailModel, options) {
             status: batchStatus,
             meta: JSON.stringify(successes),
             error: error,
-            error_data: JSON.stringify(failures) // NOTE:need to discuss how we store this
+            error_data: JSON.stringify(failures) // NOTE: need to discuss how we store this
         }, {
             id: emailModel.id
         });
     } catch (err) {
         logging.error(err);
     }
+}
+
+async function pendingEmailHandler(emailModel, options) {
+    // CASE: do not send email if we import a database
+    // TODO: refactor post.published events to never fire on importing
+    if (options && options.importing) {
+        return;
+    }
+
+    if (emailModel.get('status') !== 'pending') {
+        return;
+    }
+
+    return jobService.addJob(sendEmailJob, {emailModel, options});
 }
 
 const statusChangedHandler = (emailModel, options) => {
