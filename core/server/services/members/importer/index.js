@@ -4,19 +4,19 @@ const ObjectId = require('bson-objectid');
 const moment = require('moment-timezone');
 const errors = require('@tryghost/errors');
 const membersService = require('../index');
+const bulkOperations = require('./bulk-operations');
 const models = require('../../../models');
 const {i18n} = require('../../../lib/common');
-const db = require('../../../data/db');
 const logging = require('../../../../shared/logging');
 
 const doImport = async ({members, allLabelModels, importSetLabels, createdBy}) => {
-    const createInserter = table => data => insert(db.knex, table, data);
-    const createDeleter = table => data => del(db.knex, table, data);
+    const createInserter = table => data => bulkOperations.insert(table, data);
+    const createDeleter = table => data => bulkOperations.del(table, data);
 
     const deleteMembers = createDeleter('members');
     const insertLabelAssociations = createInserter('members_labels');
 
-    const {
+    let {
         invalidMembers,
         membersToInsert,
         stripeCustomersToFetch,
@@ -24,21 +24,36 @@ const doImport = async ({members, allLabelModels, importSetLabels, createdBy}) =
         labelAssociationsToInsert
     } = getMemberData({members, allLabelModels, importSetLabels, createdBy});
 
+    // NOTE: member insertion has to happen before the rest of insertions to handle validation
+    //       errors - remove failed members from label/stripe sets
+    const insertedMembers = await models.Member.bulkAdd(membersToInsert).then((insertResult) => {
+        if (insertResult.unsuccessfulIds.length) {
+            labelAssociationsToInsert = labelAssociationsToInsert
+                .filter(la => !insertResult.unsuccessfulIds.includes(la.member_id));
+
+            stripeCustomersToFetch = stripeCustomersToFetch
+                .filter(sc => !insertResult.unsuccessfulIds.includes(sc.member_id));
+
+            stripeCustomersToCreate = stripeCustomersToCreate
+                .filter(sc => !insertResult.unsuccessfulIds.includes(sc.member_id));
+        }
+
+        return insertResult;
+    });
+
     const fetchedStripeCustomersPromise = fetchStripeCustomers(stripeCustomersToFetch);
     const createdStripeCustomersPromise = createStripeCustomers(stripeCustomersToCreate);
-    const insertedMembersPromise = models.Member.bulkAdd(membersToInsert);
-
-    const insertedLabelsPromise = insertedMembersPromise
-        .then(() => insertLabelAssociations(labelAssociationsToInsert));
+    const insertedLabelsPromise = insertLabelAssociations(labelAssociationsToInsert);
 
     const insertedCustomersPromise = Promise.all([
         fetchedStripeCustomersPromise,
-        createdStripeCustomersPromise,
-        insertedMembersPromise
+        createdStripeCustomersPromise
     ]).then(
-        ([fetchedStripeCustomers, createdStripeCustomers]) => models.MemberStripeCustomer.bulkAdd(
-            fetchedStripeCustomers.customersToInsert.concat(createdStripeCustomers.customersToInsert)
-        )
+        ([fetchedStripeCustomers, createdStripeCustomers]) => {
+            return models.MemberStripeCustomer.bulkAdd(
+                fetchedStripeCustomers.customersToInsert.concat(createdStripeCustomers.customersToInsert)
+            );
+        }
     );
 
     const insertedSubscriptionsPromise = Promise.all([
@@ -53,8 +68,7 @@ const doImport = async ({members, allLabelModels, importSetLabels, createdBy}) =
 
     const deletedMembersPromise = Promise.all([
         fetchedStripeCustomersPromise,
-        createdStripeCustomersPromise,
-        insertedMembersPromise
+        createdStripeCustomersPromise
     ]).then(
         ([fetchedStripeCustomers, createdStripeCustomers]) => deleteMembers(
             fetchedStripeCustomers.membersToDelete.concat(createdStripeCustomers.membersToDelete)
@@ -64,7 +78,6 @@ const doImport = async ({members, allLabelModels, importSetLabels, createdBy}) =
     // This looks sequential, but at the point insertedCustomersPromise has resolved so have all the others
     const insertedSubscriptions = await insertedSubscriptionsPromise;
     const insertedCustomers = await insertedCustomersPromise;
-    const insertedMembers = await insertedMembersPromise;
     const deletedMembers = await deletedMembersPromise;
     const fetchedCustomers = await fetchedStripeCustomersPromise;
     const insertedLabels = await insertedLabelsPromise;
@@ -94,44 +107,6 @@ const doImport = async ({members, allLabelModels, importSetLabels, createdBy}) =
     return result;
 };
 
-const CHUNK_SIZE = 100;
-
-async function insert(knex, table, data) {
-    const result = {
-        successful: 0,
-        unsuccessful: 0,
-        errors: []
-    };
-    for (const chunk of _.chunk(data, CHUNK_SIZE)) {
-        try {
-            await knex(table).insert(chunk);
-            result.successful += chunk.length;
-        } catch (error) {
-            result.unsuccessful += chunk.length;
-            result.errors.push(error);
-        }
-    }
-    return result;
-}
-
-async function del(knex, table, ids) {
-    const result = {
-        successful: 0,
-        unsuccessful: 0,
-        errors: []
-    };
-    for (const chunk of _.chunk(ids, CHUNK_SIZE)) {
-        try {
-            await knex(table).whereIn('id', chunk).del();
-            result.successful += chunk.length;
-        } catch (error) {
-            result.unsuccessful += chunk.length;
-            result.errors.push(error);
-        }
-    }
-    return result;
-}
-
 function serializeMemberLabels(labels) {
     return labels.reduce((labelsAcc, label) => {
         if (!label) {
@@ -140,8 +115,8 @@ function serializeMemberLabels(labels) {
         if (typeof label !== 'string') {
             return labelsAcc.concat(label.name);
         }
-        return labelsAcc.concat(label);
-    });
+        return labelsAcc.concat(label.trim());
+    }, []);
 }
 
 function getMemberData({members, allLabelModels, importSetLabels, createdBy}) {
@@ -153,8 +128,6 @@ function getMemberData({members, allLabelModels, importSetLabels, createdBy}) {
 
     const importedLabels = importSetLabels.map(label => label.name);
 
-    const stripeIsConnected = membersService.config.isStripeConnected();
-
     const invalidMembers = [];
     const membersToInsert = [];
     const stripeCustomersToFetch = [];
@@ -162,11 +135,6 @@ function getMemberData({members, allLabelModels, importSetLabels, createdBy}) {
     const labelAssociationsToInsert = [];
 
     members.forEach(function (member) {
-        if ((member.stripe_customer_id || member.comped) && !stripeIsConnected) {
-            invalidMembers.push(member);
-            return;
-        }
-
         // @TODO This is expensive, maybe we can just error if we get shoddy data?
         for (let key in member) {
             if (member[key] === 'undefined') {
@@ -176,8 +144,8 @@ function getMemberData({members, allLabelModels, importSetLabels, createdBy}) {
 
         let subscribed;
         if (_.isUndefined(member.subscribed_to_emails)) {
-            // model default
-            subscribed = 'true';
+            // Member's model default
+            subscribed = true;
         } else {
             subscribed = (String(member.subscribed_to_emails).toLowerCase() !== 'false');
         }
@@ -213,7 +181,9 @@ function getMemberData({members, allLabelModels, importSetLabels, createdBy}) {
         };
         membersToInsert.push(memberToInsert);
 
-        const memberLabels = serializeMemberLabels((member.labels || '').split(','));
+        const memberLabels = member.labels
+            ? serializeMemberLabels((member.labels || '').split(','))
+            : [];
         const allLabels = _.union(memberLabels, importedLabels);
 
         const memberLabelAssociationsToInsert = allLabels.map((label, index) => {
