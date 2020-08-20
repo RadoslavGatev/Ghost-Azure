@@ -70,6 +70,24 @@ const sanitizeInput = async (members) => {
 
     invalidCount += invalidValidationCount;
 
+    const stripeIsConnected = membersService.config.isStripeConnected();
+    const hasStripeConnectedMembers = members.find(member => (member.stripe_customer_id || member.comped));
+
+    if (!stripeIsConnected && hasStripeConnectedMembers) {
+        let nonFilteredMembersCount = members.length;
+        members = members.filter(member => !(member.stripe_customer_id || member.comped));
+
+        const stripeConnectedMembers = (nonFilteredMembersCount - members.length);
+        if (stripeConnectedMembers) {
+            invalidCount += stripeConnectedMembers;
+            validationErrors.push(new errors.ValidationError({
+                message: i18n.t('errors.api.members.stripeNotConnected.message'),
+                context: i18n.t('errors.api.members.stripeNotConnected.context'),
+                help: i18n.t('errors.api.members.stripeNotConnected.help')
+            }));
+        }
+    }
+
     const customersMap = members.reduce((acc, member) => {
         if (member.stripe_customer_id && member.stripe_customer_id !== 'undefined') {
             if (acc[member.stripe_customer_id]) {
@@ -286,8 +304,8 @@ module.exports = {
             } catch (error) {
                 if (error.code && error.message.toLowerCase().indexOf('unique') !== -1) {
                     throw new errors.ValidationError({
-                        message: i18n.t('errors.api.members.memberAlreadyExists.message'),
-                        context: i18n.t('errors.api.members.memberAlreadyExists.context')
+                        message: i18n.t('errors.models.member.memberAlreadyExists.message'),
+                        context: i18n.t('errors.models.member.memberAlreadyExists.context')
                     });
                 }
 
@@ -647,8 +665,6 @@ module.exports = {
                     members: sanitized,
                     allLabelModels,
                     importSetLabels,
-                    imported,
-                    invalid,
                     createdBy
                 });
             }).then((result) => {
