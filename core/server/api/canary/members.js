@@ -610,7 +610,7 @@ module.exports = {
                             invalid.count = invalid.count + 1;
                         }
                     });
-            }).then(() => {
+            }).then(async () => {
                 // NOTE: grouping by context because messages can contain unique data like "customer_id"
                 const groupedErrors = _.groupBy(invalid.errors, 'context');
                 const uniqueErrors = _.uniqBy(invalid.errors, 'context');
@@ -633,6 +633,11 @@ module.exports = {
                 });
 
                 invalid.errors = outputErrors;
+
+                if (imported.count === 0 && importLabel) {
+                    await models.Label.destroy(Object.assign({}, {id: importLabel.id}, frame.options));
+                    importLabel = null;
+                }
 
                 return {
                     meta: {
@@ -714,7 +719,7 @@ module.exports = {
                     importSetLabels,
                     createdBy
                 });
-            }).then((result) => {
+            }).then(async (result) => {
                 invalid.errors = invalid.errors.concat(result.invalid.errors);
                 invalid.count += result.invalid.count;
                 imported.count += result.imported.count;
@@ -740,6 +745,11 @@ module.exports = {
                 });
 
                 invalid.errors = outputErrors;
+
+                if (imported.count === 0 && importLabel) {
+                    await models.Label.destroy(Object.assign({}, {id: importLabel.id}, frame.options));
+                    importLabel = null;
+                }
 
                 return {
                     meta: {
