@@ -7,6 +7,7 @@ const config = require('../../../shared/config');
 const models = require('../../models');
 const membersService = require('../../services/members');
 const doImport = require('../../services/members/importer');
+const memberLabelsImporter = require('../../services/members/importer/labels');
 const settingsCache = require('../../services/settings/cache');
 const {i18n} = require('../../lib/common');
 const logging = require('../../../shared/logging');
@@ -125,73 +126,9 @@ const sanitizeInput = async (members) => {
     return {
         sanitized,
         invalidCount,
-        validationErrors
+        validationErrors,
+        duplicateStripeCustomersCount
     };
-};
-
-function serializeMemberLabels(labels) {
-    if (_.isString(labels)) {
-        if (labels === '') {
-            return [];
-        }
-
-        return [{
-            name: labels.trim()
-        }];
-    } else if (labels) {
-        return labels.filter((label) => {
-            return !!label;
-        }).map((label) => {
-            if (_.isString(label)) {
-                return {
-                    name: label.trim()
-                };
-            }
-            return label;
-        });
-    }
-    return [];
-}
-
-const findOrCreateLabels = async (labels, options) => {
-    const api = require('./index');
-
-    return await Promise.all(labels.map((label) => {
-        return models.Label.findOne({name: label.name}).then((existingLabel) => {
-            if (existingLabel) {
-                return existingLabel;
-            }
-
-            return api.labels.add.query({
-                data: {
-                    labels: [label]
-                },
-                options: {
-                    context: options.context
-                }
-            }).catch((error) => {
-                if (error.errorType === 'ValidationError') {
-                    return;
-                }
-
-                throw error;
-            });
-        });
-    }));
-};
-
-const getUniqueMemberLabels = (members) => {
-    const allLabels = [];
-
-    members.forEach((member) => {
-        const labels = (member.labels && member.labels.split(',')) || [];
-
-        if (labels.length) {
-            allLabels.push(...labels);
-        }
-    });
-
-    return _.uniq(allLabels);
 };
 
 module.exports = {
@@ -528,30 +465,17 @@ module.exports = {
             };
             let duplicateStripeCustomerIdCount = 0;
 
-            // NOTE: custom labels have to be created in advance otherwise there are conflicts
-            //       when processing member creation in parallel later on in import process
-            const importSetLabels = serializeMemberLabels(frame.data.labels);
-            await findOrCreateLabels(importSetLabels, frame.options);
-
-            // NOTE: adding an import label allows for imports to be "undone" via bulk delete
-            let importLabel;
-            if (frame.data.members.length) {
-                const siteTimezone = settingsCache.get('timezone');
-                const name = `Import ${moment().tz(siteTimezone).format('YYYY-MM-DD HH:mm')}`;
-                const result = await findOrCreateLabels([{name}], frame.options);
-                importLabel = result[0] && result[0].toJSON();
-
-                importSetLabels.push(importLabel);
-            }
-
-            // NOTE: member-specific labels have to be pre-created as they cause conflicts when processed
-            //       in parallel
-            const memberLabels = serializeMemberLabels(getUniqueMemberLabels(frame.data.members));
-            await findOrCreateLabels(memberLabels, frame.options);
+            let {importSetLabels, importLabel} = await memberLabelsImporter.handleAllLabels(
+                frame.data.labels,
+                frame.data.members,
+                settingsCache.get('timezone'),
+                frame.options
+            );
 
             return Promise.resolve().then(async () => {
-                const {sanitized, invalidCount, validationErrors} = await sanitizeInput(frame.data.members);
+                const {sanitized, invalidCount, validationErrors, duplicateStripeCustomersCount} = await sanitizeInput(frame.data.members);
                 invalid.count += invalidCount;
+                duplicateStripeCustomerIdCount = duplicateStripeCustomersCount;
 
                 if (validationErrors.length) {
                     invalid.errors.push(...validationErrors);
@@ -560,7 +484,7 @@ module.exports = {
                 return Promise.map(sanitized, ((entry) => {
                     const api = require('./index');
                     entry.labels = (entry.labels && entry.labels.split(',')) || [];
-                    const entryLabels = serializeMemberLabels(entry.labels);
+                    const entryLabels = memberLabelsImporter.serializeMemberLabels(entry.labels);
                     const mergedLabels = _.unionBy(entryLabels, importSetLabels, 'name');
 
                     cleanupUndefined(entry);
@@ -634,7 +558,7 @@ module.exports = {
 
                 invalid.errors = outputErrors;
 
-                if (imported.count === 0 && importLabel) {
+                if (imported.count === 0 && importLabel && importLabel.generated) {
                     await models.Label.destroy(Object.assign({}, {id: importLabel.id}, frame.options));
                     importLabel = null;
                 }
@@ -681,33 +605,17 @@ module.exports = {
 
             const createdBy = contextUser(frame.options);
 
-            // NOTE: custom labels have to be created in advance otherwise there are conflicts
-            //       when processing member creation in parallel later on in import process
-            const importSetLabels = serializeMemberLabels(frame.data.labels);
-
-            // NOTE: adding an import label allows for imports to be "undone" via bulk delete
-            let importLabel;
-            if (frame.data.members.length) {
-                const siteTimezone = settingsCache.get('timezone');
-                const name = `Import ${moment().tz(siteTimezone).format('YYYY-MM-DD HH:mm')}`;
-                const result = await findOrCreateLabels([{name}], frame.options);
-                importLabel = result[0] && result[0].toJSON();
-
-                importSetLabels.push(importLabel);
-            }
-
-            const importSetLabelModels = await findOrCreateLabels(importSetLabels, frame.options);
-
-            // NOTE: member-specific labels have to be pre-created as they cause conflicts when processed
-            //       in parallel
-            const memberLabels = serializeMemberLabels(getUniqueMemberLabels(frame.data.members));
-            const memberLabelModels = await findOrCreateLabels(memberLabels, frame.options);
-
-            const allLabelModels = [...importSetLabelModels, ...memberLabelModels].filter(model => model !== undefined);
+            let {allLabels, importSetLabels, importLabel} = await memberLabelsImporter.handleAllLabels(
+                frame.data.labels,
+                frame.data.members,
+                settingsCache.get('timezone'),
+                frame.options
+            );
 
             return Promise.resolve().then(async () => {
-                const {sanitized, invalidCount, validationErrors} = await sanitizeInput(frame.data.members);
+                const {sanitized, invalidCount, validationErrors, duplicateStripeCustomersCount} = await sanitizeInput(frame.data.members);
                 invalid.count += invalidCount;
+                duplicateStripeCustomerIdCount = duplicateStripeCustomersCount;
 
                 if (validationErrors.length) {
                     invalid.errors.push(...validationErrors);
@@ -715,7 +623,7 @@ module.exports = {
 
                 return doImport({
                     members: sanitized,
-                    allLabelModels,
+                    labels: allLabels,
                     importSetLabels,
                     createdBy
                 });
@@ -746,7 +654,7 @@ module.exports = {
 
                 invalid.errors = outputErrors;
 
-                if (imported.count === 0 && importLabel) {
+                if (imported.count === 0 && importLabel && importLabel.generated) {
                     await models.Label.destroy(Object.assign({}, {id: importLabel.id}, frame.options));
                     importLabel = null;
                 }
