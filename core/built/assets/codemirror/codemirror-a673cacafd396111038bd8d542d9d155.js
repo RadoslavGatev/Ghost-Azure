@@ -709,15 +709,17 @@ this.height=t}function wo(e){this.children=e
 for(var t=0,r=0,n=0;n<e.length;++n){var i=e[n]
 t+=i.chunkSize(),r+=i.height,i.parent=this}this.size=t,this.height=r,this.parent=null}Ci.prototype.from=function(){return ot(this.anchor,this.head)},Ci.prototype.to=function(){return it(this.anchor,this.head)},Ci.prototype.empty=function(){return this.head.line==this.anchor.line&&this.head.ch==this.anchor.ch},bo.prototype={chunkSize:function(){return this.lines.length},removeInner:function(e,t){for(var r=e,n=e+t;r<n;++r){var i=this.lines[r]
 this.height-=i.height,_t(i),lr(i,"delete")}this.lines.splice(e,t)},collapse:function(e){e.push.apply(e,this.lines)},insertInner:function(e,t,r){this.height+=r,this.lines=this.lines.slice(0,e).concat(t).concat(this.lines.slice(e))
-for(var n=0;n<t.length;++n)t[n].parent=this},iterN:function(e,t,r){for(var n=e+t;e<n;++e)if(r(this.lines[e]))return!0}},wo.prototype={chunkSize:function(){return this.size},removeInner:function(e,t){this.size-=t
-for(var r=0;r<this.children.length;++r){var n=this.children[r],i=n.chunkSize()
-if(e<i){var o=Math.min(t,i-e),a=n.height
-if(n.removeInner(e,o),this.height-=a-n.height,i==o&&(this.children.splice(r--,1),n.parent=null),0==(t-=o))break
-e=0}else e-=i}if(this.size-t<25&&(this.children.length>1||!(this.children[0]instanceof bo))){var l=[]
-this.collapse(l),this.children=[new bo(l)],this.children[0].parent=this}},collapse:function(e){for(var t=0;t<this.children.length;++t)this.children[t].collapse(e)},insertInner:function(e,t,r){this.size+=t.length,this.height+=r
-for(var n=0;n<this.children.length;++n){var i=this.children[n],o=i.chunkSize()
-if(e<=o){if(i.insertInner(e,t,r),i.lines&&i.lines.length>50){for(var a=i.lines.length%25+25,l=a;l<i.lines.length;){var s=new bo(i.lines.slice(l,l+=25))
-i.height-=s.height,this.children.splice(++n,0,s),s.parent=this}i.lines=i.lines.slice(0,a),this.maybeSpill()}break}e-=o}},maybeSpill:function(){if(!(this.children.length<=10)){var e=this
+for(var n=0;n<t.length;++n)t[n].parent=this},iterN:function(e,t,r){for(var n=e+t;e<n;++e)if(r(this.lines[e]))return!0}},wo.prototype={chunkSize:function(){return this.size},removeInner:function(e,t){var r=this
+this.size-=t
+for(var n=0;n<this.children.length;++n){var i=r.children[n],o=i.chunkSize()
+if(e<o){var a=Math.min(t,o-e),l=i.height
+if(i.removeInner(e,a),r.height-=l-i.height,o==a&&(r.children.splice(n--,1),i.parent=null),0==(t-=a))break
+e=0}else e-=o}if(this.size-t<25&&(this.children.length>1||!(this.children[0]instanceof bo))){var s=[]
+this.collapse(s),this.children=[new bo(s)],this.children[0].parent=this}},collapse:function(e){for(var t=0;t<this.children.length;++t)this.children[t].collapse(e)},insertInner:function(e,t,r){var n=this
+this.size+=t.length,this.height+=r
+for(var i=0;i<this.children.length;++i){var o=n.children[i],a=o.chunkSize()
+if(e<=a){if(o.insertInner(e,t,r),o.lines&&o.lines.length>50){for(var l=o.lines.length%25+25,s=l;s<o.lines.length;){var u=new bo(o.lines.slice(s,s+=25))
+o.height-=u.height,n.children.splice(++i,0,u),u.parent=n}o.lines=o.lines.slice(0,l),n.maybeSpill()}break}e-=a}},maybeSpill:function(){if(!(this.children.length<=10)){var e=this
 do{var t=new wo(e.children.splice(e.children.length-5,5))
 if(e.parent){e.size-=t.size,e.height-=t.height
 var r=B(e.parent.children,e)
@@ -752,11 +754,12 @@ kt=!0}o.addToHistory&&Bi(e,{from:t,to:r,origin:"markText"},e.sel,NaN)
 var l,s=t.line,u=e.cm
 if(e.iter(s,r.line+1,(function(e){u&&o.collapsed&&!u.options.lineWrapping&&Ft(e)==u.display.maxLine&&(l=!0),o.collapsed&&s!=t.line&&Xe(e,0),function(e,t){e.markedSpans=e.markedSpans?e.markedSpans.concat([t]):[t],t.marker.attachLine(e)}(e,new Ct(o,s==t.line?t.ch:null,s==r.line?r.ch:null)),++s})),o.collapsed&&e.iter(t.line,r.line+1,(function(t){jt(e,t)&&Xe(t,0)})),o.clearOnEnter&&de(o,"beforeCursorEnter",(function(){return o.clear()})),o.readOnly&&(xt=!0,(e.history.done.length||e.history.undone.length)&&e.clearHistory()),o.collapsed&&(o.id=++Co,o.atomic=!0),u){if(l&&(u.curOp.updateMaxLine=!0),o.collapsed)dn(u,t.line,r.line+1)
 else if(o.className||o.startStyle||o.endStyle||o.css||o.attributes||o.title)for(var c=t.line;c<=r.line;c++)fn(u,c,"text")
-o.atomic&&to(u.doc),lr(u,"markerAdded",u,o)}return o}So.prototype.clear=function(){if(!this.explicitlyCleared){var e=this.doc.cm,t=e&&!e.curOp
-if(t&&qn(e),ve(this,"clear")){var r=this.find()
-r&&lr(this,"clear",r.from,r.to)}for(var n=null,i=null,o=0;o<this.lines.length;++o){var a=this.lines[o],l=St(a.markedSpans,this)
-e&&!this.collapsed?fn(e,Ye(a),"text"):e&&(null!=l.to&&(i=Ye(a)),null!=l.from&&(n=Ye(a))),a.markedSpans=Lt(a.markedSpans,l),null==l.from&&this.collapsed&&!jt(this.doc,a)&&e&&Xe(a,rn(e.display))}if(e&&this.collapsed&&!e.options.lineWrapping)for(var s=0;s<this.lines.length;++s){var u=Ft(this.lines[s]),c=Gt(u)
-c>e.display.maxLineLength&&(e.display.maxLine=u,e.display.maxLineLength=c,e.display.maxLineChanged=!0)}null!=n&&e&&this.collapsed&&dn(e,n,i+1),this.lines.length=0,this.explicitlyCleared=!0,this.atomic&&this.doc.cantEdit&&(this.doc.cantEdit=!1,e&&to(e.doc)),e&&lr(e,"markerCleared",e,this,n,i),t&&_n(e),this.parent&&this.parent.clear()}},So.prototype.find=function(e,t){var r,n
+o.atomic&&to(u.doc),lr(u,"markerAdded",u,o)}return o}So.prototype.clear=function(){var e=this
+if(!this.explicitlyCleared){var t=this.doc.cm,r=t&&!t.curOp
+if(r&&qn(t),ve(this,"clear")){var n=this.find()
+n&&lr(this,"clear",n.from,n.to)}for(var i=null,o=null,a=0;a<this.lines.length;++a){var l=e.lines[a],s=St(l.markedSpans,e)
+t&&!e.collapsed?fn(t,Ye(l),"text"):t&&(null!=s.to&&(o=Ye(l)),null!=s.from&&(i=Ye(l))),l.markedSpans=Lt(l.markedSpans,s),null==s.from&&e.collapsed&&!jt(e.doc,l)&&t&&Xe(l,rn(t.display))}if(t&&this.collapsed&&!t.options.lineWrapping)for(var u=0;u<this.lines.length;++u){var c=Ft(e.lines[u]),d=Gt(c)
+d>t.display.maxLineLength&&(t.display.maxLine=c,t.display.maxLineLength=d,t.display.maxLineChanged=!0)}null!=i&&t&&this.collapsed&&dn(t,i,o+1),this.lines.length=0,this.explicitlyCleared=!0,this.atomic&&this.doc.cantEdit&&(this.doc.cantEdit=!1,t&&to(t.doc)),t&&lr(t,"markerCleared",t,this,i,o),r&&_n(t),this.parent&&this.parent.clear()}},So.prototype.find=function(e,t){var r,n
 null==e&&"bookmark"==this.type&&(e=1)
 for(var i=0;i<this.lines.length;++i){var o=this.lines[i],a=St(o.markedSpans,this)
 if(null!=a.from&&(r=et(t?o:Ye(o),a.from),-1==e))return r
@@ -834,9 +837,10 @@ null!=e.from&&e.from>t&&(t=e.from),null!=e.to&&e.to<r&&(r=e.to)
 var n=new Oo($e(this,t,r),e.mode||this.modeOption,t,this.lineSep,this.direction)
 return e.sharedHist&&(n.history=this.history),(this.linked||(this.linked=[])).push({doc:n,sharedHist:e.sharedHist}),n.linked=[{doc:this,isParent:!0,sharedHist:e.sharedHist}],function(e,t){for(var r=0;r<t.length;r++){var n=t[r],i=n.find(),o=e.clipPos(i.from),a=e.clipPos(i.to)
 if(tt(o,a)){var l=Lo(e,o,a,n.primary,n.primary.type)
-n.markers.push(l),l.parent=n}}}(n,Mo(this)),n},unlinkDoc:function(e){if(e instanceof Sa&&(e=e.doc),this.linked)for(var t=0;t<this.linked.length;++t)if(this.linked[t].doc==e){this.linked.splice(t,1),e.unlinkDoc(this),No(Mo(this))
-break}if(e.history==this.history){var r=[e.id]
-Pi(e,(function(e){return r.push(e.id)}),!0),e.history=new Ei(null),e.history.done=Ui(this.history.done,r),e.history.undone=Ui(this.history.undone,r)}},iterLinkedDocs:function(e){Pi(this,e)},getMode:function(){return this.mode},getEditor:function(){return this.cm},splitLines:function(e){return this.lineSep?e.split(this.lineSep):We(e)},lineSeparator:function(){return this.lineSep||"\n"},setDirection:ri((function(e){var t
+n.markers.push(l),l.parent=n}}}(n,Mo(this)),n},unlinkDoc:function(e){var t=this
+if(e instanceof Sa&&(e=e.doc),this.linked)for(var r=0;r<this.linked.length;++r)if(t.linked[r].doc==e){t.linked.splice(r,1),e.unlinkDoc(t),No(Mo(t))
+break}if(e.history==this.history){var n=[e.id]
+Pi(e,(function(e){return n.push(e.id)}),!0),e.history=new Ei(null),e.history.done=Ui(this.history.done,n),e.history.undone=Ui(this.history.undone,n)}},iterLinkedDocs:function(e){Pi(this,e)},getMode:function(){return this.mode},getEditor:function(){return this.cm},splitLines:function(e){return this.lineSep?e.split(this.lineSep):We(e)},lineSeparator:function(){return this.lineSep||"\n"},setDirection:ri((function(e){var t
 "rtl"!=e&&(e="ltr"),e!=this.direction&&(this.direction=e,this.iter((function(e){return e.order=null})),this.cm&&Jn(t=this.cm,(function(){Ii(t),dn(t)})))}))}),Oo.prototype.eachLine=Oo.prototype.iter
 var Wo=0
 function Do(e){var t=this
@@ -969,11 +973,11 @@ if(n.line!=r.line)s=(n.line-r.line)*("ltr"==e.doc.direction?1:-1)>0
 else{var c=le(o,n.ch,n.sticky),d=c-a||(n.ch-r.ch)*(1==l.level?-1:1)
 s=c==u-1||c==u?d<0:d>0}var f=o[u+(s?-1:0)],h=s==(1==f.level),p=h?f.from:f.to,g=h?"after":"before"
 return r.ch==p&&r.sticky==g?t:new Ci(new et(r.line,p,g),n)}(e,new Ci(lt(o,k),b)),Qi(o,Si(e,C,l),K)}}var h=i.wrapper.getBoundingClientRect(),p=0
-function g(t){e.state.selectingText=!1,p=1/0,t&&(be(t),i.input.focus()),he(i.wrapper.ownerDocument,"mousemove",m),he(i.wrapper.ownerDocument,"mouseup",v),o.history.lastSelOrigin=null}var m=ei(e,(function(t){0!==t.buttons&&Se(t)?function t(r){var a=++p,l=un(e,r,!0,"rectangle"==n.unit)
-if(l)if(0!=tt(l,d)){e.curOp.focus=D(),f(l)
-var s=Nn(i,o);(l.line>=s.to||l.line<s.from)&&setTimeout(ei(e,(function(){p==a&&t(r)})),150)}else{var u=r.clientY<h.top?-20:r.clientY>h.bottom?20:0
-u&&setTimeout(ei(e,(function(){p==a&&(i.scroller.scrollTop+=u,t(r))})),50)}}(t):g(t)})),v=ei(e,g)
-e.state.selectingText=v,de(i.wrapper.ownerDocument,"mousemove",m),de(i.wrapper.ownerDocument,"mouseup",v)}(e,n,t,o)}(t,n,o,e):Ce(e)==r.scroller&&be(e):2==i?(n&&_i(t.doc,n),setTimeout((function(){return r.input.focus()}),20)):3==i&&(C?t.display.input.onContextMenu(e):Cn(t)))}}function ga(e,t,r){if("char"==r)return new Ci(t,t)
+function g(t){var r=++p,a=un(e,t,!0,"rectangle"==n.unit)
+if(a)if(0!=tt(a,d)){e.curOp.focus=D(),f(a)
+var l=Nn(i,o);(a.line>=l.to||a.line<l.from)&&setTimeout(ei(e,(function(){p==r&&g(t)})),150)}else{var s=t.clientY<h.top?-20:t.clientY>h.bottom?20:0
+s&&setTimeout(ei(e,(function(){p==r&&(i.scroller.scrollTop+=s,g(t))})),50)}}function m(t){e.state.selectingText=!1,p=1/0,t&&(be(t),i.input.focus()),he(i.wrapper.ownerDocument,"mousemove",v),he(i.wrapper.ownerDocument,"mouseup",y),o.history.lastSelOrigin=null}var v=ei(e,(function(e){0!==e.buttons&&Se(e)?g(e):m(e)})),y=ei(e,m)
+e.state.selectingText=y,de(i.wrapper.ownerDocument,"mousemove",v),de(i.wrapper.ownerDocument,"mouseup",y)}(e,n,t,o)}(t,n,o,e):Ce(e)==r.scroller&&be(e):2==i?(n&&_i(t.doc,n),setTimeout((function(){return r.input.focus()}),20)):3==i&&(C?t.display.input.onContextMenu(e):Cn(t)))}}function ga(e,t,r){if("char"==r)return new Ci(t,t)
 if("word"==r)return e.findWordAt(t)
 if("line"==r)return new Ci(et(t.line,0),lt(e.doc,et(t.line+1,0)))
 var n=r(e,t)
@@ -1137,13 +1141,12 @@ for(var d=n.doc.splitLines(function(e,t,r,n,i){var o="",a=!1,l=e.doc.lineSeparat
 function u(){a&&(o+=l,s&&(o+=l),a=s=!1)}function c(e){e&&(u(),o+=e)}function d(t){if(1==t.nodeType){var r=t.getAttribute("cm-text")
 if(r)return void c(r)
 var o,f=t.getAttribute("cm-marker")
-if(f){var h=e.findMarks(et(n,0),et(i+1,0),(m=+f,function(e){return e.id==m}))
+if(f){var h=e.findMarks(et(n,0),et(i+1,0),function(e){return function(t){return t.id==e}}(+f))
 return void(h.length&&(o=h[0].find(0))&&c(_e(e.doc,o.from,o.to).join(l)))}if("false"==t.getAttribute("contenteditable"))return
 var p=/^(pre|div|p|li|table|br)$/i.test(t.nodeName)
 if(!/^br$/i.test(t.nodeName)&&0==t.textContent.length)return
 p&&u()
-for(var g=0;g<t.childNodes.length;g++)d(t.childNodes[g]);/^(pre|p)$/i.test(t.nodeName)&&(s=!0),p&&(a=!0)}else 3==t.nodeType&&c(t.nodeValue.replace(/\u200b/g,"").replace(/\u00a0/g," "))
-var m}for(;d(t),t!=r;)t=t.nextSibling,s=!1
+for(var g=0;g<t.childNodes.length;g++)d(t.childNodes[g]);/^(pre|p)$/i.test(t.nodeName)&&(s=!0),p&&(a=!0)}else 3==t.nodeType&&c(t.nodeValue.replace(/\u200b/g,"").replace(/\u00a0/g," "))}for(;d(t),t!=r;)t=t.nextSibling,s=!1
 return o}(n,r,u,t,s)),f=_e(n.doc,et(t,0),et(s,qe(n.doc,s).text.length));d.length>1&&f.length>1;)if($(d)==$(f))d.pop(),f.pop(),s--
 else{if(d[0]!=f[0])break
 d.shift(),f.shift(),t++}for(var h=0,p=0,g=d[0],m=f[0],v=Math.min(g.length,m.length);h<v&&g.charCodeAt(h)==m.charCodeAt(h);)++h
@@ -1202,13 +1205,13 @@ n[e]==r&&"mode"!=e||(n[e]=r,t.hasOwnProperty(e)&&ei(this,t[e])(this,r,i),pe(this
 if(n.startState)throw new Error("Overlays may not be stateful.")
 !function(e,t,r){for(var n=0,i=r(t);n<e.length&&r(e[n])<=i;)n++
 e.splice(n,0,t)}(this.state.overlays,{mode:n,modeSpec:t,opaque:r&&r.opaque,priority:r&&r.priority||0},(function(e){return e.priority})),this.state.modeGen++,dn(this)})),removeOverlay:ti((function(e){for(var t=this.state.overlays,r=0;r<t.length;++r){var n=t[r].modeSpec
-if(n==e||"string"==typeof e&&n.name==e)return t.splice(r,1),this.state.modeGen++,void dn(this)}})),indentLine:ti((function(e,t,r){"string"!=typeof t&&"number"!=typeof t&&(t=null==t?this.options.smartIndent?"smart":"prev":t?"add":"subtract"),Qe(this.doc,e)&&Ta(this,e,t,r)})),indentSelection:ti((function(e){for(var t=this.doc.sel.ranges,r=-1,n=0;n<t.length;n++){var i=t[n]
-if(i.empty())i.head.line>r&&(Ta(this,i.head.line,e,!0),r=i.head.line,n==this.doc.sel.primIndex&&Wn(this))
-else{var o=i.from(),a=i.to(),l=Math.max(r,o.line)
-r=Math.min(this.lastLine(),a.line-(a.ch?0:1))+1
-for(var s=l;s<r;++s)Ta(this,s,e)
-var u=this.doc.sel.ranges
-0==o.ch&&t.length==u.length&&u[n].from().ch>0&&Xi(this.doc,n,new Ci(o,u[n].to()),V)}}})),getTokenAt:function(e,t){return yt(this,e,t)},getLineTokens:function(e,t){return yt(this,et(e),t,!0)},getTokenTypeAt:function(e){e=lt(this.doc,e)
+if(n==e||"string"==typeof e&&n.name==e)return t.splice(r,1),this.state.modeGen++,void dn(this)}})),indentLine:ti((function(e,t,r){"string"!=typeof t&&"number"!=typeof t&&(t=null==t?this.options.smartIndent?"smart":"prev":t?"add":"subtract"),Qe(this.doc,e)&&Ta(this,e,t,r)})),indentSelection:ti((function(e){for(var t=this,r=this.doc.sel.ranges,n=-1,i=0;i<r.length;i++){var o=r[i]
+if(o.empty())o.head.line>n&&(Ta(t,o.head.line,e,!0),n=o.head.line,i==t.doc.sel.primIndex&&Wn(t))
+else{var a=o.from(),l=o.to(),s=Math.max(n,a.line)
+n=Math.min(t.lastLine(),l.line-(l.ch?0:1))+1
+for(var u=s;u<n;++u)Ta(t,u,e)
+var c=t.doc.sel.ranges
+0==a.ch&&r.length==c.length&&c[i].from().ch>0&&Xi(t.doc,i,new Ci(a,c[i].to()),V)}}})),getTokenAt:function(e,t){return yt(this,e,t)},getLineTokens:function(e,t){return yt(this,et(e),t,!0)},getTokenTypeAt:function(e){e=lt(this.doc,e)
 var t,r=ft(this,qe(this.doc,e.line)),n=0,i=(r.length-1)/2,o=e.ch
 if(0==o)t=r[2]
 else for(;;){var a=n+i>>1
