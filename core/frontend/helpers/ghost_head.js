@@ -5,6 +5,7 @@
 const {metaData, escapeExpression, SafeString, logging, settingsCache, config, blogIcon, labs, urlUtils} = require('../services/proxy');
 const _ = require('lodash');
 const debug = require('ghost-ignition').debug('ghost_head');
+const templateStyles = require('./tpl/styles');
 
 const getMetaData = metaData.get;
 const getAssetUrl = metaData.getAssetUrl;
@@ -44,6 +45,7 @@ function getMembersHelper() {
     let membersHelper = `<script defer src="${getAssetUrl('public/members.js', true)}"></script>`;
     if (config.get('enableDeveloperExperiments')) {
         membersHelper = `<script defer src="https://unpkg.com/@tryghost/members-js@latest/umd/members.min.js" data-ghost="${urlUtils.getSiteUrl()}"></script>`;
+        membersHelper += (`<style type='text/css'> ${templateStyles}</style>`);
     }
     if ((!!stripeDirectSecretKey && !!stripeDirectPublishableKey) || !!stripeConnectAccountId) {
         membersHelper += '<script async src="https://js.stripe.com/v3/"></script>';
