@@ -114,5 +114,7 @@
     "preloadHeaders": false,
     "adminFrameProtection": true,
     "sendWelcomeEmail": true,
-    "stripeDirect": false
+    "stripeDirect": false,
+    "enableStripePromoCodes": false,
+    "portal": false
 }

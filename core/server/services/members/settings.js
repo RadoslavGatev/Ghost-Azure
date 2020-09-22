@@ -36,7 +36,7 @@ function createSettingsInstance(config) {
 
             ${url}
 
-            For your security, the link will expire in 10 minutes time.
+            For your security, the link will expire in 4 hours time.
 
             ---
 
@@ -71,13 +71,18 @@ function createSettingsInstance(config) {
     });
 
     const sendEmailAddressUpdateMagicLink = ({email, payload = {}, type = 'fromAddressUpdate'}) => {
+        const [,toDomain] = email.split('@');
+        let fromEmail = `noreply@${toDomain}`;
+        if (fromEmail === email) {
+            fromEmail = `no-reply@${toDomain}`;
+        }
         magicLinkService.transporter = {
             sendMail(message) {
                 if (process.env.NODE_ENV !== 'production') {
                     logging.warn(message.text);
                 }
                 let msg = Object.assign({
-                    from: email,
+                    from: fromEmail,
                     subject: 'Update email address',
                     forceTextContent: true
                 }, message);
