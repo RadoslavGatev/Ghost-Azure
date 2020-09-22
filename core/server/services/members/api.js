@@ -6,6 +6,8 @@ const models = require('../../models');
 const signinEmail = require('./emails/signin');
 const signupEmail = require('./emails/signup');
 const subscribeEmail = require('./emails/subscribe');
+const SingleUseTokenProvider = require('./SingleUseTokenProvider');
+const MAGIC_LINK_TOKEN_VALIDITY = 4 * 60 * 60 * 1000;
 
 const ghostMailer = new mail.GhostMailer();
 
@@ -17,7 +19,7 @@ function createApiInstance(config) {
         auth: {
             getSigninURL: config.getSigninURL.bind(config),
             allowSelfSignup: config.getAllowSelfSignup(),
-            secret: config.getAuthSecret()
+            tokenProvider: new SingleUseTokenProvider(models.SingleUseToken, MAGIC_LINK_TOKEN_VALIDITY)
         },
         mail: {
             transporter: {
@@ -59,7 +61,7 @@ function createApiInstance(config) {
 
                         ${url}
 
-                        For your security, the link will expire in 10 minutes time.
+                        For your security, the link will expire in 4 hours time.
 
                         All the best!
                         The team at ${siteTitle}
@@ -77,7 +79,7 @@ function createApiInstance(config) {
 
                         ${url}
 
-                        For your security, the link will expire in 10 minutes time.
+                        For your security, the link will expire in 4 hours time.
 
                         See you soon!
                         The team at ${siteTitle}
@@ -95,7 +97,7 @@ function createApiInstance(config) {
 
                         ${url}
 
-                        For your security, the link will expire in 10 minutes time.
+                        For your security, the link will expire in 4 hours time.
 
                         All the best!
                         The team at ${siteTitle}
@@ -114,7 +116,7 @@ function createApiInstance(config) {
 
                         ${url}
 
-                        For your security, the link will expire in 10 minutes time.
+                        For your security, the link will expire in 4 hours time.
 
                         See you soon!
                         The team at ${siteTitle}
