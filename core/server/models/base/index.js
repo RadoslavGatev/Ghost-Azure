@@ -34,6 +34,8 @@ ghostBookshelf = bookshelf(db.knex);
 // Load the Bookshelf registry plugin, which helps us avoid circular dependencies
 ghostBookshelf.plugin('registry');
 
+ghostBookshelf.plugin(plugins.eagerLoad);
+
 // Add committed/rollback events.
 ghostBookshelf.plugin(plugins.transactionEvents);
 
@@ -175,7 +177,8 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
 
     // Ghost ordering handling, allows to order by permitted attributes by default and can be overriden on specific model level
     orderAttributes: function orderAttributes() {
-        return this.permittedAttributes();
+        return Object.keys(schema.tables[this.tableName])
+            .map(key => `${this.tableName}.${key}`);
     },
 
     // When loading an instance, subclasses can specify default to fetch
@@ -850,6 +853,20 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
         filteredCollection.applySearchQuery(options);
 
         return filteredCollection;
+    },
+
+    getFilteredCollectionQuery: function getFilteredCollectionQuery(options) {
+        const filteredCollection = this.getFilteredCollection(options);
+        const filteredCollectionQuery = filteredCollection.query();
+
+        if (options.transacting) {
+            filteredCollectionQuery.transacting(options.transacting);
+            if (options.forUpdate) {
+                filteredCollectionQuery.forUpdate();
+            }
+        }
+
+        return filteredCollectionQuery;
     },
 
     /**
