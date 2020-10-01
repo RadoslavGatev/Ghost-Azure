@@ -303,10 +303,6 @@
 .ember-power-select-dropdown[dir=rtl] .ember-power-select-group .ember-power-select-group-name {
   padding-right: 8px; }
 
-.sticky-element__trigger--bottom {
-    position: absolute;
-    bottom: 0;
-}
 /* Hide the original input */
 .x-file--input {
   width: 1px;
