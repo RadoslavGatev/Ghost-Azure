@@ -201,7 +201,7 @@ async function pendingEmailHandler(emailModel, options) {
         return;
     }
 
-    return jobService.addJob(sendEmailJob, {emailModel, options});
+    return jobService.addJob(sendEmailJob, {emailModel});
 }
 
 async function sendEmailJob({emailModel, options}) {
@@ -213,9 +213,14 @@ async function sendEmailJob({emailModel, options}) {
         await membersService.checkHostLimit();
 
         // Create email batch and recipient rows unless this is a retry and they already exist
-        const existingBatchCount = await emailModel.related('emailBatches').count();
+        const existingBatchCount = await emailModel.related('emailBatches').count('id');
+
         if (existingBatchCount === 0) {
-            const newBatchCount = await createEmailBatches({emailModel, options});
+            let newBatchCount;
+
+            await models.Base.transaction(async (transacting) => {
+                newBatchCount = await createEmailBatches({emailModel, options: {transacting}});
+            });
 
             if (newBatchCount === 0) {
                 return;
@@ -226,14 +231,25 @@ async function sendEmailJob({emailModel, options}) {
         startEmailSend = Date.now();
         await bulkEmailService.processEmail({emailId: emailModel.get('id'), options});
         debug(`sendEmailJob: sent email (${Date.now() - startEmailSend}ms)`);
-    } catch (err) {
+    } catch (error) {
         if (startEmailSend) {
             debug(`sendEmailJob: send email failed (${Date.now() - startEmailSend}ms)`);
         }
-        logging.error(new errors.GhostError({
-            err: err,
+
+        let errorMessage = error.message;
+        if (errorMessage.length > 2000) {
+            errorMessage = errorMessage.substring(0, 2000);
+        }
+
+        await emailModel.save({
+            status: 'failed',
+            error: errorMessage
+        }, {patch: true});
+
+        throw new errors.GhostError({
+            err: error,
             context: i18n.t('errors.services.mega.requestFailed.error')
-        }));
+        });
     }
 }
 
@@ -253,7 +269,9 @@ async function getEmailMemberRows({emailModel, options}) {
 
     const startRetrieve = Date.now();
     debug('getEmailMemberRows: retrieving members list');
-    const memberRows = await models.Member.getFilteredCollectionQuery(filterOptions);
+    // select('members.*') is necessary here to avoid duplicate `email` columns in the result set
+    // without it we do `select *` which pulls in the Stripe customer email too which overrides the member email
+    const memberRows = await models.Member.getFilteredCollectionQuery(filterOptions).select('members.*');
     debug(`getEmailMemberRows: retrieved members list - ${memberRows.length} members (${Date.now() - startRetrieve}ms)`);
 
     return memberRows;
@@ -274,8 +292,15 @@ async function createEmailBatches({emailModel, options}) {
         const knexOptions = _.pick(options, ['transacting', 'forUpdate']);
         const batchModel = await models.EmailBatch.add({email_id: emailModel.id}, knexOptions);
 
-        const recipientData = recipients.map((memberRow) => {
-            return {
+        const recipientData = [];
+
+        recipients.forEach((memberRow) => {
+            if (!memberRow.id || !memberRow.uuid || !memberRow.email) {
+                logging.warn(`Member row not included as email recipient due to missing data - id: ${memberRow.id}, uuid: ${memberRow.uuid}, email: ${memberRow.email}`);
+                return;
+            }
+
+            recipientData.push({
                 id: ObjectID.generate(),
                 email_id: emailModel.id,
                 member_id: memberRow.id,
@@ -283,10 +308,16 @@ async function createEmailBatches({emailModel, options}) {
                 member_uuid: memberRow.uuid,
                 member_email: memberRow.email,
                 member_name: memberRow.name
-            };
+            });
         });
 
-        await db.knex('email_recipients').insert(recipientData);
+        const insertQuery = db.knex('email_recipients').insert(recipientData);
+
+        if (knexOptions.transacting) {
+            insertQuery.transacting(knexOptions.transacting);
+        }
+
+        await insertQuery;
 
         return batchModel.id;
     };
