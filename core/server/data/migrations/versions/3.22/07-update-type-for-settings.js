@@ -1,3 +1,4 @@
+const Promise = require('bluebird');
 const logging = require('../../../../../shared/logging');
 
 // type mapping for settings. object types are ignored for now
@@ -117,6 +118,12 @@ module.exports = {
                     .transacting('settings')
                     .where('key', key)
                     .select('group');
+
+                if (groupResult.length === 0) {
+                    logging.warn(`Could not find group for ${key}`);
+                    return;
+                }
+
                 const groupValue = groupResult[0].group;
                 return await options
                     .transacting('settings')

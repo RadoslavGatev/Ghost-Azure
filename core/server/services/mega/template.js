@@ -1,5 +1,6 @@
 /* eslint indent: warn, no-irregular-whitespace: warn */
-module.exports = ({post, site, templateConfig}) => {
+const iff = (cond, yes, no) => (cond ? yes : no);
+module.exports = ({post, site, templateSettings}) => {
     const date = new Date();
     return `<!doctype html>
 <html>
@@ -346,6 +347,15 @@ figure blockquote p {
     border-bottom: 1px solid #e5eff5;
 }
 
+.post-content-sans-serif {
+    max-width: 600px !important;
+    font-size: 17px;
+    line-height: 1.5em;
+    color: #23323D;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e5eff5;
+}
+
 .post-content a {
     color: #08121A;
     text-decoration: underline;
@@ -517,8 +527,16 @@ figure blockquote p {
     margin-top: 20px;
     text-align: center;
     font-size: 13px;
-    padding-bottom: 40px;
-    padding-top: 50px;
+    padding-bottom: 10px;
+    padding-top: 10px;
+    padding-left: 30px;
+    padding-right: 30px;
+    line-height: 1.5em;
+}
+
+.footer a {
+    color: #738a94;
+    text-decoration: underline;
 }
 
 /* -------------------------------------
@@ -815,9 +833,10 @@ figure blockquote p {
 }
 
 
-${ templateConfig.showPoweredBy ? `
+${ templateSettings.showBadge ? `
 .footer-powered {
     text-align: center;
+    padding-top: 70px;
     padding-bottom: 40px;
 }
 
@@ -858,7 +877,7 @@ ${ templateConfig.showPoweredBy ? `
                                 <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
 
 
-                                    ${ templateConfig.showSiteHeader ? `
+                                    ${ templateSettings.showSiteHeader ? `
                                     <tr>
                                         <td class="site-info" width="100%" align="center">
                                             <table role="presentation" border="0" cellpadding="0" cellspacing="0">
@@ -898,11 +917,10 @@ ${ templateConfig.showPoweredBy ? `
                                     </tr>
                                     ` : ``}
                                     <tr>
-                                        <td class="post-content">
+                                        <td class="${(templateSettings.bodyFontCategory === 'sans_serif') ? `post-content-sans-serif` : `post-content` }">
                                             <!-- POST CONTENT START -->
                                             ${post.html}
                                             <!-- POST CONTENT END -->
-
                                         </td>
                                     </tr>
                                 </table>
@@ -913,12 +931,13 @@ ${ templateConfig.showPoweredBy ? `
 
                         <tr>
                             <td class="wrapper" align="center">
-                                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="padding-top: 40px; padding-bottom: 30px;">
+                                    ${iff(!!templateSettings.footerContent, `<tr><td class="footer">${templateSettings.footerContent}</td></tr>`, '')}
                                     <tr>
                                         <td class="footer">${site.title} &copy; ${date.getFullYear()} – <a href="%recipient.unsubscribe_url%">Unsubscribe</a></td>
                                     </tr>
 
-                                    ${ templateConfig.showPoweredBy ? `
+                                    ${ templateSettings.showBadge ? `
                                     <tr>
                                         <td class="footer-powered"><a href="https://ghost.org/"><img src="https://static.ghost.org/v3.0.0/images/powered.png" border="0" width="142" height="30" class="gh-powered" alt="Publish with Ghost"></a></td>
                                     </tr>
