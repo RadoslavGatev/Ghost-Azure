@@ -29,7 +29,13 @@ module.exports = {
             defaultTo: 'public',
             validations: {isIn: [['public', 'members', 'paid']]}
         },
-        send_email_when_published: {type: 'bool', nullable: true, defaultTo: false},
+        email_recipient_filter: {
+            type: 'string',
+            maxlength: 50,
+            nullable: false,
+            defaultTo: 'none',
+            validations: {isIn: [['none', 'all', 'free', 'paid']]}
+        },
         /**
          * @deprecated: `author_id`, might be removed in Ghost 3.0
          * If we keep it, then only, because you can easier query post.author_id than posts_authors[*].sort_order.
@@ -446,6 +452,13 @@ module.exports = {
             defaultTo: 'pending',
             validations: {isIn: [['pending', 'submitting', 'submitted', 'failed']]}
         },
+        recipient_filter: {
+            type: 'string',
+            maxlength: 50,
+            nullable: false,
+            defaultTo: 'paid',
+            validations: {isIn: [['all', 'free', 'paid']]}
+        },
         error: {type: 'string', maxlength: 2000, nullable: true},
         error_data: {type: 'text', maxlength: 1000000000, fieldtype: 'long', nullable: true},
         meta: {type: 'text', maxlength: 65535, nullable: true},
@@ -456,6 +469,7 @@ module.exports = {
         reply_to: {type: 'string', maxlength: 2000, nullable: true},
         html: {type: 'text', maxlength: 1000000000, fieldtype: 'long', nullable: true},
         plaintext: {type: 'text', maxlength: 1000000000, fieldtype: 'long', nullable: true},
+        track_opens: {type: 'bool', nullable: false, defaultTo: false},
         submitted_at: {type: 'dateTime', nullable: false},
         created_at: {type: 'dateTime', nullable: false},
         created_by: {type: 'string', maxlength: 24, nullable: false},

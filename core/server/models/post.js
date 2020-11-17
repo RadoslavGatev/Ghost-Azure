@@ -50,12 +50,12 @@ Post = ghostBookshelf.Model.extend({
         }
 
         return {
-            send_email_when_published: false,
             uuid: uuid.v4(),
             status: 'draft',
             featured: false,
             type: 'post',
-            visibility: visibility
+            visibility: visibility,
+            email_recipient_filter: 'none'
         };
     },
 
@@ -504,19 +504,17 @@ Post = ghostBookshelf.Model.extend({
             }
         }
 
-        // send_email_when_published is read-only and should only be set using a query param when publishing/scheduling
-        if (options.send_email_when_published && this.hasChanged('status') && (newStatus === 'published' || newStatus === 'scheduled')) {
-            this.set('send_email_when_published', true);
+        // email_recipient_filter is read-only and should only be set using a query param when publishing/scheduling
+        if (options.email_recipient_filter && options.email_recipient_filter !== 'none' && this.hasChanged('status') && (newStatus === 'published' || newStatus === 'scheduled')) {
+            this.set('email_recipient_filter', options.email_recipient_filter);
         }
 
-        // ensure draft posts have the send_email_when_published reset unless an email has already been sent
+        // ensure draft posts have the email_recipient_filter reset unless an email has already been sent
         if (newStatus === 'draft' && this.hasChanged('status')) {
             ops.push(function ensureSendEmailWhenPublishedIsUnchanged() {
                 return self.related('email').fetch({transacting: options.transacting}).then((email) => {
-                    if (email) {
-                        self.set('send_email_when_published', true);
-                    } else {
-                        self.set('send_email_when_published', false);
+                    if (!email) {
+                        self.set('email_recipient_filter', 'none');
                     }
                 });
             });
@@ -842,7 +840,7 @@ Post = ghostBookshelf.Model.extend({
             findPage: ['status'],
             findAll: ['columns', 'filter'],
             destroy: ['destroyAll', 'destroyBy'],
-            edit: ['filter', 'send_email_when_published', 'force_rerender']
+            edit: ['filter', 'email_recipient_filter', 'force_rerender']
         };
 
         // The post model additionally supports having a formats option
