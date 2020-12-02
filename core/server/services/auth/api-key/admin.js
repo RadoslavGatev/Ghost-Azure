@@ -141,7 +141,20 @@ const authenticateWithToken = (req, res, next, {token, JWT_OPTIONS}) => {
             return next(new errors.InternalServerError({err}));
         }
 
-        // authenticated OK, store the api key on the request for later checks and logging
+        // authenticated OK
+
+        if (apiKey.get('user_id')) {
+            // fetch the user and store it on the request for later checks and logging
+            return models.User.findOne(
+                {id: apiKey.get('user_id'), status: 'active'},
+                {require: true}
+            ).then((user) => {
+                req.user = user;
+                next();
+            });
+        }
+
+        // store the api key on the request for later checks and logging
         req.api_key = apiKey;
         next();
     }).catch((err) => {

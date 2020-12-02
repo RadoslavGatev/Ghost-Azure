@@ -2,7 +2,7 @@ const _ = require('lodash');
 const hbs = require('./engine');
 const urlUtils = require('../../../shared/url-utils');
 const config = require('../../../shared/config');
-const {i18n} = require('../../../server/lib/common');
+const {i18n} = require('../proxy');
 const errors = require('@tryghost/errors');
 const settingsCache = require('../../../server/services/settings/cache');
 const labs = require('../../../server/services/labs');
@@ -133,7 +133,9 @@ function updateLocalTemplateOptions(req, res, next) {
         firstname: req.member.name && req.member.name.split(' ')[0],
         avatar_image: req.member.avatar_image,
         subscriptions: req.member.stripe.subscriptions,
-        paid: req.member.stripe.subscriptions.length !== 0
+        paid: req.member.stripe.subscriptions.filter((subscription) => {
+            return ['active', 'trialing', 'unpaid', 'past_due'].includes(subscription.status);
+        }).length !== 0
     } : null;
 
     hbs.updateLocalTemplateOptions(res.locals, _.merge({}, localTemplateOptions, {

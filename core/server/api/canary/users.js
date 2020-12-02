@@ -8,6 +8,30 @@ const permissionsService = require('../../services/permissions');
 const ALLOWED_INCLUDES = ['count.posts', 'permissions', 'roles', 'roles.permissions'];
 const UNSAFE_ATTRS = ['status', 'roles'];
 
+function permissionOnlySelf(frame) {
+    const targetId = getTargetId(frame);
+    const userId = frame.user.id;
+    if (targetId !== userId) {
+        return Promise.reject(new errors.NoPermissionError({message: i18n.t('errors.permissions.noPermissionToAction')}));
+    }
+    return Promise.resolve();
+}
+
+function getTargetId(frame) {
+    return frame.options.id === 'me' ? frame.user.id : frame.options.id;
+}
+
+async function fetchOrCreatePersonalToken(userId) {
+    const token = await models.ApiKey.findOne({user_id: userId}, {});
+
+    if (!token) {
+        const newToken = await models.ApiKey.add({user_id: userId, type: 'admin'});
+        return newToken;
+    }
+
+    return token;
+}
+
 module.exports = {
     docName: 'users',
 
@@ -133,6 +157,20 @@ module.exports = {
 
                 return models.Post.destroyByAuthor(frame.options)
                     .then(() => {
+                        return models.ApiKey.destroy({
+                            ...frame.options,
+                            require: true,
+                            destroyBy: {
+                                user_id: frame.options.id
+                            }
+                        }).catch((err) => {
+                            if (err instanceof models.ApiKey.NotFoundError) {
+                                return; //Do nothing here as it's ok
+                            }
+                            throw err;
+                        });
+                    })
+                    .then(() => {
                         return models.User.destroy(Object.assign({status: 'all'}, frame.options));
                     })
                     .then(() => filename);
@@ -175,6 +213,47 @@ module.exports = {
         },
         query(frame) {
             return models.User.transferOwnership(frame.data.owner[0], frame.options);
+        }
+    },
+
+    readToken: {
+        options: [
+            'id'
+        ],
+        validation: {
+            options: {
+                id: {
+                    required: true
+                }
+            }
+        },
+        permissions: permissionOnlySelf,
+        query(frame) {
+            const targetId = getTargetId(frame);
+            return fetchOrCreatePersonalToken(targetId);
+        }
+    },
+
+    regenerateToken: {
+        headers: {
+            cacheInvalidate: true
+        },
+        options: [
+            'id'
+        ],
+        validation: {
+            options: {
+                id: {
+                    required: true
+                }
+            }
+        },
+        permissions: permissionOnlySelf,
+        query(frame) {
+            const targetId = getTargetId(frame);
+            return fetchOrCreatePersonalToken(targetId).then((model) => {
+                return models.ApiKey.refreshSecret(model.toJSON(), Object.assign({}, {id: model.id}));
+            });
         }
     }
 };
