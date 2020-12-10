@@ -1,456 +1,212 @@
-const _ = require('lodash');
-const uuid = require('uuid');
-const ObjectId = require('bson-objectid');
+// @ts-check
 const moment = require('moment-timezone');
-const errors = require('@tryghost/errors');
-const debug = require('ghost-ignition').debug('importer:members');
-const membersService = require('../index');
-const models = require('../../../models');
-const {i18n} = require('../../../lib/common');
-const logging = require('../../../../shared/logging');
+const path = require('path');
+const fs = require('fs-extra');
+const membersCSV = require('@tryghost/members-csv');
+const urlUtils = require('../../../../shared/url-utils');
+const db = require('../../../data/db');
+const emailTemplate = require('./email-template');
 
-const handleUnrecognizedError = (error) => {
-    if (!errors.utils.isIgnitionError(error)) {
-        return new errors.DataImportError({
-            message: error.message,
-            context: error.context,
-            err: error
-        });
-    } else {
-        return error;
+module.exports = class MembersCSVImporter {
+    /**
+     * @param {Object} config
+     * @param {string} config.storagePath - The path to store CSV's in before importing
+     * @param {Object} settingsCache - An instance of the Ghost Settings Cache
+     * @param {() => Object} getMembersApi
+     */
+    constructor(config, settingsCache, getMembersApi) {
+        this._storagePath = config.storagePath;
+        this._settingsCache = settingsCache;
+        this._getMembersApi = getMembersApi;
     }
-};
 
-const doImport = async ({members, labels, importSetLabels, createdBy}) => {
-    debug(`Importing members: ${members.length}, labels: ${labels.length}, import lables: ${importSetLabels.length}, createdBy: ${createdBy}`);
+    /**
+     * @typedef {string} JobID
+     */
 
-    let {
-        invalidMembers,
-        membersToInsert,
-        stripeCustomersToFetch,
-        stripeCustomersToCreate,
-        labelAssociationsToInsert
-    } = getMemberData({members, labels, importSetLabels, createdBy});
+    /**
+     * @typedef {Object} Job
+     * @prop {string} filename
+     * @prop {JobID} id
+     * @prop {string} status
+     */
 
-    // NOTE: member insertion has to happen before the rest of insertions to handle validation
-    //       errors - remove failed members from label/stripe sets
-    debug(`Starting insert of ${membersToInsert.length} members`);
-    const insertedMembers = await models.Member.bulkAdd(membersToInsert).then((insertResult) => {
-        if (insertResult.unsuccessfulRecords.length) {
-            const unsuccessfulIds = insertResult.unsuccessfulRecords.map(r => r.id);
+    /**
+     * Get the Job for a jobCode
+     * @param {JobID} jobId
+     * @returns {Promise<Job>}
+     */
+    async getJob(jobId) {
+        return {
+            id: jobId,
+            filename: jobId,
+            status: 'pending'
+        };
+    }
 
-            labelAssociationsToInsert = labelAssociationsToInsert
-                .filter(la => !unsuccessfulIds.includes(la.member_id));
+    /**
+     * Prepares a CSV file for import
+     * - Maps headers based on headerMapping, this allows for a non standard CSV
+     *   to be imported, so long as a mapping exists between it and a standard CSV
+     * - Stores the CSV to be imported in the storagePath
+     * - Creates a MemberImport Job and associated MemberImportBatch's
+     *
+     * @param {string} inputFilePath - The path to the CSV to prepare
+     * @param {Object.<string, string>} headerMapping - An object whos keys are headers in the input CSV and values are the header to replace it with
+     * @param {Array<string>} defaultLabels - A list of labels to apply to every member
+     *
+     * @returns {Promise<{id: JobID, batches: number, metadata: Object.<string, any>}>} - A promise resolving to the id of the MemberImport Job
+     */
+    async prepare(inputFilePath, headerMapping, defaultLabels) {
+        const batchSize = 1;
 
-            stripeCustomersToFetch = stripeCustomersToFetch
-                .filter(sc => !unsuccessfulIds.includes(sc.member_id));
+        const siteTimezone = this._settingsCache.get('timezone');
+        const currentTime = moment().tz(siteTimezone).format('YYYY-MM-DD HH:mm:ss.SSS');
+        const outputFileName = `Members Import ${currentTime}.csv`;
+        const outputFilePath = path.join(this._storagePath, '/', outputFileName);
 
-            stripeCustomersToCreate = stripeCustomersToCreate
-                .filter(sc => !unsuccessfulIds.includes(sc.member_id));
+        const pathExists = await fs.pathExists(outputFilePath);
+
+        if (pathExists) {
+            throw new Error('Maybe we need better name generation');
         }
 
-        debug(`Finished inserting members with ${insertResult.errors.length} errors`);
-        if (insertResult.errors.length) {
-            insertResult.errors = insertResult.errors.map((error) => {
-                if (error.code === 'ER_DUP_ENTRY') {
-                    return new errors.ValidationError({
-                        message: i18n.t('errors.models.member.memberAlreadyExists.message'),
-                        context: i18n.t('errors.models.member.memberAlreadyExists.context', {
-                            action: 'add'
-                        }),
-                        err: error
+        const rows = await membersCSV.parse(inputFilePath, headerMapping, defaultLabels);
+        const numberOfBatches = Math.ceil(rows.length / batchSize);
+        const mappedCSV = membersCSV.unparse(rows);
+
+        const hasStripeData = rows.find(function rowHasStripeData(row) {
+            return !!row.stripe_customer_id || !!row.complimentary_plan;
+        });
+
+        await fs.writeFile(outputFilePath, mappedCSV);
+
+        return {
+            id: outputFilePath,
+            batches: numberOfBatches,
+            metadata: {
+                hasStripeData
+            }
+        };
+    }
+
+    /**
+     * Performs an import of a CSV file
+     *
+     * @param {JobID} id - The id of the job to perform
+     */
+    async perform(id) {
+        const job = await this.getJob(id);
+
+        if (job.status === 'complete') {
+            throw new Error('Job is already complete');
+        }
+
+        const rows = membersCSV.parse(job.filename);
+
+        const membersApi = await this._getMembersApi();
+
+        const result = await rows.reduce(async (resultPromise, row) => {
+            const resultAccumulator = await resultPromise;
+
+            const trx = await db.knex.transaction();
+            const options = {
+                transacting: trx
+            };
+
+            try {
+                const existingMember = await membersApi.members.get({email: row.email}, {
+                    ...options,
+                    withRelated: ['labels']
+                });
+                let member;
+                if (existingMember) {
+                    const existingLabels = existingMember.related('labels') ? existingMember.related('labels').toJSON() : [];
+                    member = await membersApi.members.update({
+                        ...row,
+                        labels: existingLabels.concat(row.labels)
+                    }, {
+                        ...options,
+                        id: existingMember.id
                     });
                 } else {
-                    return handleUnrecognizedError(error);
-                }
-            });
-        }
-
-        return insertResult;
-    });
-
-    const fetchedStripeCustomersPromise = fetchStripeCustomers(stripeCustomersToFetch);
-    const createdStripeCustomersPromise = createStripeCustomers(stripeCustomersToCreate);
-
-    debug(`Starting insert of ${labelAssociationsToInsert.length} label associations`);
-    const insertedLabelsPromise = models.Base.Model.bulkAdd(labelAssociationsToInsert, 'members_labels')
-        .then((insertResult) => {
-            debug(`Finished inserting member label associations with ${insertResult.errors.length} errors`);
-            return insertResult;
-        });
-
-    const insertedCustomersPromise = Promise.all([
-        fetchedStripeCustomersPromise,
-        createdStripeCustomersPromise
-    ]).then(
-        ([fetchedStripeCustomers, createdStripeCustomers]) => {
-            const stripeCustomersToInsert = fetchedStripeCustomers.customersToInsert.concat(createdStripeCustomers.customersToInsert);
-
-            debug(`Starting insert of ${stripeCustomersToInsert.length} stripe customers`);
-            return models.MemberStripeCustomer.bulkAdd(stripeCustomersToInsert).then((insertResult) => {
-                debug(`Finished inserting stripe customers with ${insertResult.errors.length} errors`);
-
-                if (insertResult.errors.length) {
-                    insertResult.errors = insertResult.errors.map((error) => {
-                        if (error.code === 'ER_DUP_ENTRY') {
-                            return new errors.ValidationError({
-                                message: i18n.t('errors.models.member_stripe_customer.customerAlreadyExists.message'),
-                                context: i18n.t('errors.models.member_stripe_customer.customerAlreadyExists.context'),
-                                err: error
-                            });
-                        } else {
-                            return handleUnrecognizedError(error);
-                        }
-                    });
+                    member = await membersApi.members.create(row, options);
                 }
 
-                return insertResult;
-            });
-        }
-    );
+                if (row.complimentary_plan) {
+                    await membersApi.members.setComplimentarySubscription(member, options);
+                }
 
-    const insertedSubscriptionsPromise = Promise.all([
-        fetchedStripeCustomersPromise,
-        createdStripeCustomersPromise,
-        insertedCustomersPromise
-    ]).then(
-        ([fetchedStripeCustomers, createdStripeCustomers, insertedCustomersResult]) => {
-            let subscriptionsToInsert = fetchedStripeCustomers.subscriptionsToInsert.concat(createdStripeCustomers.subscriptionsToInsert);
-
-            if (insertedCustomersResult.unsuccessfulRecords.length) {
-                const unsuccessfulCustomerIds = insertedCustomersResult.unsuccessfulRecords.map(r => r.customer_id);
-                subscriptionsToInsert = subscriptionsToInsert.filter(s => !unsuccessfulCustomerIds.includes(s.customer_id));
+                if (row.stripe_customer_id) {
+                    await membersApi.members.linkStripeCustomer(row.stripe_customer_id, member, options);
+                }
+                await trx.commit();
+                return {
+                    ...resultAccumulator,
+                    imported: resultAccumulator.imported + 1
+                };
+            } catch (error) {
+                // The model layer can sometimes throw arrays of errors
+                const errors = [].concat(error);
+                const errorMessage = errors.map(({message}) => message).join(', ');
+                await trx.rollback();
+                return {
+                    ...resultAccumulator,
+                    errors: [...resultAccumulator.errors, {
+                        ...row,
+                        error: errorMessage
+                    }]
+                };
             }
+        }, Promise.resolve({
+            imported: 0,
+            errors: []
+        }));
 
-            debug(`Starting insert of ${subscriptionsToInsert.length} stripe customer subscriptions`);
-            return models.StripeCustomerSubscription.bulkAdd(subscriptionsToInsert)
-                .then((insertResult) => {
-                    debug(`Finished inserting stripe customer subscriptions with ${insertResult.errors.length} errors`);
-
-                    if (insertResult.errors.length) {
-                        insertResult.errors = insertResult.errors.map((error) => {
-                            if (error.code === 'ER_DUP_ENTRY') {
-                                return new errors.ValidationError({
-                                    message: i18n.t('errors.models.stripe_customer_subscription.subscriptionAlreadyExists.message'),
-                                    context: i18n.t('errors.models.stripe_customer_subscription.subscriptionAlreadyExists.context'),
-                                    err: error
-                                });
-                            } else {
-                                return handleUnrecognizedError(error);
-                            }
-                        });
-                    }
-
-                    return insertResult;
-                });
-        }
-    );
-
-    const deletedMembersPromise = Promise.all([
-        fetchedStripeCustomersPromise,
-        createdStripeCustomersPromise,
-        insertedCustomersPromise,
-        insertedSubscriptionsPromise
-    ]).then(
-        ([fetchedStripeCustomers, createdStripeCustomers, insertedStripeCustomers, insertedStripeSubscriptions]) => {
-            const memberIds = [
-                ...fetchedStripeCustomers.membersToDelete,
-                ...createdStripeCustomers.membersToDelete,
-                ...insertedStripeCustomers.unsuccessfulRecords.map(r => r.member_id),
-                ...insertedStripeSubscriptions.unsuccessfulRecords.map(r => r.member_id)
-            ];
-
-            return models.Member.bulkDestroy(memberIds);
-        }
-    );
-
-    // This looks sequential, but at the point insertedCustomersPromise has resolved so have all the others
-    const insertedSubscriptions = await insertedSubscriptionsPromise;
-    const insertedCustomers = await insertedCustomersPromise;
-    const deletedMembers = await deletedMembersPromise;
-    const fetchedCustomers = await fetchedStripeCustomersPromise;
-    const insertedLabels = await insertedLabelsPromise;
-
-    const allErrors = [
-        ...insertedMembers.errors,
-        ...insertedCustomers.errors,
-        ...insertedSubscriptions.errors,
-        ...insertedLabels.errors,
-        ...fetchedCustomers.errors
-    ];
-    const importedCount = insertedMembers.successful - deletedMembers.successful;
-    const invalidCount = insertedMembers.unsuccessful + invalidMembers.length + deletedMembers.successful + deletedMembers.unsuccessful;
-
-    debug(`Finished members import with ${importedCount} imported, ${invalidCount} invalid and ${allErrors.length} errors`);
-
-    const result = {
-        imported: {
-            count: importedCount
-        },
-        invalid: {
-            count: invalidCount,
-            errors: allErrors
-        }
-    };
-
-    // Allow logging to happen outside of the request cycle
-    process.nextTick(() => {
-        result.invalid.errors.forEach(err => logging.error(err));
-        deletedMembers.errors.forEach(err => logging.error(err));
-        insertedLabels.errors.forEach(err => logging.error(err));
-    });
-
-    return result;
-};
-
-function serializeMemberLabels(labels) {
-    return labels.reduce((labelsAcc, label) => {
-        if (!label) {
-            return labels;
-        }
-        if (typeof label !== 'string') {
-            return labelsAcc.concat(label.name);
-        }
-        return labelsAcc.concat(label.trim());
-    }, []);
-}
-
-function getMemberData({members, labels, importSetLabels, createdBy}) {
-    const labelIdLookup = labels.reduce(function (labelIdLookupAcc, labelModel) {
-        return Object.assign(labelIdLookupAcc, {
-            [labelModel.name]: labelModel.id
-        });
-    }, {});
-
-    const importedLabels = importSetLabels.map(label => label.name);
-
-    const invalidMembers = [];
-    const membersToInsert = [];
-    const stripeCustomersToFetch = [];
-    const stripeCustomersToCreate = [];
-    const labelAssociationsToInsert = [];
-
-    members.forEach(function (member) {
-        // @TODO This is expensive, maybe we can just error if we get shoddy data?
-        for (let key in member) {
-            if (member[key] === 'undefined') {
-                delete member[key];
-            }
-        }
-
-        let subscribed;
-        if (_.isUndefined(member.subscribed_to_emails)) {
-            // Member's model default
-            subscribed = true;
-        } else {
-            subscribed = (String(member.subscribed_to_emails).toLowerCase() !== 'false');
-        }
-
-        let createdAt = member.created_at === '' ? undefined : member.created_at;
-
-        // fixes a formatting issue where inserted dates are showing up as ints and not date times...
-        const dateFormat = 'YYYY-MM-DD HH:mm:ss';
-
-        if (createdAt) {
-            createdAt = moment(createdAt).format(dateFormat);
-        } else {
-            createdAt = moment().format(dateFormat);
-        }
-
-        const memberToInsert = {
-            id: ObjectId.generate(),
-            uuid: uuid.v4(), // member model default
-            email: member.email,
-            name: member.name,
-            note: member.note,
-            subscribed: subscribed,
-            created_at: createdAt,
-            created_by: createdBy
+        return {
+            total: result.imported + result.errors.length,
+            ...result
         };
-        membersToInsert.push(memberToInsert);
+    }
 
-        const memberLabels = member.labels
-            ? serializeMemberLabels((member.labels || '').split(','))
-            : [];
-        const allLabels = _.union(memberLabels, importedLabels);
+    generateCompletionEmail(result, data) {
+        const siteUrl = new URL(urlUtils.urlFor('home', null, true));
+        const membersUrl = new URL('members', urlUtils.urlFor('admin', null, true));
+        if (data.importLabel) {
+            membersUrl.searchParams.set('label', data.importLabel.slug);
+        }
+        return emailTemplate({result, siteUrl, membersUrl, ...data});
+    }
 
-        const memberLabelAssociationsToInsert = allLabels.map((label, index) => {
+    generateErrorCSV(result) {
+        const errorsWithFormattedMessages = result.errors.map((row) => {
+            const formattedError = row.error
+                .replace(
+                    'Value in [members.email] cannot be blank.',
+                    'Missing email address'
+                )
+                .replace(
+                    'Value in [members.note] exceeds maximum length of 2000 characters.',
+                    '"Note" exceeds maximum length of 2000 characters'
+                )
+                .replace(
+                    'Value in [members.subscribed] must be one of true, false, 0 or 1.',
+                    'Value in "Subscribed to emails" must be "true" or "false"'
+                )
+                .replace(
+                    'Validation (isEmail) failed for email',
+                    'Invalid email address'
+                )
+                .replace(
+                    /No such customer:[^,]*/,
+                    'Could not find Stripe customer'
+                );
+
             return {
-                id: ObjectId.generate(),
-                member_id: memberToInsert.id,
-                label_id: labelIdLookup[label],
-                sort_order: index
+                ...row,
+                error: formattedError
             };
         });
-        labelAssociationsToInsert.push(...memberLabelAssociationsToInsert);
-
-        if (member.stripe_customer_id) {
-            const stripeCustomerToFetch = {
-                customer_id: member.stripe_customer_id,
-                member_id: memberToInsert.id
-            };
-            stripeCustomersToFetch.push(stripeCustomerToFetch);
-        }
-
-        if (String(member.complimentary_plan).toLowerCase() === 'true') {
-            const stripeCustomerToCreate = {
-                member_id: memberToInsert.id,
-                name: memberToInsert.name,
-                email: memberToInsert.email
-            };
-            stripeCustomersToCreate.push(stripeCustomerToCreate);
-        }
-    });
-
-    return {
-        invalidMembers,
-        membersToInsert,
-        stripeCustomersToFetch,
-        stripeCustomersToCreate,
-        labelAssociationsToInsert
-    };
-}
-
-async function createStripeCustomers(stripeCustomersToCreate) {
-    const result = {
-        errors: [],
-        customersToInsert: [],
-        subscriptionsToInsert: [],
-        membersToDelete: []
-    };
-
-    debug(`Creating Stripe customers for ${stripeCustomersToCreate.length} records`);
-    await Promise.all(stripeCustomersToCreate.map(async function createStripeCustomer(customerToCreate) {
-        try {
-            const customer = await membersService.api.members.createStripeCustomer({
-                email: customerToCreate.email,
-                name: customerToCreate.name
-            });
-
-            result.customersToInsert.push({
-                id: ObjectId.generate(),
-                member_id: customerToCreate.member_id,
-                customer_id: customer.id,
-                email: customer.email,
-                name: customer.name,
-                created_at: new Date(),
-                updated_at: new Date(),
-                created_by: 1,
-                updated_by: 1
-            });
-
-            const subscription = await membersService.api.members.createComplimentarySubscription(customer);
-
-            const payment = subscription.default_payment_method;
-            result.subscriptionsToInsert.push({
-                id: ObjectId.generate(),
-                customer_id: customer.id,
-                subscription_id: subscription.id,
-                plan_id: subscription.plan.id,
-                status: subscription.status,
-                cancel_at_period_end: subscription.cancel_at_period_end,
-                current_period_end: new Date(subscription.current_period_end * 1000),
-                start_date: new Date(subscription.start_date * 1000),
-                default_payment_card_last4: payment && payment.card && payment.card.last4 || null,
-                plan_nickname: subscription.plan.nickname || '',
-                plan_interval: subscription.plan.interval,
-                plan_amount: subscription.plan.amount,
-                plan_currency: subscription.plan.currency,
-                created_at: new Date(),
-                updated_at: new Date(),
-                created_by: 1,
-                updated_by: 1
-            });
-        } catch (error) {
-            if (error.message.indexOf('customer') && error.code === 'resource_missing') {
-                result.errors.push(new errors.NotFoundError({
-                    message: `Member not imported. ${error.message}`,
-                    context: i18n.t('errors.api.members.stripeCustomerNotFound.context'),
-                    help: i18n.t('errors.api.members.stripeCustomerNotFound.help'),
-                    err: error,
-                    errorDetails: JSON.stringify(customerToCreate)
-                }));
-            } else {
-                result.errors.push(handleUnrecognizedError(error));
-            }
-
-            result.membersToDelete.push(customerToCreate.member_id);
-        }
-    }));
-
-    debug(`Finished creating Stripe customers with ${result.errors.length} errors`);
-    return result;
-}
-
-async function fetchStripeCustomers(stripeCustomersToInsert) {
-    const result = {
-        errors: [],
-        customersToInsert: [],
-        subscriptionsToInsert: [],
-        membersToDelete: []
-    };
-
-    debug(`Fetching Stripe customers for ${stripeCustomersToInsert.length} records`);
-
-    await Promise.all(stripeCustomersToInsert.map(async function fetchStripeCustomer(customer) {
-        try {
-            const fetchedCustomer = await membersService.api.members.getStripeCustomer(customer.customer_id, {
-                expand: ['subscriptions', 'subscriptions.data.default_payment_method']
-            });
-
-            result.customersToInsert.push({
-                id: ObjectId.generate(),
-                member_id: customer.member_id,
-                customer_id: customer.customer_id,
-                email: fetchedCustomer.email,
-                name: fetchedCustomer.name,
-                created_at: new Date(),
-                updated_at: new Date(),
-                created_by: 1,
-                updated_by: 1
-            });
-
-            fetchedCustomer.subscriptions.data.forEach((subscription) => {
-                const payment = subscription.default_payment_method;
-                result.subscriptionsToInsert.push({
-                    id: ObjectId.generate(),
-                    customer_id: customer.customer_id,
-                    subscription_id: subscription.id,
-                    plan_id: subscription.plan.id,
-                    status: subscription.status,
-                    cancel_at_period_end: subscription.cancel_at_period_end,
-                    current_period_end: new Date(subscription.current_period_end * 1000),
-                    start_date: new Date(subscription.start_date * 1000),
-                    default_payment_card_last4: payment && payment.card && payment.card.last4 || null,
-                    plan_nickname: subscription.plan.nickname || '',
-                    plan_interval: subscription.plan.interval,
-                    plan_amount: subscription.plan.amount,
-                    plan_currency: subscription.plan.currency,
-                    created_at: new Date(),
-                    updated_at: new Date(),
-                    created_by: 1,
-                    updated_by: 1
-                });
-            });
-        } catch (error) {
-            if (error.message.indexOf('customer') && error.code === 'resource_missing') {
-                result.errors.push(new errors.NotFoundError({
-                    message: `Member not imported. ${error.message}`,
-                    context: i18n.t('errors.api.members.stripeCustomerNotFound.context'),
-                    help: i18n.t('errors.api.members.stripeCustomerNotFound.help'),
-                    err: error,
-                    errorDetails: JSON.stringify(customer)
-                }));
-            } else {
-                result.errors.push(handleUnrecognizedError(error));
-            }
-
-            result.membersToDelete.push(customer.member_id);
-        }
-    }));
-
-    debug(`Finished fetching Stripe customers with ${result.errors.length} errors`);
-    return result;
-}
-
-module.exports = doImport;
+        return membersCSV.unparse(errorsWithFormattedMessages);
+    }
+};
