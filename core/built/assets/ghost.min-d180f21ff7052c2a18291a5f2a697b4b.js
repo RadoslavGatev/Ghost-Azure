@@ -1182,7 +1182,7 @@ return this.notifications.showAlert(n.passwordreset[0].message,{type:"warn",dela
 e.default=s})),define("ghost-admin/controllers/settings/code-injection",["exports","ember-concurrency"],(function(e,t){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
 var n=Ember.Controller.extend({notifications:Ember.inject.service(),settings:Ember.inject.service(),actions:{save(){this.saveTask.perform()},toggleLeaveSettingsModal(e){let t=this.leaveSettingsTransition
 if(!e&&this.showLeaveSettingsModal)return this.set("leaveSettingsTransition",null),void this.set("showLeaveSettingsModal",!1)
-if(!t||e.targetName===t.targetName){if(this.set("leaveSettingsTransition",e),this.save.isRunning)return this.save.last.then((()=>{e.retry()}))
+if(!t||e.targetName===t.targetName){if(this.set("leaveSettingsTransition",e),this.saveTask.isRunning)return this.saveTask.last.then((()=>{e.retry()}))
 this.set("showLeaveSettingsModal",!0)}},leaveSettings(){let e=this.leaveSettingsTransition,t=this.settings
 if(e)return t.rollbackAttributes(),e.retry()
 this.notifications.showAlert("Sorry, there was an error in the application. Please let the Ghost team know what happened.",{type:"error"})}},saveTask:(0,t.task)((function*(){let e=this.notifications
