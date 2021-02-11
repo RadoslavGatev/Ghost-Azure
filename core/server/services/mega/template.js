@@ -391,7 +391,8 @@ figure blockquote p {
 }
 
 .kg-bookmark-content {
-    flex-grow: 1;
+    display: inline-block;
+    width: 100%;
     padding: 20px;
 }
 
@@ -449,17 +450,17 @@ figure blockquote p {
     line-height: 1.5em;
 }
 
-.kg-bookmark-author:after {
-    content: "•";
-    margin: 0 6px;
-}
-
 .kg-bookmark-publisher {
     overflow: hidden;
     max-width: 240px;
     line-height: 1.5em;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.kg-bookmark-publisher:before {
+    content: "•";
+    margin: 0 6px;
 }
 
 .kg-gallery-container {
