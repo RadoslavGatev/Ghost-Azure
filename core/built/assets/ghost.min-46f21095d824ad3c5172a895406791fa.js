@@ -1043,11 +1043,12 @@ e.default=n})),define("ghost-admin/components/vertical-collection",["exports","@
 var t=Ember.Controller.extend({config:Ember.inject.service(),upgradeStatus:Ember.inject.service(),copyrightYear:Ember.computed((function(){return(new Date).getFullYear()}))})
 e.default=t})),define("ghost-admin/controllers/application",["exports"],(function(e){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
 var t=Ember.Controller.extend({ajax:Ember.inject.service(),config:Ember.inject.service(),customViews:Ember.inject.service(),dropdown:Ember.inject.service(),ghostPaths:Ember.inject.service(),router:Ember.inject.service(),session:Ember.inject.service(),settings:Ember.inject.service(),ui:Ember.inject.service(),updateUrl:Ember.computed.reads("config.updateUrl"),showBilling:Ember.computed.reads("config.billingUrl"),showNavMenu:Ember.computed("router.currentRouteName","session.{isAuthenticated,user.isFulfilled}","ui.isFullScreen",(function(){let{router:e,session:t,ui:n}=this
-return!n.isFullScreen&&(!(!t.isAuthenticated||!t.user.isFulfilled)&&(("error404"!==e.currentRouteName||t.isAuthenticated)&&!e.currentRouteName.match(/(signin|signup|setup|reset)/)))})),openUpdateTab:Ember._action((function(){const e=window.open("","_blank")
-e.document.write("Loading...")
-const t=new URL(this.config.get("updateUrl")),n=this.ghostPaths.url.api("identities")
-this.ajax.request(n).then((n=>{const s=n&&n.identities&&n.identities[0]&&n.identities[0].token
-t.searchParams.append("jwt",s),e.location.href=t.toString()}))}))})
+return!n.isFullScreen&&(!(!t.isAuthenticated||!t.user.isFulfilled)&&(("error404"!==e.currentRouteName||t.isAuthenticated)&&!e.currentRouteName.match(/(signin|signup|setup|reset)/)))})),openUpdateTab:Ember._action((function(e){e.preventDefault()
+const t=window.open("","_blank")
+t.document.write("Loading...")
+const n=new URL(this.config.get("updateUrl")),s=this.ghostPaths.url.api("identities")
+this.ajax.request(s).then((e=>{const s=e&&e.identities&&e.identities[0]&&e.identities[0].token
+n.searchParams.append("jwt",s),t.location.href=n.toString()}))}))})
 e.default=t})),define("ghost-admin/controllers/billing",["exports"],(function(e){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
 var t=Ember.Controller.extend({queryParams:["action"],action:null,guid:Ember.computed.alias("model")})
 e.default=t})),define("ghost-admin/controllers/editor",["exports","ghost-admin/models/post","ghost-admin/utils/bound-one-way","ghost-admin/config/environment","ghost-admin/utils/isNumber","moment","ghost-admin/services/ajax","ember-ajax/errors","ember-concurrency"],(function(e,t,n,s,a,r,i,o,l){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
