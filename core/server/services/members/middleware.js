@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const logging = require('../../../shared/logging');
-const labsService = require('../labs');
 const membersService = require('./index');
 const urlUtils = require('../../../shared/url-utils');
 const ghostVersion = require('../../lib/ghost-version');
@@ -10,10 +9,6 @@ const {formattedMemberResponse} = require('./utils');
 // @TODO: This piece of middleware actually belongs to the frontend, not to the member app
 // Need to figure a way to separate these things (e.g. frontend actually talks to members API)
 const loadMemberSession = async function (req, res, next) {
-    if (!labsService.isSet('members')) {
-        req.member = null;
-        return next();
-    }
     try {
         const member = await membersService.ssr.getMemberDataFromSession(req, res);
         Object.assign(req, {member});
@@ -56,7 +51,7 @@ const getMemberData = async function (req, res) {
             res.json(null);
         }
     } catch (err) {
-        res.writeHead(err.statusCode);
+        res.writeHead(401);
         res.end(err.message);
     }
 };
@@ -131,9 +126,9 @@ const createSessionFromMagicLink = async function (req, res, next) {
 
     try {
         const member = await membersService.ssr.exchangeTokenForSession(req, res);
-        const subscriptions = member && member.stripe && member.stripe.subscriptions || [];
+        const subscriptions = member && member.subscriptions || [];
 
-        const action = req.query.action || req.query['portal-action'];
+        const action = req.query.action;
 
         if (action === 'signup') {
             let customRedirect = '';

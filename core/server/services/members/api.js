@@ -133,7 +133,7 @@ function createApiInstance(config) {
                 const siteUrl = urlUtils.urlFor('home', true);
                 const domain = urlUtils.urlFor('home', true).match(new RegExp('^https?://([^/:?#]+)(?:[/:?#]|$)', 'i'));
                 const siteDomain = (domain && domain[1]);
-                const accentColor = settingsCache.get('accent_color') || '#15212A';
+                const accentColor = settingsCache.get('accent_color');
                 switch (type) {
                 case 'subscribe':
                     return subscribeEmail({url, email, siteTitle, accentColor, siteDomain, siteUrl});
@@ -168,7 +168,13 @@ function createApiInstance(config) {
             },
             StripeCustomer: models.MemberStripeCustomer,
             StripeCustomerSubscription: models.StripeCustomerSubscription,
-            Member: models.Member
+            Member: models.Member,
+            MemberSubscribeEvent: models.MemberSubscribeEvent,
+            MemberPaidSubscriptionEvent: models.MemberPaidSubscriptionEvent,
+            MemberLoginEvent: models.MemberLoginEvent,
+            MemberEmailChangeEvent: models.MemberEmailChangeEvent,
+            MemberPaymentEvent: models.MemberPaymentEvent,
+            MemberStatusEvent: models.MemberStatusEvent
         },
         logger: logging
     });
