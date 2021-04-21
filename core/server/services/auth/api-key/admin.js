@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const url = require('url');
 const models = require('../../../models');
 const errors = require('@tryghost/errors');
+const limitService = require('../../../services/limits');
 const {i18n} = require('../../../lib/common');
 const _ = require('lodash');
 
@@ -78,7 +79,7 @@ const authenticateWithUrl = (req, res, next) => {
  * - the "Audience" claim should match the requested API path
  *   https://tools.ietf.org/html/rfc7519#section-4.1.3
  */
-const authenticateWithToken = (req, res, next, {token, JWT_OPTIONS}) => {
+const authenticateWithToken = async (req, res, next, {token, JWT_OPTIONS}) => {
     const decoded = jwt.decode(token, {complete: true});
 
     if (!decoded || !decoded.header) {
@@ -97,7 +98,9 @@ const authenticateWithToken = (req, res, next, {token, JWT_OPTIONS}) => {
         }));
     }
 
-    models.ApiKey.findOne({id: apiKeyId}).then((apiKey) => {
+    try {
+        const apiKey = await models.ApiKey.findOne({id: apiKeyId}, {withRelated: ['integration']});
+
         if (!apiKey) {
             return next(new errors.UnauthorizedError({
                 message: i18n.t('errors.middleware.auth.unknownAdminApiKey'),
@@ -110,6 +113,14 @@ const authenticateWithToken = (req, res, next, {token, JWT_OPTIONS}) => {
                 message: i18n.t('errors.middleware.auth.invalidApiKeyType'),
                 code: 'INVALID_API_KEY_TYPE'
             }));
+        }
+
+        // CASE: blocking all non-internal: "custom" and "builtin" integration requests when the limit is reached
+        if (limitService.isLimited('customIntegrations')
+            && (apiKey.relations.integration && !['internal'].includes(apiKey.relations.integration.get('type')))) {
+            // NOTE: using "checkWouldGoOverLimit" instead of "checkIsOverLimit" here because flag limits don't have
+            //       a concept of measuring if the limit has been surpassed
+            await limitService.errorIfWouldGoOverLimit('customIntegrations');
         }
 
         // Decoding from hex and transforming into bytes is here to
@@ -145,21 +156,27 @@ const authenticateWithToken = (req, res, next, {token, JWT_OPTIONS}) => {
 
         if (apiKey.get('user_id')) {
             // fetch the user and store it on the request for later checks and logging
-            return models.User.findOne(
+            const user = await models.User.findOne(
                 {id: apiKey.get('user_id'), status: 'active'},
                 {require: true}
-            ).then((user) => {
-                req.user = user;
-                next();
-            });
+            );
+
+            req.user = user;
+
+            next();
         }
 
         // store the api key on the request for later checks and logging
         req.api_key = apiKey;
+
         next();
-    }).catch((err) => {
-        next(new errors.InternalServerError({err}));
-    });
+    } catch (err) {
+        if (err instanceof errors.HostLimitError) {
+            next(err);
+        } else {
+            next(new errors.InternalServerError({err}));
+        }
+    }
 };
 
 module.exports = {

@@ -20,6 +20,7 @@ const BACKUP_TABLES = [
     'labels',
     'members',
     'members_labels',
+    'members_products',
     'members_stripe_customers',
     'members_stripe_customers_subscriptions',
     'migrations',
@@ -27,10 +28,13 @@ const BACKUP_TABLES = [
     'permissions',
     'permissions_roles',
     'permissions_users',
+    'products',
     'webhooks',
     'snippets',
     'tokens',
     'sessions',
+    'stripe_products',
+    'stripe_prices',
     'mobiledoc_revisions',
     'email_batches',
     'email_recipients',
@@ -65,7 +69,9 @@ const SETTING_KEYS_BLOCKLIST = [
     'stripe_secret_key',
     'stripe_publishable_key',
     'members_stripe_webhook_id',
-    'members_stripe_webhook_secret'
+    'members_stripe_webhook_secret',
+    'oauth_client_id',
+    'oauth_client_secret'
 ];
 
 const modelOptions = {context: {internal: true}};
