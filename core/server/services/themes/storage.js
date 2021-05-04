@@ -1,14 +1,14 @@
 const fs = require('fs-extra');
 
-const activate = require('./activate');
+const bridge = require('../../../bridge');
 const validate = require('./validate');
 const list = require('./list');
 const ThemeStorage = require('./ThemeStorage');
 const themeLoader = require('./loader');
 const toJSON = require('./to-json');
 
-const settingsCache = require('../../../server/services/settings/cache');
-const {i18n} = require('../proxy');
+const settingsCache = require('../settings/cache');
+const i18n = require('../../../server/lib/common/i18n');
 const logging = require('../../../shared/logging');
 const errors = require('@tryghost/errors');
 const debug = require('ghost-ignition').debug('api:themes');
@@ -79,7 +79,7 @@ module.exports = {
                 // CASE: if this is the active theme, we are overriding
                 if (overrideTheme) {
                     debug('Activating theme (method C, on API "override")', shortName);
-                    activate(loadedTheme, checkedTheme);
+                    bridge.activateTheme(loadedTheme, checkedTheme);
                 }
 
                 // @TODO: unify the name across gscan and Ghost!

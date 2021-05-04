@@ -5,7 +5,8 @@ const url = require('url');
 const moment = require('moment');
 const ObjectID = require('bson-objectid');
 const errors = require('@tryghost/errors');
-const {events, i18n} = require('../../lib/common');
+const events = require('../../lib/common/events');
+const i18n = require('../../lib/common/i18n');
 const logging = require('../../../shared/logging');
 const settingsCache = require('../settings/cache');
 const membersService = require('../members');
@@ -106,6 +107,10 @@ const sendTestEmail = async (postModel, toEmails, apiVersion) => {
  */
 
 const addEmail = async (postModel, options) => {
+    if (limitService.isLimited('emails')) {
+        await limitService.errorIfWouldGoOverLimit('emails');
+    }
+
     const knexOptions = _.pick(options, ['transacting', 'forUpdate']);
     const filterOptions = Object.assign({}, knexOptions, {limit: 1});
 
@@ -258,6 +263,11 @@ async function sendEmailJob({emailModel, options}) {
             await limitService.errorIfIsOverLimit('members');
         }
 
+        // Check host limit for disabled emails or going over emails limit
+        if (limitService.isLimited('emails')) {
+            await limitService.errorIfWouldGoOverLimit('emails');
+        }
+
         // Create email batch and recipient rows unless this is a retry and they already exist
         const existingBatchCount = await emailModel.related('emailBatches').count('id');
 
@@ -358,7 +368,7 @@ async function createEmailBatches({emailModel, options}) {
             }
 
             recipientData.push({
-                id: ObjectID.generate(),
+                id: ObjectID().toHexString(),
                 email_id: emailModel.id,
                 member_id: memberRow.id,
                 batch_id: batchModel.id,

@@ -17,7 +17,8 @@ const _ = require('lodash');
 const themeConfig = require('./config');
 const themeEngines = require('./engines');
 const config = require('../../../shared/config');
-const engine = require('../theme-engine/engine');
+const engine = require('./engine');
+const themeI18n = require('./i18n');
 
 // Current instance of ActiveTheme
 let currentActiveTheme;
@@ -51,6 +52,8 @@ class ActiveTheme {
 
         // Create a theme engines object
         this._engines = themeEngines.create(this._packageInfo);
+
+        this.initI18n();
     }
 
     get name() {
@@ -91,6 +94,10 @@ class ActiveTheme {
 
     engine(key) {
         return this._engines[key];
+    }
+
+    initI18n() {
+        themeI18n.init(this._name);
     }
 
     mount(siteApp) {

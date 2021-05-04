@@ -58,7 +58,7 @@ async function initCore({ghostServer}) {
 
     // Initialize Ghost core internationalization - this is basically used to colocate all of our error message strings
     debug('Begin: i18n');
-    const {i18n} = require('./server/lib/common');
+    const i18n = require('./server/lib/common/i18n');
     i18n.init();
     debug('End: i18n');
 
@@ -107,7 +107,7 @@ async function initFrontend() {
     debug('End: Frontend Settings');
 
     debug('Begin: Themes');
-    const themeService = require('./frontend/services/themes');
+    const themeService = require('./server/services/themes');
     await themeService.init();
     debug('End: Themes');
 
@@ -134,15 +134,18 @@ async function initExpressApps() {
 async function initServices({config}) {
     debug('Begin: initServices');
 
+    const defaultApiVersion = config.get('api:versions:default');
+    debug(`Default API Version: ${defaultApiVersion}`);
+
     debug('Begin: Dynamic Routing');
     // Dynamic routing is generated from the routes.yaml file, which is part of the settings service
     // When Ghost's DB and core are loaded, we can access this file and call routing.bootstrap.start
     // However this _must_ happen after the express Apps are loaded, hence why this is here and not in initFrontend
     // Routing is currently tightly coupled between the frontend and backend
     const routing = require('./frontend/services/routing');
-    const themeService = require('./frontend/services/themes');
-    // We pass the themeService API version here, so that the frontend services are slightly less tightly-coupled
-    routing.bootstrap.start(themeService.getApiVersion());
+    const bridge = require('./bridge');
+    // We pass the frontend API version here, so that the frontend services are slightly less tightly-coupled
+    routing.bootstrap.start(bridge.getFrontendApiVersion());
     const settings = require('./server/services/settings');
     const frontendSettings = require('./frontend/services/settings');
     const getRoutesHash = () => frontendSettings.getCurrentHash('routes');
@@ -170,9 +173,7 @@ async function initServices({config}) {
         appService.init(),
         limits.init(),
         scheduling.init({
-            // NOTE: When changing API version need to consider how to migrate custom scheduling adapters
-            //       that rely on URL to lookup persisted scheduled records (jobs, etc.). Ref: https://github.com/TryGhost/Ghost/pull/10726#issuecomment-489557162
-            apiUrl: urlUtils.urlFor('api', {version: 'v4', versionType: 'admin'}, true)
+            apiUrl: urlUtils.urlFor('api', {version: defaultApiVersion, versionType: 'admin'}, true)
         })
     ]);
     debug('End: Services');
@@ -205,7 +206,7 @@ async function initBackgroundServices({config}) {
     }
 
     // Load all inactive themes
-    const themeService = require('./frontend/services/themes');
+    const themeService = require('./server/services/themes');
     themeService.loadInactiveThemes();
 
     debug('End: initBackgroundServices');

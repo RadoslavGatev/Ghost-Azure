@@ -4,7 +4,7 @@
 const hbs = require('./theme-engine/engine');
 const errors = require('@tryghost/errors');
 
-const {i18n} = require('../../server/lib/common');
+const i18n = require('../../server/lib/common/i18n');
 const logging = require('../../shared/logging');
 const settingsCache = require('../../server/services/settings/cache');
 const config = require('../../shared/config');
@@ -33,7 +33,7 @@ module.exports = {
     logging,
 
     // Theme i18n is separate to common i18n
-    themeI18n: require('./themes/i18n'),
+    themeI18n: require('./theme-engine/i18n'),
 
     // This is used to detect if "isPost" is true in prevNext.
     checks: require('../../server/data/schema').checks,
@@ -61,12 +61,12 @@ module.exports = {
     },
 
     // The local template thing, should this be merged with the channels one?
-    templates: require('./themes/handlebars/template'),
+    templates: require('./theme-engine/handlebars/template'),
 
     // Various utils, needs cleaning up / simplifying
     socialUrls: require('@tryghost/social-urls'),
     blogIcon: require('../../server/lib/image').blogIcon,
     urlService: require('./url'),
     urlUtils: require('../../shared/url-utils'),
-    localUtils: require('./themes/handlebars/utils')
+    localUtils: require('./theme-engine/handlebars/utils')
 };

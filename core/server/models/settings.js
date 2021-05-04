@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const keypair = require('keypair');
 const ObjectID = require('bson-objectid');
 const ghostBookshelf = require('./base');
-const {i18n} = require('../lib/common');
+const i18n = require('../lib/common/i18n');
 const errors = require('@tryghost/errors');
 const validation = require('../data/validation');
 const urlUtils = require('../../shared/url-utils');
@@ -285,7 +285,7 @@ Settings = ghostBookshelf.Model.extend({
                         defaultSetting.value = defaultSetting.getDefaultValue();
 
                         const settingValues = Object.assign({}, defaultSetting, {
-                            id: ObjectID.generate(),
+                            id: ObjectID().toHexString(),
                             created_at: date,
                             created_by: owner.id,
                             updated_at: date,

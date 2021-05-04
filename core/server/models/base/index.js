@@ -15,7 +15,8 @@ const ObjectId = require('bson-objectid');
 const debug = require('ghost-ignition').debug('models:base');
 const config = require('../../../shared/config');
 const db = require('../../data/db');
-const {events, i18n} = require('../../lib/common');
+const events = require('../../lib/common/events');
+const i18n = require('../../lib/common/i18n');
 const logging = require('../../../shared/logging');
 const errors = require('@tryghost/errors');
 const security = require('@tryghost/security');
@@ -93,7 +94,7 @@ ghostBookshelf.plugin('bookshelf-relations', {
                 });
             },
             beforeRelationCreation: function onCreatingRelation(model, data) {
-                data.id = ObjectId.generate();
+                data.id = ObjectId().toHexString();
             }
         }
     }
@@ -677,7 +678,7 @@ ghostBookshelf.Model = ghostBookshelf.Model.extend({
      * no auto increment
      */
     setId: function setId() {
-        this.set('id', ObjectId.generate());
+        this.set('id', ObjectId().toHexString());
     },
 
     wasChanged() {

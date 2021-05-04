@@ -6,6 +6,7 @@ const {URL} = require('url');
 const errors = require('@tryghost/errors');
 
 // App requires
+const bridge = require('../../../bridge');
 const config = require('../../../shared/config');
 const constants = require('@tryghost/constants');
 const storage = require('../../adapters/storage');
@@ -13,8 +14,8 @@ const urlService = require('../../../frontend/services/url');
 const urlUtils = require('../../../shared/url-utils');
 const sitemapHandler = require('../../../frontend/services/sitemap/handler');
 const appService = require('../../../frontend/services/apps');
-const themeService = require('../../../frontend/services/themes');
-const themeMiddleware = themeService.middleware;
+const themeEngine = require('../../../frontend/services/theme-engine');
+const themeMiddleware = themeEngine.middleware;
 const membersMiddleware = require('../../services/members').middleware;
 const siteRoutes = require('./routes');
 const shared = require('../shared');
@@ -114,7 +115,7 @@ module.exports = function setupSiteApp(options = {}) {
     // We do this here, at the top level, because helpers require so much stuff.
     // Moving this to being inside themes, where it probably should be requires the proxy to be refactored
     // Else we end up with circular dependencies
-    themeService.loadCoreHelpers();
+    themeEngine.loadCoreHelpers();
     debug('Helpers done');
 
     // Global handling for member session, ensures a member is logged in to the frontend
@@ -191,7 +192,7 @@ module.exports = function setupSiteApp(options = {}) {
 
 module.exports.reload = () => {
     // https://github.com/expressjs/express/issues/2596
-    router = siteRoutes({start: themeService.getApiVersion()});
+    router = siteRoutes({start: bridge.getFrontendApiVersion()});
     Object.setPrototypeOf(SiteRouter, router);
 
     // re-initialse apps (register app routers, because we have re-initialised the site routers)
