@@ -282,7 +282,7 @@
             "type": "string"
         },
         "stripe_plans": {
-            "defaultValue": "[{\"name\":\"Monthly\",\"currency\":\"usd\",\"interval\":\"month\",\"amount\":500},{\"name\":\"Yearly\",\"currency\":\"usd\",\"interval\":\"year\",\"amount\":5000}]",
+            "defaultValue": "[]",
             "type": "array"
         },
         "stripe_connect_publishable_key": {
@@ -304,6 +304,14 @@
         "stripe_connect_account_id": {
             "defaultValue": null,
             "type": "string"
+        },
+        "members_free_price_name": {
+            "defaultValue": "Free",
+            "type": "string"
+        },
+        "members_free_price_description": {
+            "defaultValue": "Free preview",
+            "type": "string"
         }
     },
     "portal": {
@@ -324,7 +332,7 @@
             "type": "boolean"
         },
         "portal_plans": {
-            "defaultValue": "[\"free\", \"monthly\", \"yearly\"]",
+            "defaultValue": "[\"free\"]",
             "type": "array"
         },
         "portal_button_style": {
@@ -475,6 +483,24 @@
         },
         "oauth_client_secret" : {
             "defaultValue": null,
+            "type": "string"
+        }
+    },
+    "editor": {
+        "editor_default_email_recipients": {
+            "defaultValue": "visibility",
+            "type": "string",
+            "validations": {
+                "isEmpty": false,
+                "isIn": [[
+                    "disabled",
+                    "visibility",
+                    "filter"
+                ]]
+            }
+        },
+        "editor_default_email_recipients_filter": {
+            "defaultValue": "all",
             "type": "string"
         }
     }

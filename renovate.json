@@ -1,0 +1,26 @@
+{
+  "extends": [
+    "@tryghost:quietJS",
+    "@tryghost:disableTryGhostAutomerge",
+    "@tryghost:groupTestLint",
+    "@tryghost:groupCSS",
+    "@tryghost:groupBuildTools"
+  ],
+  "ignoreDeps": [
+      "got",
+      "ghost-storage-base",
+      "intl-messageformat",
+      "moment",
+      "moment-timezone",
+      "nodemailer",
+      "validator",
+      "simple-dom"
+    ],
+  "ignorePaths": ["test"],
+  "packageRules": [
+    {
+      "packagePatterns": [ "metascraper" ],
+      "groupName": "metascraper"
+    }
+  ]
+}

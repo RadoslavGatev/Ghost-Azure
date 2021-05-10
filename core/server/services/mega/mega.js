@@ -6,7 +6,7 @@ const moment = require('moment');
 const ObjectID = require('bson-objectid');
 const errors = require('@tryghost/errors');
 const events = require('../../lib/common/events');
-const i18n = require('../../lib/common/i18n');
+const i18n = require('../../../shared/i18n');
 const logging = require('../../../shared/logging');
 const settingsCache = require('../settings/cache');
 const membersService = require('../members');
@@ -117,19 +117,17 @@ const addEmail = async (postModel, options) => {
     const emailRecipientFilter = postModel.get('email_recipient_filter');
 
     switch (emailRecipientFilter) {
+    // `paid` and `free` were swapped out for NQL filters in 4.5.0, we shouldn't see them here now
     case 'paid':
-        filterOptions.filter = 'subscribed:true+status:-free';
-        break;
     case 'free':
-        filterOptions.filter = 'subscribed:true+status:free';
-        break;
+        throw new Error(`Unexpected email_recipient_filter value "${emailRecipientFilter}", expected an NQL equivalent`);
     case 'all':
         filterOptions.filter = 'subscribed:true';
         break;
     case 'none':
         throw new Error('Cannot sent email to "none" email_recipient_filter');
     default:
-        throw new Error(`Unknown email_recipient_filter ${emailRecipientFilter}`);
+        filterOptions.filter = `subscribed:true+${emailRecipientFilter}`;
     }
 
     const startRetrieve = Date.now();
@@ -140,6 +138,10 @@ const addEmail = async (postModel, options) => {
     // NOTE: don't create email object when there's nobody to send the email to
     if (membersCount === 0) {
         return null;
+    }
+
+    if (limitService.isLimited('emails')) {
+        await limitService.errorIfWouldGoOverLimit('emails', {addedCount: membersCount});
     }
 
     const postId = postModel.get('id');
@@ -314,24 +316,22 @@ async function sendEmailJob({emailModel, options}) {
 // instantiations and associated processing and event loop blocking
 async function getEmailMemberRows({emailModel, options}) {
     const knexOptions = _.pick(options, ['transacting', 'forUpdate']);
-
-    // TODO: this will clobber a user-assigned filter if/when we allow emails to be sent to filtered member lists
     const filterOptions = Object.assign({}, knexOptions);
 
     const recipientFilter = emailModel.get('recipient_filter');
 
     switch (recipientFilter) {
+    // `paid` and `free` were swapped out for NQL filters in 4.5.0, we shouldn't see them here now
     case 'paid':
-        filterOptions.filter = 'subscribed:true+status:-free';
-        break;
     case 'free':
-        filterOptions.filter = 'subscribed:true+status:free';
-        break;
+        throw new Error(`Unexpected recipient_filter value "${recipientFilter}", expected an NQL equivalent`);
     case 'all':
         filterOptions.filter = 'subscribed:true';
         break;
+    case 'none':
+        throw new Error('Cannot sent email to "none" recipient_filter');
     default:
-        throw new Error(`Unknown recipient_filter ${recipientFilter}`);
+        filterOptions.filter = `subscribed:true+${recipientFilter}`;
     }
 
     const startRetrieve = Date.now();

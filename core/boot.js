@@ -55,13 +55,6 @@ async function initDatabase({config, logging}) {
  */
 async function initCore({ghostServer}) {
     debug('Begin: initCore');
-
-    // Initialize Ghost core internationalization - this is basically used to colocate all of our error message strings
-    debug('Begin: i18n');
-    const i18n = require('./server/lib/common/i18n');
-    i18n.init();
-    debug('End: i18n');
-
     // Models are the heart of Ghost - this is a syncronous operation
     debug('Begin: models');
     const models = require('./server/models');
@@ -264,11 +257,21 @@ async function bootGhost() {
         require('./shared/sentry');
         debug('End: Load sentry');
 
+        // I18n is basically used to colocate all of our error message strings & required to log server start messages
+        debug('Begin: i18n');
+        const i18n = require('./shared/i18n');
+        i18n.init();
+        debug('End: i18n');
+
+        debug('Begin: Load urlUtils');
+        const urlUtils = require('./shared/url-utils');
+        debug('End: Load urlUtils');
+
         // Step 2 - Start server with minimal app in global maintenance mode
         debug('Begin: load server + minimal app');
         const rootApp = require('./app');
         const GhostServer = require('./server/ghost-server');
-        ghostServer = new GhostServer();
+        ghostServer = new GhostServer({url: urlUtils.urlFor('home', true)});
         await ghostServer.start(rootApp);
         bootLogger.log('server started');
         debug('End: load server + minimal app');
@@ -289,7 +292,6 @@ async function bootGhost() {
 
         // Step 5 - Mount the full Ghost app onto the minimal root app & disable maintenance mode
         debug('Begin: mountGhost');
-        const urlUtils = require('./shared/url-utils');
         rootApp.disable('maintenance');
         rootApp.use(urlUtils.getSubdir(), ghostApp);
         debug('End: mountGhost');
