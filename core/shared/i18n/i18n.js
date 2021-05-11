@@ -1,3 +1,4 @@
+const errors = require('@tryghost/errors');
 const fs = require('fs-extra');
 const path = require('path');
 const MessageFormat = require('intl-messageformat');
@@ -8,13 +9,36 @@ const isEqual = require('lodash/isEqual');
 const isNil = require('lodash/isNil');
 const merge = require('lodash/merge');
 const get = require('lodash/get');
-const errors = require('@tryghost/errors');
-const logging = require('../../../shared/logging');
 
 class I18n {
-    constructor(locale) {
-        this._locale = locale || this.defaultLocale();
+    /**
+     * @param {objec} [options]
+     * @param {string} basePath - the base path to the translations directory
+     * @param {string} [locale] - a locale string
+     * @param {{dot|fulltext}} [stringMode] - which mode our translation keys use
+     * @param {{object}} [logging] - logging method
+     */
+    constructor(options = {}) {
+        this._basePath = options.basePath || __dirname;
+        this._locale = options.locale || this.defaultLocale();
+        this._stringMode = options.stringMode || 'dot';
+        this._logging = options.logging || console;
+
         this._strings = null;
+    }
+
+    /**
+     * BasePath getter & setter used for testing
+     */
+    set basePath(basePath) {
+        this._basePath = basePath;
+    }
+
+    /**
+         * Need to call init after this
+         */
+    get basePath() {
+        return this._basePath;
     }
 
     /**
@@ -69,17 +93,39 @@ class I18n {
      *  - Load proper language file into memory
      */
     init() {
-        // This function is called during Ghost's initialization.
-        // Reading translation file for messages from core .json files and keeping its content in memory
-        // The English file is always loaded, until back-end translations are enabled in future versions.
-        try {
-            this._strings = this._readStringsFile(__dirname, '..', '..', 'translations', `${this.defaultLocale()}.json`);
-        } catch (err) {
-            this._strings = null;
-            throw err;
-        }
+        this._strings = this._loadStrings();
 
         this._initializeIntl();
+    }
+
+    /**
+     * Attempt to load strings from a file
+     *
+     * @param {sting} [locale]
+     * @returns {object} strings
+     */
+    _loadStrings(locale) {
+        locale = locale || this.locale();
+
+        try {
+            return this._readTranslationsFile(locale);
+        } catch (err) {
+            if (err.code === 'ENOENT') {
+                this._handleMissingFileError(locale, err);
+
+                if (locale !== this.defaultLocale()) {
+                    this._handleFallbackToDefault();
+                    return this._loadStrings(this.defaultLocale());
+                }
+            } else if (err instanceof SyntaxError) {
+                this._handleInvalidFileError(locale, err);
+            } else {
+                throw err;
+            }
+
+            // At this point we've done all we can and strings must be an object
+            return {};
+        }
     }
 
     /**
@@ -92,17 +138,29 @@ class I18n {
     }
 
     /**
-     * Do the lookup with JSON path
+     * Do the lookup within the JSON file using jsonpath
      *
      * @param {String} msgPath
      */
     _getCandidateString(msgPath) {
-        // Backend messages use dot-notation, and the '$.' prefix is added here
-        // While bracket-notation allows any Unicode characters in keys for themes,
-        // dot-notation allows only word characters in keys for backend messages
-        // (that is \w or [A-Za-z0-9_] in RegExp)
+        // Our default string mode is "dot" for dot-notation, e.g. $.something.like.this used in the backend
+        // Both jsonpath's dot-notation and bracket-notation start with '$' E.g.: $.store.book.title or $['store']['book']['title']
+        // While bracket-notation allows any Unicode characters in keys (i.e. for themes / fulltext mode) E.g. $['Read more']
+        // dot-notation allows only word characters in keys for backend messages (that is \w or [A-Za-z0-9_] in RegExp)
         let jsonPath = `$.${msgPath}`;
-        return jp.value(this._strings, jsonPath);
+        let fallback = null;
+
+        if (this._stringMode === 'fulltext') {
+            jsonPath = jp.stringify(['$', msgPath]);
+            // In fulltext mode we can use the passed string as a fallback
+            fallback = msgPath;
+        }
+
+        try {
+            return jp.value(this._strings, jsonPath) || fallback;
+        } catch (err) {
+            this._handleInvalidKeyError(msgPath, err);
+        }
     }
 
     /**
@@ -118,13 +176,13 @@ class I18n {
 
         // no path? no string
         if (msgPath.length === 0 || !isString(msgPath)) {
-            logging.warn('i18n.t() - received an empty path.');
+            this._handleEmptyKeyError();
             return '';
         }
 
         // If not in memory, load translations for core
         if (isNil(this._strings)) {
-            this.init();
+            this._handleUninitialisedError(msgPath);
         }
 
         candidateString = this._getCandidateString(msgPath);
@@ -133,9 +191,7 @@ class I18n {
 
         if (isObject(matchingString) || isEqual(matchingString, {})) {
             if (options.log) {
-                logging.error(new errors.IncorrectUsageError({
-                    message: `i18n error: path "${msgPath}" was not found`
-                }));
+                this._handleMissingKeyError(msgPath);
             }
 
             matchingString = this._fallbackError();
@@ -144,14 +200,24 @@ class I18n {
         return matchingString;
     }
 
+    _translationFileDirs() {
+        return [this.basePath];
+    }
+
+    // If we are passed a locale, use that, else use this.locale
+    _translationFileName(locale) {
+        return `${locale || this.locale()}.json`;
+    }
+
     /**
-     * Resolve filepath, read file, and attempt a parse
+     * Read the translations file
      * Error handling to be done by consumer
      *
-     * @param  {...String} pathParts
+     * @param  {string} locale
      */
-    _readStringsFile(...pathParts) {
-        const content = fs.readFileSync(path.join(...pathParts));
+    _readTranslationsFile(locale) {
+        const filePath = path.join(...this._translationFileDirs(), this._translationFileName(locale));
+        const content = fs.readFileSync(filePath);
         return JSON.parse(content);
     }
 
@@ -167,7 +233,7 @@ class I18n {
         try {
             msg = msg.format(bindings);
         } catch (err) {
-            logging.error(err.message);
+            this._handleFormatError(err);
 
             // fallback
             msg = new MessageFormat(this._fallbackError(), currentLocale);
@@ -204,6 +270,46 @@ class I18n {
         }
     }
 
+    _handleUninitialisedError(key) {
+        this._logging.warn(`i18n was used before it was initialised with key ${key}`);
+        this.init();
+    }
+
+    _handleFormatError(err) {
+        this._logging.error(err.message);
+    }
+
+    _handleFallbackToDefault() {
+        this._logging.warn(`i18n is falling back to ${this.defaultLocale()}.json.`);
+    }
+
+    _handleMissingFileError(locale) {
+        this._logging.warn(`i18n was unable to find ${locale}.json.`);
+    }
+    _handleInvalidFileError(locale, err) {
+        this._logging.error(new errors.IncorrectUsageError({
+            err,
+            message: `i18n was unable to parse ${locale}.json. Please check that it is valid JSON.`
+        }));
+    }
+
+    _handleEmptyKeyError() {
+        this._logging.warn('i18n.t() was called without a key');
+    }
+
+    _handleMissingKeyError(key) {
+        this._logging.error(new errors.IncorrectUsageError({
+            message: `i18n.t() was called with a key that could not be found: ${key}`
+        }));
+    }
+
+    _handleInvalidKeyError(key, err) {
+        throw new errors.IncorrectUsageError({
+            err,
+            message: `i18n.t() called with an invalid key: ${key}`
+        });
+    }
+
     /**
      * A really basic error for if everything goes wrong
      */
@@ -212,5 +318,4 @@ class I18n {
     }
 }
 
-module.exports = new I18n();
-module.exports.I18n = I18n;
+module.exports = I18n;

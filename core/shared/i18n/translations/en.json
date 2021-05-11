@@ -355,13 +355,16 @@
                 "notificationDoesNotExist": "Notification does not exist."
             },
             "posts": {
-                "postNotFound": "Post not found."
+                "postNotFound": "Post not found.",
+                "invalidEmailRecipientFilter": "Invalid filter in email_recipient_filter param.",
+                "invalidVisibilityFilter": "Invalid filter in visibility property"
             },
             "authors": {
                 "notFound": "Author not found."
             },
             "pages": {
-                "pageNotFound": "Page not found."
+                "pageNotFound": "Page not found.",
+                "invalidVisibilityFilter": "Invalid filter in visibility property"
             },
             "job": {
                 "notFound": "Job not found.",

@@ -1,6 +1,6 @@
 const api = require('./index');
 const config = require('../../../shared/config');
-const i18n = require('../../lib/common/i18n');
+const i18n = require('../../../shared/i18n');
 const errors = require('@tryghost/errors');
 const web = require('../../web');
 const models = require('../../models');
@@ -31,6 +31,13 @@ module.exports = {
                     };
 
                     return auth.setup.setupUser(setupDetails);
+                })
+                .then((data) => {
+                    try {
+                        return auth.setup.doProduct(data, api.products);
+                    } catch (e) {
+                        return data;
+                    }
                 })
                 .then((data) => {
                     return auth.setup.doSettings(data, api.settings);

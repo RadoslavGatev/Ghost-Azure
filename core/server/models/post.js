@@ -4,8 +4,9 @@ const uuid = require('uuid');
 const moment = require('moment');
 const Promise = require('bluebird');
 const {sequence} = require('@tryghost/promise');
-const i18n = require('../lib/common/i18n');
+const i18n = require('../../shared/i18n');
 const errors = require('@tryghost/errors');
+const nql = require('@nexes/nql');
 const htmlToPlaintext = require('../../shared/html-to-plaintext');
 const ghostBookshelf = require('./base');
 const config = require('../../shared/config');
@@ -101,6 +102,14 @@ Post = ghostBookshelf.Model.extend({
             }
         });
 
+        // update legacy email_recipient_filter values to proper NQL
+        if (attrs.email_recipient_filter === 'free') {
+            attrs.email_recipient_filter = 'status:free';
+        }
+        if (attrs.email_recipient_filter === 'paid') {
+            attrs.email_recipient_filter = 'status:-free';
+        }
+
         return attrs;
     },
 
@@ -138,6 +147,28 @@ Post = ghostBookshelf.Model.extend({
                 attrs[attrToTransform] = urlUtils[method](attrs[attrToTransform], transformOptions);
             }
         });
+
+        // update legacy email_recipient_filter values to proper NQL
+        if (attrs.email_recipient_filter === 'free') {
+            attrs.email_recipient_filter = 'status:free';
+        }
+        if (attrs.email_recipient_filter === 'paid') {
+            attrs.email_recipient_filter = 'status:-free';
+        }
+
+        // transform visibility NQL queries to special-case values where necessary
+        // ensures checks against special-case values such as `{{#has visibility="paid"}}` continue working
+        if (attrs.visibility && !['public', 'members', 'paid'].includes(attrs.visibility)) {
+            if (attrs.visibility === 'status:-free') {
+                attrs.visibility = 'paid';
+            } else {
+                const visibilityNql = nql(attrs.visibility);
+
+                if (visibilityNql.queryJSON({status: 'free'}) && visibilityNql.queryJSON({status: '-free'})) {
+                    attrs.visibility = 'members';
+                }
+            }
+        }
 
         return attrs;
     },
