@@ -146,6 +146,7 @@ async function initServices({config}) {
     debug('End: Dynamic Routing');
 
     debug('Begin: Services');
+    const members = require('./server/services/members');
     const permissions = require('./server/services/permissions');
     const xmlrpc = require('./server/services/xmlrpc');
     const slack = require('./server/services/slack');
@@ -157,14 +158,18 @@ async function initServices({config}) {
 
     const urlUtils = require('./shared/url-utils');
 
+    // NOTE: limits service has to be initialized first
+    // in case it limits initialization of any other service (e.g. webhooks)
+    await limits.init();
+
     await Promise.all([
+        members.init(),
         permissions.init(),
         xmlrpc.listen(),
         slack.listen(),
         mega.listen(),
         webhooks.listen(),
         appService.init(),
-        limits.init(),
         scheduling.init({
             apiUrl: urlUtils.urlFor('api', {version: defaultApiVersion, versionType: 'admin'}, true)
         })
