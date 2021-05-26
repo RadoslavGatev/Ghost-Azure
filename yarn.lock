@@ -727,17 +727,7 @@
     lodash "^4.17.21"
     luxon "^1.26.0"
 
-"@tryghost/magic-link@1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@tryghost/magic-link/-/magic-link-1.0.2.tgz#6a73d9ba5d710178db53e7d8b177356a50c6649f"
-  integrity sha512-37ArYqWIJptLBjPimPZlgw4Tf8+q5YSyU4AN7QI2WTrUbFClo6g2gnGa7KCiJYbUUOkIjlCDz1m1iU1WiRriIA==
-  dependencies:
-    bluebird "^3.5.5"
-    ghost-ignition "4.6.2"
-    jsonwebtoken "^8.5.1"
-    lodash "^4.17.15"
-
-"@tryghost/magic-link@^1.0.3":
+"@tryghost/magic-link@1.0.3", "@tryghost/magic-link@^1.0.3":
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/@tryghost/magic-link/-/magic-link-1.0.3.tgz#d64cdfeae8bda9d7a43002c0afb16ea15c1f28e7"
   integrity sha512-erSWNlpJ65tqjCfOyjEmK7zBm/a+scTHJ4eIIxny7me5Mj3BSl1yCmI6vLZyf9j4/oHKXGjxZVy7GroDxRWGBA==
@@ -774,10 +764,10 @@
   dependencies:
     papaparse "5.3.0"
 
-"@tryghost/members-ssr@1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@tryghost/members-ssr/-/members-ssr-1.0.2.tgz#0ce96b1fd389dad236456f181b39bfa9853da428"
-  integrity sha512-2BFx8sMdyQEE3H2KXZMmLwZe/nqpWq3ehNG5fhJr8DHpQ7DF2FxeduQhYIZIFFOQiOrE+reXpRPDdzpHh4uloQ==
+"@tryghost/members-ssr@1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@tryghost/members-ssr/-/members-ssr-1.0.3.tgz#0bd4ec64b55424acef2924e6950f225d482f6ade"
+  integrity sha512-QZkW6NuIno2cDx8b4dN1ICtHLDpK66i8vExM1zmQEljHy1V5BHMxuMIv3vEaitjMUMxhBvOQ1c/oIsbOsUQqBQ==
   dependencies:
     bluebird "^3.5.3"
     concat-stream "^2.0.0"
@@ -2237,7 +2227,7 @@ commander@^4.1.1:
   resolved "https://registry.yarnpkg.com/commander/-/commander-4.1.1.tgz#9fd602bd936294e9e9ef46a3f4d6964044b18068"
   integrity sha512-NOKm8xhkzAjzFx8B2v5OAHT+u5pRQc2UCa2Vq9jYL/31o2wi9mxBA7LIFs3sV5VSC49z6pEhfbMULvShKj26WA==
 
-commander@^6.2.0:
+commander@^6.1.0, commander@^6.2.0:
   version "6.2.1"
   resolved "https://registry.yarnpkg.com/commander/-/commander-6.2.1.tgz#0792eb682dfbc325999bb2b84fddddba110ac73c"
   integrity sha512-U7VdrJFnJgo4xjrHpTzu0yrHPGImdsmD95ZlgYSEajAn2JKzDhDTPG9kBTefmObL2w/ngeZnilk+OV9CG3d7UA==
@@ -5664,7 +5654,18 @@ jsprim@^1.2.2:
     json-schema "0.2.3"
     verror "1.10.0"
 
-juice@7.0.0, juice@^7.0.0:
+juice@8.0.0:
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/juice/-/juice-8.0.0.tgz#ac77d3372373409b06a875aee425b9d381f645fe"
+  integrity sha512-LRCfXBOqI1wt+zYR/5xwDnf+ZyiJiDt44DGZaBSAVwZWyWv3BliaiGTLS6KCvadv3uw6XGiPPFcTfY7CdF7Z/Q==
+  dependencies:
+    cheerio "^1.0.0-rc.3"
+    commander "^6.1.0"
+    mensch "^0.3.4"
+    slick "^1.12.2"
+    web-resource-inliner "^5.0.0"
+
+juice@^7.0.0:
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/juice/-/juice-7.0.0.tgz#509bed6adbb6e4bbaa7fbfadac4e2e83e8c89ba3"
   integrity sha512-AjKQX31KKN+uJs+zaf+GW8mBO/f/0NqSh2moTMyvwBY+4/lXIYTU8D8I2h6BAV3Xnz6GGsbalUyFqbYMe+Vh+Q==
@@ -6899,10 +6900,10 @@ nice-try@^1.0.4:
   resolved "https://registry.yarnpkg.com/nice-try/-/nice-try-1.0.5.tgz#a3378a7696ce7d223e88fc9b764bd7ef1089e366"
   integrity sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==
 
-nise@^5.0.4:
-  version "5.0.4"
-  resolved "https://registry.yarnpkg.com/nise/-/nise-5.0.4.tgz#aafddeec51d8bcb9842a51be8d82d0b9f289b002"
-  integrity sha512-ZcFPFu5a7xiaoR/ieYXMx6B/QLJej9upgxcpD9uB2Oz4JbZUtAc9+Z000W6910tZuVvaHozEoxq0KvVE9Bj2TQ==
+nise@^5.1.0:
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/nise/-/nise-5.1.0.tgz#713ef3ed138252daef20ec035ab62b7a28be645c"
+  integrity sha512-W5WlHu+wvo3PaKLsJJkgPup2LrsXCcm7AWwyNZkUnn5rwPkuPBi3Iwk5SQtN0mv+K65k7nKKjwNQ30wg3wLAQQ==
   dependencies:
     "@sinonjs/commons" "^1.7.0"
     "@sinonjs/fake-timers" "^7.0.4"
@@ -8894,17 +8895,17 @@ simple-swizzle@^0.2.2:
     rai "~0.1.11"
     xoauth2 "~0.1.8"
 
-sinon@11.0.0:
-  version "11.0.0"
-  resolved "https://registry.yarnpkg.com/sinon/-/sinon-11.0.0.tgz#e45bae910425d3e52f7eebcb34b47ad42cc7eb57"
-  integrity sha512-iLdNOhEDVHf1GJwWIqiFQe7QqYsqKDSYUUmmb180WCu3l0Cz+CKBxsiSa8P5fTJvTp1lwE77uK/aHzUuJKr1cA==
+sinon@11.1.1:
+  version "11.1.1"
+  resolved "https://registry.yarnpkg.com/sinon/-/sinon-11.1.1.tgz#99a295a8b6f0fadbbb7e004076f3ae54fc6eab91"
+  integrity sha512-ZSSmlkSyhUWbkF01Z9tEbxZLF/5tRC9eojCdFh33gtQaP7ITQVaMWQHGuFM7Cuf/KEfihuh1tTl3/ABju3AQMg==
   dependencies:
     "@sinonjs/commons" "^1.8.3"
     "@sinonjs/fake-timers" "^7.1.0"
     "@sinonjs/samsam" "^6.0.2"
     diff "^5.0.0"
-    nise "^5.0.4"
-    supports-color "^8.1.1"
+    nise "^5.1.0"
+    supports-color "^7.2.0"
 
 slice-ansi@^2.1.0:
   version "2.1.0"
@@ -9298,7 +9299,7 @@ supertest@6.1.3:
     methods "^1.1.2"
     superagent "^6.1.0"
 
-supports-color@8.1.1, supports-color@^8.1.1:
+supports-color@8.1.1:
   version "8.1.1"
   resolved "https://registry.yarnpkg.com/supports-color/-/supports-color-8.1.1.tgz#cd6fc17e28500cff56c1b86c0a7fd4a54a73005c"
   integrity sha512-MpUEN2OodtUzxvKQl72cUF7RQ5EiHsGvSsVG0ia9c5RbWGL2CI4C7EpPS8UTBIplnlzZiNuV56w+FuNxy3ty2Q==
@@ -9317,7 +9318,7 @@ supports-color@^5.3.0:
   dependencies:
     has-flag "^3.0.0"
 
-supports-color@^7.1.0:
+supports-color@^7.1.0, supports-color@^7.2.0:
   version "7.2.0"
   resolved "https://registry.yarnpkg.com/supports-color/-/supports-color-7.2.0.tgz#1b7dcdcb32b8138801b3e478ba6a51caa89648da"
   integrity sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==
