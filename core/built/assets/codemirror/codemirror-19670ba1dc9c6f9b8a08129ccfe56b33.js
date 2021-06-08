@@ -1435,3 +1435,5 @@ i=i.prev}else if(o)for(;i;){var a=s.contextGrabbers[i.tagName]
 if(!a||!a.hasOwnProperty(o[2]))break
 i=i.prev}for(;i&&i.prev&&!i.startOfLine;)i=i.prev
 return i?i.indent+l:t.baseIndent||0},electricInput:/<\/[\s\w:]+>$/,blockCommentStart:"\x3c!--",blockCommentEnd:"--\x3e",configuration:s.htmlMode?"html":"xml",helperType:s.htmlMode?"html":"xml",skipAttribute:function(e){e.state==L&&(e.state=C)}}})),e.defineMIME("text/xml","xml"),e.defineMIME("application/xml","xml"),e.mimeModes.hasOwnProperty("text/html")||e.defineMIME("text/html",{name:"xml",htmlMode:!0})}))
+
+//# sourceMappingURL=codemirror-19670ba1dc9c6f9b8a08129ccfe56b33.map

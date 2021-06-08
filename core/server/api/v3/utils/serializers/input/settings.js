@@ -5,8 +5,7 @@ const settingsCache = require('../../../../../services/settings/cache');
 
 const DEPRECATED_SETTINGS = [
     'bulk_email_settings',
-    'slack',
-    'labs'
+    'slack'
 ];
 
 const deprecatedSupportedSettingsOneToManyMap = {
@@ -95,11 +94,12 @@ module.exports = {
         }
         const settings = settingsCache.getAll();
 
-        // Ignore and drop all values with Read-only flag
         frame.data.settings = frame.data.settings.filter((setting) => {
             const settingFlagsStr = settings[setting.key] ? settings[setting.key].flags : '';
             const settingFlagsArr = settingFlagsStr ? settingFlagsStr.split(',') : [];
-            return !settingFlagsArr.includes('RO');
+
+            // Ignore and drop all values with Read-only flag AND 'labs' setting
+            return !settingFlagsArr.includes('RO') && (setting.key !== 'labs');
         });
 
         const mappedDeprecatedSettings = getMappedDeprecatedSettings(frame.data.settings);

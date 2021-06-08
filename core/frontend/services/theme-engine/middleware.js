@@ -71,33 +71,18 @@ async function haxGetMembersPriceData() {
 
     try {
         const {products} = await api.canary.products.browse({
-            include: 'stripe_prices'
+            include: ['monthly_price','yearly_price']
         });
 
         const defaultProduct = products[0];
 
-        const monthlyPriceId = settingsCache.get('members_monthly_price_id');
-        const yearlyPriceId = settingsCache.get('members_yearly_price_id');
+        const monthlyPrice = makePriceObject(defaultProduct.monthly_price || defaultPrice);
 
-        const activePrices = defaultProduct.stripe_prices.filter((price) => {
-            return price.active;
-        });
-
-        const nonZeroPrices = activePrices.filter((price) => {
-            return price.amount !== 0;
-        });
-
-        const monthlyPrice = nonZeroPrices.find((price) => {
-            return price.id === monthlyPriceId;
-        });
-
-        const yearlyPrice = nonZeroPrices.find((price) => {
-            return price.id === yearlyPriceId;
-        });
+        const yearlyPrice = makePriceObject(defaultProduct.yearly_price || defaultPrice);
 
         const priceData = {
-            monthly: makePriceObject(monthlyPrice || defaultPrice),
-            yearly: makePriceObject(yearlyPrice || defaultPrice),
+            monthly: monthlyPrice,
+            yearly: yearlyPrice,
             currency: monthlyPrice ? monthlyPrice.currency : defaultPrice.currency
         };
 
@@ -108,6 +93,19 @@ async function haxGetMembersPriceData() {
             yearly: makePriceObject(defaultPrice),
             currency: 'usd'
         };
+    }
+}
+
+async function getProductAndPricesData() {
+    try {
+        const page = await api.canary.productsPublic.browse({
+            include: ['monthly_price', 'yearly_price'],
+            limit: 'all'
+        });
+
+        return page.products;
+    } catch (err) {
+        return [];
     }
 }
 
@@ -140,6 +138,15 @@ async function updateGlobalTemplateOptions(req, res, next) {
         image_sizes: activeTheme.get().config('image_sizes')
     };
     const priceData = await haxGetMembersPriceData();
+    const productData = await getProductAndPricesData();
+
+    let products = null;
+    let product = null;
+    if (productData.length === 1) {
+        product = productData[0];
+    } else {
+        products = productData;
+    }
 
     // @TODO: only do this if something changed?
     // @TODO: remove blog in a major where we are happy to break more themes
@@ -150,7 +157,9 @@ async function updateGlobalTemplateOptions(req, res, next) {
                 site: siteData,
                 labs: labsData,
                 config: themeData,
-                price: priceData
+                price: priceData,
+                product,
+                products
             }
         });
     }

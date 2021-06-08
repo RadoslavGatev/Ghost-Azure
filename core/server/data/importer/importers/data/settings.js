@@ -4,9 +4,12 @@ const ObjectId = require('bson-objectid').default;
 const _ = require('lodash');
 const BaseImporter = require('./base');
 const models = require('../../../../models');
+const defaultSettings = require('../../../schema').defaultSettings;
 const keyGroupMapper = require('../../../../api/shared/serializers/input/utils/settings-key-group-mapper');
 const keyTypeMapper = require('../../../../api/shared/serializers/input/utils/settings-key-type-mapper');
+const {WRITABLE_KEYS_ALLOWLIST} = require('../../../../services/labs');
 
+const labsDefaults = JSON.parse(defaultSettings.labs.labs.defaultValue);
 const ignoredSettings = ['slack_url', 'members_from_address', 'members_support_address'];
 
 // NOTE: drop support in Ghost 5.0
@@ -204,6 +207,21 @@ class SettingsImporter extends BaseImporter {
         }
 
         _.each(this.dataToImport, (obj) => {
+            if (obj.key === 'labs' && obj.value) {
+                const inputLabsValue = JSON.parse(obj.value);
+                const filteredLabsValue = {};
+
+                for (const flag in inputLabsValue) {
+                    if (WRITABLE_KEYS_ALLOWLIST.includes(flag)) {
+                        filteredLabsValue[flag] = inputLabsValue[flag];
+                    }
+                }
+
+                // Overwrite the labs setting with our current defaults
+                // Ensures things that are enabled in new versions, are turned on
+                obj.value = JSON.stringify(_.assign({}, filteredLabsValue, labsDefaults));
+            }
+
             // CASE: we do not import "from address" for members settings as that needs to go via validation with magic link
             if ((obj.key === 'members_from_address') || (obj.key === 'members_support_address')) {
                 obj.value = null;
