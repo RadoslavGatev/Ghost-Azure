@@ -10,7 +10,7 @@
  */
 const errors = require('@tryghost/errors');
 const config = require('./shared/config');
-const logging = require('./shared/logging');
+const logging = require('@tryghost/logging');
 const events = require('./server/lib/common/events');
 const i18n = require('./shared/i18n');
 const themeEngine = require('./frontend/services/theme-engine');
@@ -20,7 +20,7 @@ class Bridge {
     constructor() {
         /**
          * When locale changes, we reload theme translations
-         * @deprecated: the term "lang" was deprecated in favour of "locale" publicly in 4.0
+         * @deprecated: the term "lang" was deprecated in favor of "locale" publicly in 4.0
          */
         events.on('settings.lang.edited', (model) => {
             this.getActiveTheme().initI18n({locale: model.get('value')});

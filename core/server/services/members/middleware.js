@@ -1,10 +1,12 @@
 const _ = require('lodash');
-const logging = require('../../../shared/logging');
+const logging = require('@tryghost/logging');
 const membersService = require('./service');
 const urlUtils = require('../../../shared/url-utils');
-const ghostVersion = require('../../lib/ghost-version');
+const ghostVersion = require('@tryghost/version');
 const settingsCache = require('../settings/cache');
 const {formattedMemberResponse} = require('./utils');
+const labsService = require('../labs');
+const config = require('../../../shared/config');
 
 // @TODO: This piece of middleware actually belongs to the frontend, not to the member app
 // Need to figure a way to separate these things (e.g. frontend actually talks to members API)
@@ -95,14 +97,21 @@ const getPortalProductPrices = async function () {
             id: product.id,
             name: product.name,
             description: product.description || '',
+            monthlyPrice: product.monthlyPrice,
+            yearlyPrice: product.yearlyPrice,
             prices: productPrices
         };
     });
+    const defaultProduct = products[0];
+    const defaultPrices = defaultProduct ? defaultProduct.prices : [];
+    let portalProducts = defaultProduct ? [defaultProduct] : [];
+    if (labsService.isSet('multipleProducts')) {
+        portalProducts = products;
+    }
 
-    const defaultPrices = products[0] ? products[0].prices : [];
     return {
         prices: defaultPrices,
-        products: products
+        products: portalProducts
     };
 };
 
@@ -116,6 +125,8 @@ const getMemberSiteData = async function (req, res) {
         supportAddress = `${supportAddress}@${blogDomain}`;
     }
     const {products = [], prices = []} = await getPortalProductPrices() || {};
+    const portalVersion = config.get('portal:version');
+
     const response = {
         title: settingsCache.get('title'),
         description: settingsCache.get('description'),
@@ -124,9 +135,7 @@ const getMemberSiteData = async function (req, res) {
         accent_color: settingsCache.get('accent_color'),
         url: urlUtils.urlFor('home', true),
         version: ghostVersion.safe,
-        plans: membersService.config.getPublicPlans(),
-        prices,
-        products,
+        portal_version: portalVersion,
         free_price_name: settingsCache.get('members_free_price_name'),
         free_price_description: settingsCache.get('members_free_price_description'),
         allow_self_signup: membersService.config.getAllowSelfSignup(),
@@ -139,9 +148,19 @@ const getMemberSiteData = async function (req, res) {
         portal_button_signup_text: settingsCache.get('portal_button_signup_text'),
         portal_button_style: settingsCache.get('portal_button_style'),
         firstpromoter_id: firstpromoterId,
-        members_support_address: supportAddress
+        members_support_address: supportAddress,
+        prices,
+        products
     };
-
+    if (labsService.isSet('multipleProducts')) {
+        response.portal_products = settingsCache.get('portal_products');
+    }
+    if (config.get('portal_sentry') && !config.get('portal_sentry').disabled) {
+        response.portal_sentry = {
+            dsn: config.get('portal_sentry').dsn,
+            env: config.get('env')
+        };
+    }
     res.json({site: response});
 };
 

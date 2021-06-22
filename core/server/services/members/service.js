@@ -6,11 +6,11 @@ const MembersStats = require('./stats');
 const createMembersApiInstance = require('./api');
 const createMembersSettingsInstance = require('./settings');
 const events = require('../../lib/common/events');
-const logging = require('../../../shared/logging');
+const logging = require('@tryghost/logging');
 const urlUtils = require('../../../shared/url-utils');
 const settingsCache = require('../settings/cache');
 const config = require('../../../shared/config');
-const ghostVersion = require('../../lib/ghost-version');
+const ghostVersion = require('@tryghost/version');
 const _ = require('lodash');
 
 const membersConfig = new MembersConfigProvider({

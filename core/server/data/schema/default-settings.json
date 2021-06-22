@@ -343,6 +343,10 @@
             "defaultValue": "[\"free\"]",
             "type": "array"
         },
+        "portal_products": {
+            "defaultValue": "[]",
+            "type": "array"
+        },
         "portal_button_style": {
             "defaultValue": "icon-and-text",
             "validations": {
@@ -447,19 +451,6 @@
     },
     "newsletter": {
         "newsletter_show_badge": {
-            "defaultValue": "true",
-            "validations": {
-                "isEmpty": false,
-                "isIn": [
-                    [
-                        "true",
-                        "false"
-                    ]
-                ]
-            },
-            "type": "boolean"
-        },
-        "newsletter_show_header": {
             "defaultValue": "true",
             "validations": {
                 "isEmpty": false,

@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const Promise = require('bluebird');
-const validator = require('validator');
+const validator = require('@tryghost/validator');
 const ObjectId = require('bson-objectid');
 const ghostBookshelf = require('./base');
 const baseUtils = require('./base/utils');
@@ -10,7 +10,7 @@ const errors = require('@tryghost/errors');
 const security = require('@tryghost/security');
 const {gravatar} = require('../lib/image');
 const {pipeline} = require('@tryghost/promise');
-const validation = require('../data/validation');
+const validatePassword = require('../lib/validate-password');
 const permissions = require('../services/permissions');
 const urlUtils = require('../../shared/url-utils');
 const activeStates = ['active', 'warn-1', 'warn-2', 'warn-3', 'warn-4'];
@@ -78,7 +78,7 @@ User = ghostBookshelf.Model.extend({
      * @TODO:
      *
      * The user model does not use bookshelf-relations yet.
-     * Therefor we have to remove the relations manually.
+     * Therefore we have to remove the relations manually.
      */
     onDestroying(model, options) {
         ghostBookshelf.Model.prototype.onDestroying.apply(this, arguments);
@@ -225,8 +225,8 @@ User = ghostBookshelf.Model.extend({
                     this.set('status', 'locked');
                 }
             } else {
-                // CASE: we're not importing data, run the validations
-                passwordValidation = validation.validatePassword(this.get('password'), this.get('email'));
+                // CASE: we're not importing data, validate the data
+                passwordValidation = validatePassword(this.get('password'), this.get('email'));
 
                 if (!passwordValidation.isValid) {
                     return Promise.reject(new errors.ValidationError({
@@ -634,7 +634,7 @@ User = ghostBookshelf.Model.extend({
         const userData = this.filterData(data);
         let passwordValidation = {};
 
-        passwordValidation = validation.validatePassword(userData.password, userData.email, data.blogTitle);
+        passwordValidation = validatePassword(userData.password, userData.email, data.blogTitle);
 
         if (!passwordValidation.isValid) {
             return Promise.reject(new errors.ValidationError({

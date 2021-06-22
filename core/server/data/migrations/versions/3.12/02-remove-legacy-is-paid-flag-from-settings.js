@@ -1,5 +1,5 @@
-const logging = require('../../../../../shared/logging');
-const debug = require('ghost-ignition').debug('migrations');
+const logging = require('@tryghost/logging');
+const debug = require('@tryghost/debug')('migrations');
 
 module.exports.config = {
     transaction: true

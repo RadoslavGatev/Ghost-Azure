@@ -6,9 +6,9 @@ const config = require('../shared/config');
 const urlUtils = require('./../shared/url-utils');
 
 const i18n = require('../shared/i18n');
-const logging = require('../shared/logging');
-const request = require('./lib/request');
-const ghostVersion = require('./lib/ghost-version');
+const logging = require('@tryghost/logging');
+const request = require('@tryghost/request');
+const ghostVersion = require('@tryghost/version');
 const UpdateCheckService = require('@tryghost/update-check-service');
 
 const ghostMailer = new GhostMailer();

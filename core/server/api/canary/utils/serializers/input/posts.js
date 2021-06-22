@@ -1,11 +1,12 @@
 const _ = require('lodash');
-const debug = require('ghost-ignition').debug('api:canary:utils:serializers:input:posts');
+const debug = require('@tryghost/debug')('api:canary:utils:serializers:input:posts');
 const mapNQLKeyValues = require('@nexes/nql').utils.mapKeyValues;
 const url = require('./utils/url');
 const slugFilterOrder = require('./utils/slug-filter-order');
 const localUtils = require('../../index');
 const mobiledoc = require('../../../../../lib/mobiledoc');
 const postsMetaSchema = require('../../../../../data/schema').tables.posts_meta;
+const labs = require('../../../../../services/labs');
 
 const replacePageWithType = mapNQLKeyValues({
     key: {
@@ -111,6 +112,13 @@ const transformLegacyEmailRecipientFilters = (frame) => {
     }
 };
 
+const cleanLabsProperties = (frame) => {
+    if (!labs.isSet('featureImageMeta') && frame.data.posts[0]) {
+        delete frame.data.posts[0].feature_image_alt;
+        delete frame.data.posts[0].feature_image_caption;
+    }
+};
+
 module.exports = {
     browse(apiConfig, frame) {
         debug('browse');
@@ -205,6 +213,7 @@ module.exports = {
             });
         }
 
+        cleanLabsProperties(frame);
         transformLegacyEmailRecipientFilters(frame);
         handlePostsMeta(frame);
         defaultFormat(frame);
@@ -215,8 +224,6 @@ module.exports = {
         debug('edit');
         this.add(apiConfig, frame, {add: false});
 
-        transformLegacyEmailRecipientFilters(frame);
-        handlePostsMeta(frame);
         forceStatusFilter(frame);
         forcePageFilter(frame);
     },

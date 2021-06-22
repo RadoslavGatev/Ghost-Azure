@@ -4,7 +4,7 @@
 // Outputs scripts and other assets at the top of a Ghost theme
 const {metaData, escapeExpression, SafeString, logging, settingsCache, config, blogIcon, urlUtils} = require('../services/proxy');
 const _ = require('lodash');
-const debug = require('ghost-ignition').debug('ghost_head');
+const debug = require('@tryghost/debug')('ghost_head');
 const templateStyles = require('./tpl/styles');
 
 const getMetaData = metaData.get;
@@ -46,7 +46,7 @@ function getMembersHelper(data) {
     const stripeConnectAccountId = settingsCache.get('stripe_connect_account_id');
     const colorString = _.has(data, 'site._preview') && data.site.accent_color ? ` data-accent-color="${data.site.accent_color}"` : '';
     const portalUrl = config.get('portal:url');
-    let membersHelper = `<script defer src="${portalUrl}" data-ghost="${urlUtils.getSiteUrl()}"${colorString}></script>`;
+    let membersHelper = `<script defer src="${portalUrl}" data-ghost="${urlUtils.getSiteUrl()}"${colorString} crossorigin="anonymous"></script>`;
     membersHelper += (`<style id="gh-members-styles">${templateStyles}</style>`);
     if ((!!stripeDirectSecretKey && !!stripeDirectPublishableKey) || !!stripeConnectAccountId) {
         membersHelper += '<script async src="https://js.stripe.com/v3/"></script>';
@@ -116,7 +116,7 @@ module.exports = function ghost_head(options) { // eslint-disable-line camelcase
      *   - getMetaData(dataRoot, dataRoot) -> yes that looks confusing!
      *   - there is a very mixed usage of `data.context` vs. `root.context` vs `root._locals.context` vs. `this.context`
      *   - NOTE: getMetaData won't live here anymore soon, see https://github.com/TryGhost/Ghost/issues/8995
-     *   - therefor we get rid of using `getMetaData(this, dataRoot)`
+     *   - therefore we get rid of using `getMetaData(this, dataRoot)`
      *   - dataRoot has access to *ALL* locals, see function description
      *   - it should not break anything
      */

@@ -1,7 +1,7 @@
 // It's important to keep the requires absolutely minimal here,
 // As this cache is used in SO many other areas, we may open ourselves to
 // circular dependency bugs.
-const debug = require('ghost-ignition').debug('settings:cache');
+const debug = require('@tryghost/debug')('settings:cache');
 const _ = require('lodash');
 const events = require('../../lib/common/events');
 const publicSettings = require('./public');
@@ -85,7 +85,7 @@ module.exports = {
     /**
      * Get the entire cache object
      * Uses clone to prevent modifications from being reflected
-     * @return {{}} cache
+     * @return {object} cache
      */
     getAll() {
         return _.cloneDeep(settingsCache);
@@ -94,7 +94,7 @@ module.exports = {
     /**
      * Get all the publically accessible cache entries with their correct names
      * Uses clone to prevent modifications from being reflected
-     * @return {{}} cache
+     * @return {object} cache
      */
     getPublic() {
         let settings = {};
@@ -111,7 +111,7 @@ module.exports = {
      * Optionally takes a collection of settings & can populate the cache with these.
      *
      * @param {Bookshelf.Collection<Settings>} [settingsCollection]
-     * @return {{}}
+     * @return {object}
      */
     init(settingsCollection) {
         // First, reset the cache

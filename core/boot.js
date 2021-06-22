@@ -7,7 +7,7 @@
 
 // IMPORTANT: The only global requires here should be overrides + debug so we can monitor timings with DEBUG=ghost:boot* node ghost
 require('./server/overrides');
-const debug = require('ghost-ignition').debug('boot');
+const debug = require('@tryghost/debug')('boot');
 // END OF GLOBAL REQUIRES
 
 /**
@@ -252,7 +252,7 @@ async function bootGhost() {
 
         // Logging is used absolutely everywhere
         debug('Begin: Load logging');
-        logging = require('./shared/logging');
+        logging = require('@tryghost/logging');
         bootLogger = new BootLogger(logging, startTime);
         debug('End: Load logging');
 
@@ -267,7 +267,7 @@ async function bootGhost() {
         // Version is required by sentry & Migration config & so is fundamental to booting
         // However, it involves reading package.json so its slow & it's here for visibility on that slowness
         debug('Begin: Load version info');
-        require('./server/lib/ghost-version');
+        require('@tryghost/version');
         debug('End: Load version info');
 
         // Sentry must be initialised early, but requires config

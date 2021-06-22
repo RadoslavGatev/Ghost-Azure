@@ -1,6 +1,6 @@
 const Promise = require('bluebird');
 const _ = require('lodash');
-const validator = require('validator');
+const validator = require('@tryghost/validator');
 const models = require('../../models');
 const frontendRouting = require('../../../frontend/services/routing');
 const frontendSettings = require('../../../frontend/services/settings');
@@ -193,6 +193,9 @@ module.exports = {
             }
 
             /** Delete all Stripe data from DB */
+            await ghostBookshelf.knex.raw(`
+                UPDATE products SET monthly_price_id = null, yearly_price_id = null
+            `);
             await ghostBookshelf.knex.raw(`
                 DELETE FROM stripe_prices
             `);

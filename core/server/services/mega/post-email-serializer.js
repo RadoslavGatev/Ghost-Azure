@@ -1,9 +1,8 @@
 const _ = require('lodash');
 const juice = require('juice');
 const template = require('./template');
-const labsTemplate = require('./template-labs');
-const config = require('../../../shared/config');
 const settingsCache = require('../../services/settings/cache');
+const labs = require('../../services/labs');
 const urlUtils = require('../../../shared/url-utils');
 const moment = require('moment-timezone');
 const cheerio = require('cheerio');
@@ -12,7 +11,7 @@ const {URL} = require('url');
 const mobiledocLib = require('../../lib/mobiledoc');
 const htmlToText = require('html-to-text');
 const {isUnsplashImage, isLocalContentImage} = require('@tryghost/kg-default-cards/lib/utils');
-const logging = require('../../../shared/logging');
+const logging = require('@tryghost/logging');
 
 const ALLOWED_REPLACEMENTS = ['first_name'];
 
@@ -124,16 +123,6 @@ const parseReplacements = (email) => {
 };
 
 const getTemplateSettings = async () => {
-    return {
-        showSiteHeader: settingsCache.get('newsletter_show_header'),
-        bodyFontCategory: settingsCache.get('newsletter_body_font_category'),
-        showBadge: settingsCache.get('newsletter_show_badge'),
-        footerContent: settingsCache.get('newsletter_footer_content'),
-        accentColor: settingsCache.get('accent_color')
-    };
-};
-
-const getLabsTemplateSettings = async () => {
     const templateSettings = {
         headerImage: settingsCache.get('newsletter_header_image'),
         showHeaderIcon: settingsCache.get('newsletter_show_header_icon') && settingsCache.get('icon'),
@@ -144,14 +133,15 @@ const getLabsTemplateSettings = async () => {
         bodyFontCategory: settingsCache.get('newsletter_body_font_category'),
         showBadge: settingsCache.get('newsletter_show_badge'),
         footerContent: settingsCache.get('newsletter_footer_content'),
-        accentColor: settingsCache.get('accent_color')
+        accentColor: settingsCache.get('accent_color'),
+        labsFeatureImageMeta: labs.isSet('featureImageMeta')
     };
 
     if (templateSettings.headerImage) {
         if (isUnsplashImage(templateSettings.headerImage)) {
             // Unsplash images have a minimum size so assuming 1200px is safe
             const unsplashUrl = new URL(templateSettings.headerImage);
-            unsplashUrl.searchParams.set('w', 1200);
+            unsplashUrl.searchParams.set('w', '1200');
 
             templateSettings.headerImage = unsplashUrl.href;
             templateSettings.headerImageWidth = 600;
@@ -217,7 +207,7 @@ const serialize = async (postModel, options = {isBrowserPreview: false, apiVersi
         if (isUnsplashImage(post.feature_image)) {
             // Unsplash images have a minimum size so assuming 1200px is safe
             const unsplashUrl = new URL(post.feature_image);
-            unsplashUrl.searchParams.set('w', 1200);
+            unsplashUrl.searchParams.set('w', '1200');
 
             post.feature_image = unsplashUrl.href;
             post.feature_image_width = 600;
@@ -242,14 +232,12 @@ const serialize = async (postModel, options = {isBrowserPreview: false, apiVersi
         }
     }
 
-    const useLabsTemplate = config.get('enableDeveloperExperiments');
-    const templateSettings = await (useLabsTemplate ? getLabsTemplateSettings() : getTemplateSettings());
-    const templateRenderer = useLabsTemplate ? labsTemplate : template;
+    const templateSettings = await getTemplateSettings();
 
-    let htmlTemplate = templateRenderer({post, site: getSite(), templateSettings});
+    let htmlTemplate = template({post, site: getSite(), templateSettings});
 
     if (options.isBrowserPreview) {
-        const previewUnsubscribeUrl = createUnsubscribeUrl();
+        const previewUnsubscribeUrl = createUnsubscribeUrl(null);
         htmlTemplate = htmlTemplate.replace('%recipient.unsubscribe_url%', previewUnsubscribeUrl);
     }
 
@@ -263,7 +251,7 @@ const serialize = async (postModel, options = {isBrowserPreview: false, apiVersi
     // force all links to open in new tab
     _cheerio('a').attr('target','_blank');
     // convert figure and figcaption to div so that Outlook applies margins
-    _cheerio('figure, figcaption').each((i, elem) => (elem.tagName = 'div'));
+    _cheerio('figure, figcaption').each((i, elem) => !!(elem.tagName = 'div'));
     juicedHtml = _cheerio.html();
 
     // Fix any unsupported chars in Outlook
