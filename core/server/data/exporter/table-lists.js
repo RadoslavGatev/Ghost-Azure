@@ -18,6 +18,8 @@ const BACKUP_TABLES = [
     'permissions_roles',
     'permissions_users',
     'products',
+    'benefits',
+    'products_benefits',
     'webhooks',
     'snippets',
     'tokens',

@@ -348,7 +348,7 @@ module.exports = {
         email: {type: 'string', maxlength: 191, nullable: false, unique: true, validations: {isEmail: true}},
         status: {
             type: 'string', maxlength: 50, nullable: false, defaultTo: 'free', validations: {
-                isIn: [['free', 'paid']]
+                isIn: [['free', 'paid', 'comped']]
             }
         },
         name: {type: 'string', maxlength: 191, nullable: true},
@@ -372,6 +372,19 @@ module.exports = {
         description: {type: 'string', maxlength: 191, nullable: true},
         created_at: {type: 'dateTime', nullable: false},
         updated_at: {type: 'dateTime', nullable: true}
+    },
+    benefits: {
+        id: {type: 'string', maxlength: 24, nullable: false, primary: true},
+        name: {type: 'string', maxlength: 191, nullable: false},
+        slug: {type: 'string', maxlength: 191, nullable: false, unique: true},
+        created_at: {type: 'dateTime', nullable: false},
+        updated_at: {type: 'dateTime', nullable: true}
+    },
+    products_benefits: {
+        id: {type: 'string', maxlength: 24, nullable: false, primary: true},
+        product_id: {type: 'string', maxlength: 24, nullable: false, references: 'products.id', cascadeDelete: true},
+        benefit_id: {type: 'string', maxlength: 24, nullable: false, references: 'benefits.id', cascadeDelete: true},
+        sort_order: {type: 'integer', nullable: false, unsigned: true, defaultTo: 0}
     },
     members_products: {
         id: {type: 'string', maxlength: 24, nullable: false, primary: true},
@@ -404,12 +417,12 @@ module.exports = {
         member_id: {type: 'string', maxlength: 24, nullable: false, references: 'members.id', cascadeDelete: true},
         from_status: {
             type: 'string', maxlength: 50, nullable: true, validations: {
-                isIn: [['free', 'paid']]
+                isIn: [['free', 'paid', 'comped']]
             }
         },
         to_status: {
             type: 'string', maxlength: 50, nullable: true, validations: {
-                isIn: [['free', 'paid']]
+                isIn: [['free', 'paid', 'comped']]
             }
         },
         created_at: {type: 'dateTime', nullable: false}
@@ -563,6 +576,7 @@ module.exports = {
             defaultTo: 'pending',
             validations: {isIn: [['pending', 'submitting', 'submitted', 'failed']]}
         },
+        member_segment: {type: 'text', maxlength: 2000, nullable: true},
         created_at: {type: 'dateTime', nullable: false},
         updated_at: {type: 'dateTime', nullable: false}
     },

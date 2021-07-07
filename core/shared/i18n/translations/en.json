@@ -271,22 +271,10 @@
             }
         },
         "permissions": {
-            "noActionsMapFound": {
-                "error": "No actions map found, ensure you have loaded permissions into database and then call permissions.init() before use."
-            },
             "applyStatusRules": {
                 "error": "You do not have permission to retrieve {docName} with that status"
             },
             "noPermissionToAction": "You do not have permission to perform this action"
-        },
-        "updateCheck": {
-            "checkingForUpdatesFailed": {
-                "error": "Checking for updates failed, your site will continue to function.",
-                "help": "If you get this error repeatedly, please seek help from {url}."
-            },
-            "unableToDecodeUpdateResponse": {
-                "error": "Unable to decode update response"
-            }
         },
         "api": {
             "common": {
@@ -561,12 +549,6 @@
             }
         },
         "services": {
-            "ping": {
-                "requestFailed": {
-                    "error": "The {service} service was unable to send a ping request, your site will continue to function.",
-                    "help": "If you get this error repeatedly, please seek help on {url}."
-                }
-            },
             "settings": {
                 "yaml": {
                     "error": "Could not parse {file}: {context}.",

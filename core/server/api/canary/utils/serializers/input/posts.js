@@ -6,7 +6,6 @@ const slugFilterOrder = require('./utils/slug-filter-order');
 const localUtils = require('../../index');
 const mobiledoc = require('../../../../../lib/mobiledoc');
 const postsMetaSchema = require('../../../../../data/schema').tables.posts_meta;
-const labs = require('../../../../../services/labs');
 
 const replacePageWithType = mapNQLKeyValues({
     key: {
@@ -112,11 +111,11 @@ const transformLegacyEmailRecipientFilters = (frame) => {
     }
 };
 
-const cleanLabsProperties = (frame) => {
-    if (!labs.isSet('featureImageMeta') && frame.data.posts[0]) {
-        delete frame.data.posts[0].feature_image_alt;
-        delete frame.data.posts[0].feature_image_caption;
+const transformPostVisibilityFilters = (frame) => {
+    if (frame.data.posts[0].visibility === 'filter' && frame.data.posts[0].visibility_filter) {
+        frame.data.posts[0].visibility = frame.data.posts[0].visibility_filter;
     }
+    delete frame.data.posts[0].visibility_filter;
 };
 
 module.exports = {
@@ -213,7 +212,7 @@ module.exports = {
             });
         }
 
-        cleanLabsProperties(frame);
+        transformPostVisibilityFilters(frame);
         transformLegacyEmailRecipientFilters(frame);
         handlePostsMeta(frame);
         defaultFormat(frame);

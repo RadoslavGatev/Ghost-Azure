@@ -12,9 +12,13 @@ const errors = require('@tryghost/errors');
 const config = require('./shared/config');
 const logging = require('@tryghost/logging');
 const events = require('./server/lib/common/events');
-const i18n = require('./shared/i18n');
+const tpl = require('@tryghost/tpl');
 const themeEngine = require('./frontend/services/theme-engine');
-const settingsCache = require('./server/services/settings/cache');
+const settingsCache = require('./shared/settings-cache');
+
+const messages = {
+    activateFailed: 'Unable to activate the theme "{theme}".'
+};
 
 class Bridge {
     constructor() {
@@ -49,12 +53,11 @@ class Bridge {
 
             if (previousGhostAPI !== undefined && (previousGhostAPI !== currentGhostAPI)) {
                 events.emit('services.themes.api.changed');
-                const siteApp = require('./server/web/site/app');
-                siteApp.reload();
+                this.reloadFrontend();
             }
         } catch (err) {
             logging.error(new errors.InternalServerError({
-                message: i18n.t('errors.middleware.themehandler.activateFailed', {theme: loadedTheme.name}),
+                message: tpl(messages.activateFailed, {theme: loadedTheme.name}),
                 err: err
             }));
         }
@@ -66,6 +69,12 @@ class Bridge {
         } else {
             return config.get('api:versions:default');
         }
+    }
+
+    reloadFrontend() {
+        const apiVersion = this.getFrontendApiVersion();
+        const siteApp = require('./server/web/site/app');
+        siteApp.reload({apiVersion});
     }
 }
 

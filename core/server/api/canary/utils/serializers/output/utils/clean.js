@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const localUtils = require('../../../index');
-const labs = require('../../../../../../services/labs');
+const labsService = require('../../../../../../services/labs');
 
 const tag = (attrs, frame) => {
     if (localUtils.isContentAPI(frame)) {
@@ -121,14 +121,17 @@ const post = (attrs, frame) => {
         delete attrs.primary_author;
     }
 
+    // Handles visibility filter for multiple products
+    if (attrs.visibility && labsService.isSet('multipleProducts')) {
+        if (!['members', 'public', 'paid'].includes(attrs.visibility)) {
+            attrs.visibility_filter = attrs.visibility;
+            attrs.visibility = 'filter';
+        }
+    }
+
     delete attrs.locale;
     delete attrs.author;
     delete attrs.type;
-
-    if (!labs.isSet('featureImageMeta')) {
-        delete attrs.feature_image_alt;
-        delete attrs.feature_image_caption;
-    }
 
     return attrs;
 };

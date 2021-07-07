@@ -7,7 +7,7 @@ const models = require('../../models');
 const membersService = require('../../services/members');
 const labsService = require('../../services/labs');
 
-const settingsCache = require('../../services/settings/cache');
+const settingsCache = require('../../../shared/settings-cache');
 const i18n = require('../../../shared/i18n');
 const _ = require('lodash');
 
@@ -448,6 +448,9 @@ module.exports = {
         validation: {},
         async query(frame) {
             frame.options.withRelated = ['labels', 'stripeSubscriptions', 'stripeSubscriptions.customer'];
+            if (labsService.isSet('multipleProducts')) {
+                frame.options.withRelated.push('products');
+            }
             const page = await membersService.api.members.list(frame.options);
 
             return page;

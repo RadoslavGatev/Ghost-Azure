@@ -1,23 +1,21 @@
-const downsize = require('downsize');
+const generateExcerpt = require('./generate-excerpt');
 
-function getExcerpt(html, truncateOptions) {
-    truncateOptions = truncateOptions || {};
-    // Strip inline and bottom footnotes
-    let excerpt = html.replace(/<a href="#fn.*?rel="footnote">.*?<\/a>/gi, '');
-    excerpt = excerpt.replace(/<div class="footnotes"><ol>.*?<\/ol><\/div>/, '');
-
-    // Make sure to have space between paragraphs and new lines
-    excerpt = excerpt.replace(/(<\/p>|<br>)/gi, ' ');
-
-    // Strip other html
-    excerpt = excerpt.replace(/<\/?[^>]+>/gi, '');
-    excerpt = excerpt.replace(/(\r\n|\n|\r)+/gm, ' ');
-
-    if (!truncateOptions.words && !truncateOptions.characters) {
-        truncateOptions.words = 50;
+function getExcerpt(data) {
+    // NOTE: should use 'post' OR 'page' once https://github.com/TryGhost/Ghost/issues/10042 is resolved
+    if (!data.post) {
+        return;
     }
+    // There's a specific order for description fields (not <meta name="description" /> !!) in structured data
+    // and schema.org which is used the description fields (see https://github.com/TryGhost/Ghost/issues/8793):
+    // 1. CASE: custom_excerpt is populated via the UI
+    // 2. CASE: no custom_excerpt, but meta_description is poplated via the UI
+    // 3. CASE: fall back to automated excerpt of 50 words if neither custom_excerpt nor meta_description is provided
+    // @TODO: https://github.com/TryGhost/Ghost/issues/10062
+    const customExcerpt = data.post.excerpt || data.post.custom_excerpt;
+    const metaDescription = data.post.meta_description;
+    const fallbackExcerpt = data.post.html ? generateExcerpt(data.post.html, {words: 50}) : '';
 
-    return downsize(excerpt, truncateOptions);
+    return customExcerpt ? customExcerpt : metaDescription ? metaDescription : fallbackExcerpt;
 }
 
 module.exports = getExcerpt;

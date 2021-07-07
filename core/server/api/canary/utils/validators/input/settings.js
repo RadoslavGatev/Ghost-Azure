@@ -1,7 +1,7 @@
 const Promise = require('bluebird');
 const _ = require('lodash');
 const i18n = require('../../../../../../shared/i18n');
-const {NotFoundError} = require('@tryghost/errors');
+const {NotFoundError, ValidationError} = require('@tryghost/errors');
 
 module.exports = {
     read(apiConfig, frame) {
@@ -26,6 +26,36 @@ module.exports = {
                         key: setting.key
                     })
                 }));
+            }
+
+            // TODO: the below array is INCOMPLETE
+            //       it should include all setting values that have array as a type
+            const arrayTypeSettings = [
+                'notifications',
+                'navigation',
+                'secondary_navigation'
+            ];
+
+            if (arrayTypeSettings.includes(setting.key)) {
+                const typeError = new ValidationError({
+                    message: `Value in ${setting.key} should be an array.`,
+                    property: 'value'
+                });
+
+                // NOTE: The additional check on raw value is here because internal calls to
+                //       settings API use raw unstringified objects (e.g. when adding notifications)
+                //       The conditional can be removed once internals are changed to do the calls properly
+                //       and the JSON.parse should be left as the only valid way to check the value.
+                if (!_.isArray(setting.value)) {
+                    try {
+                        const value = JSON.parse(setting.value);
+                        if (!_.isArray(value)) {
+                            errors.push(typeError);
+                        }
+                    } catch (err) {
+                        errors.push(typeError);
+                    }
+                }
             }
         });
 

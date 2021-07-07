@@ -1,7 +1,11 @@
 const jsonSchema = require('../utils/json-schema');
 const models = require('../../../../../models');
 const {ValidationError} = require('@tryghost/errors');
-const i18n = require('../../../../../../shared/i18n');
+const tpl = require('@tryghost/tpl');
+
+const messages = {
+    invalidVisibilityFilter: 'Invalid filter in visibility property'
+};
 
 const validateVisibility = async function (frame) {
     if (!frame.data.posts || !frame.data.posts[0]) {
@@ -18,7 +22,7 @@ const validateVisibility = async function (frame) {
                 return Promise.resolve();
             } catch (err) {
                 return Promise.reject(new ValidationError({
-                    message: i18n.t('errors.api.posts.invalidVisibilityFilter'),
+                    message: tpl(messages.invalidVisibilityFilter),
                     property: 'visibility'
                 }));
             }

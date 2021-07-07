@@ -3,7 +3,7 @@ const logging = require('@tryghost/logging');
 const membersService = require('./service');
 const urlUtils = require('../../../shared/url-utils');
 const ghostVersion = require('@tryghost/version');
-const settingsCache = require('../settings/cache');
+const settingsCache = require('../../../shared/settings-cache');
 const {formattedMemberResponse} = require('./utils');
 const labsService = require('../labs');
 const config = require('../../../shared/config');
@@ -65,7 +65,7 @@ const updateMemberData = async function (req, res) {
         if (member) {
             const options = {
                 id: member.id,
-                withRelated: ['stripeSubscriptions', 'stripeSubscriptions.customer']
+                withRelated: ['stripeSubscriptions', 'stripeSubscriptions.customer', 'stripeSubscriptions.stripePrice']
             };
             const updatedMember = await membersService.api.members.update(data, options);
 
@@ -81,7 +81,7 @@ const updateMemberData = async function (req, res) {
 
 const getPortalProductPrices = async function () {
     const page = await membersService.api.productRepository.list({
-        withRelated: ['monthlyPrice', 'yearlyPrice']
+        withRelated: ['monthlyPrice', 'yearlyPrice', 'benefits']
     });
 
     const products = page.data.map((productModel) => {
@@ -99,6 +99,7 @@ const getPortalProductPrices = async function () {
             description: product.description || '',
             monthlyPrice: product.monthlyPrice,
             yearlyPrice: product.yearlyPrice,
+            benefits: product.benefits,
             prices: productPrices
         };
     });

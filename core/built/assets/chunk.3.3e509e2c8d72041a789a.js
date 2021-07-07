@@ -12,10 +12,10 @@ if(x&&x.performance&&x.performance.getEntries&&f.b){o.a.log("[Tracing] Adding & 
 var n,i,a,r,s,c=Object(l.e)(f.b)
 if(x.document)for(var u=0;u<document.scripts.length;u++)if("true"===document.scripts[u].dataset.entry){n=document.scripts[u].src
 break}if(x.performance.getEntries().slice(this._performanceCursor).forEach((function(u){var d=Object(l.e)(u.startTime),p=Object(l.e)(u.duration)
-if(!("navigation"===t.op&&c+d<t.startTimestamp))switch(u.entryType){case"navigation":!function(t,e,n){E({transaction:t,entry:e,event:"unloadEvent",timeOrigin:n}),E({transaction:t,entry:e,event:"redirect",timeOrigin:n}),E({transaction:t,entry:e,event:"domContentLoadedEvent",timeOrigin:n}),E({transaction:t,entry:e,event:"loadEvent",timeOrigin:n}),E({transaction:t,entry:e,event:"connect",timeOrigin:n}),E({transaction:t,entry:e,event:"secureConnection",timeOrigin:n,eventEnd:"connectEnd",description:"TLS/SSL"}),E({transaction:t,entry:e,event:"fetch",timeOrigin:n,eventEnd:"domainLookupStart",description:"cache"}),E({transaction:t,entry:e,event:"domainLookup",timeOrigin:n,description:"DNS"}),function(t,e,n){w(t,{op:"browser",description:"request",startTimestamp:n+Object(l.e)(e.requestStart),endTimestamp:n+Object(l.e)(e.responseEnd)}),w(t,{op:"browser",description:"response",startTimestamp:n+Object(l.e)(e.responseStart),endTimestamp:n+Object(l.e)(e.responseEnd)})}(t,e,n)}(t,u,c),r=c+Object(l.e)(u.responseStart),s=c+Object(l.e)(u.requestStart)
+if(!("navigation"===t.op&&c+d<t.startTimestamp))switch(u.entryType){case"navigation":!function(t,e,n){E({transaction:t,entry:e,event:"unloadEvent",timeOrigin:n}),E({transaction:t,entry:e,event:"redirect",timeOrigin:n}),E({transaction:t,entry:e,event:"domContentLoadedEvent",timeOrigin:n}),E({transaction:t,entry:e,event:"loadEvent",timeOrigin:n}),E({transaction:t,entry:e,event:"connect",timeOrigin:n}),E({transaction:t,entry:e,event:"secureConnection",timeOrigin:n,eventEnd:"connectEnd",description:"TLS/SSL"}),E({transaction:t,entry:e,event:"fetch",timeOrigin:n,eventEnd:"domainLookupStart",description:"cache"}),E({transaction:t,entry:e,event:"domainLookup",timeOrigin:n,description:"DNS"}),function(t,e,n){C(t,{op:"browser",description:"request",startTimestamp:n+Object(l.e)(e.requestStart),endTimestamp:n+Object(l.e)(e.responseEnd)}),C(t,{op:"browser",description:"response",startTimestamp:n+Object(l.e)(e.responseStart),endTimestamp:n+Object(l.e)(e.responseEnd)})}(t,e,n)}(t,u,c),r=c+Object(l.e)(u.responseStart),s=c+Object(l.e)(u.requestStart)
 break
 case"mark":case"paint":case"measure":var m=function(t,e,n,i,a){var r=a+n,s=r+i
-return w(t,{description:e.name,endTimestamp:s,op:e.entryType,startTimestamp:r}),r}(t,u,d,p,c)
+return C(t,{description:e.name,endTimestamp:s,op:e.entryType,startTimestamp:r}),r}(t,u,d,p,c)
 void 0===a&&"sentry-tracing-init"===u.name&&(a=m)
 var h=j(),f=u.startTime<h.timeStamp
 "first-paint"===u.name&&f&&(o.a.log("[Measurements] Adding FP"),e._measurements.fp={value:u.startTime},e._measurements["mark.fp"]={value:m}),"first-contentful-paint"===u.name&&f&&(o.a.log("[Measurements] Adding FCP"),e._measurements.fcp={value:u.startTime},e._measurements["mark.fcp"]={value:m})
@@ -23,16 +23,17 @@ break
 case"resource":var v=u.name.replace(window.location.origin,""),g=function(t,e,n,i,a,r){if("xmlhttprequest"!==e.initiatorType&&"fetch"!==e.initiatorType){var s={}
 "transferSize"in e&&(s["Transfer Size"]=e.transferSize),"encodedBodySize"in e&&(s["Encoded Body Size"]=e.encodedBodySize),"decodedBodySize"in e&&(s["Decoded Body Size"]=e.decodedBodySize)
 var o=r+i,c=o+a
-return w(t,{description:n,endTimestamp:c,op:e.initiatorType?"resource."+e.initiatorType:"resource",startTimestamp:o,data:s}),c}}(t,u,v,d,p,c)
-void 0===i&&(n||"").indexOf(v)>-1&&(i=g)}})),void 0!==i&&void 0!==a&&w(t,{description:"evaluation",endTimestamp:a,op:"script",startTimestamp:i}),this._performanceCursor=Math.max(performance.getEntries().length-1,0),this._trackNavigator(t),"pageload"===t.op){var d=Object(l.e)(f.b)
+return C(t,{description:n,endTimestamp:c,op:e.initiatorType?"resource."+e.initiatorType:"resource",startTimestamp:o,data:s}),c}}(t,u,v,d,p,c)
+void 0===i&&(n||"").indexOf(v)>-1&&(i=g)}})),void 0!==i&&void 0!==a&&C(t,{description:"evaluation",endTimestamp:a,op:"script",startTimestamp:i}),this._performanceCursor=Math.max(performance.getEntries().length-1,0),this._trackNavigator(t),"pageload"===t.op){var d=Object(l.e)(f.b)
 "number"==typeof r&&(o.a.log("[Measurements] Adding TTFB"),this._measurements.ttfb={value:1e3*(r-t.startTimestamp)},"number"==typeof s&&s<=r&&(this._measurements["ttfb.requestTime"]={value:1e3*(r-s)})),["fcp","fp","lcp"].forEach((function(n){if(e._measurements[n]&&!(d>=t.startTimestamp)){var i=e._measurements[n].value,a=d+Object(l.e)(i),r=Math.abs(1e3*(a-t.startTimestamp)),s=r-i
-o.a.log("[Measurements] Normalized "+n+" from "+i+" to "+r+" ("+s+")"),e._measurements[n].value=r}})),this._measurements["mark.fid"]&&this._measurements.fid&&w(t,{description:"first input delay",endTimestamp:this._measurements["mark.fid"].value+Object(l.e)(this._measurements.fid.value),op:"web.vitals",startTimestamp:this._measurements["mark.fid"].value}),t.setMeasurements(this._measurements),this._lcpEntry&&(o.a.log("[Measurements] Adding LCP Data"),this._lcpEntry.element&&t.setTag("lcp.element",Object(v.a)(this._lcpEntry.element)),this._lcpEntry.id&&t.setTag("lcp.id",this._lcpEntry.id),this._lcpEntry.url&&t.setTag("lcp.url",this._lcpEntry.url.trim().slice(0,200)),t.setTag("lcp.size",this._lcpEntry.size))}}},t.prototype._trackCLS=function(){var t=this
+o.a.log("[Measurements] Normalized "+n+" from "+i+" to "+r+" ("+s+")"),e._measurements[n].value=r}})),this._measurements["mark.fid"]&&this._measurements.fid&&C(t,{description:"first input delay",endTimestamp:this._measurements["mark.fid"].value+Object(l.e)(this._measurements.fid.value),op:"web.vitals",startTimestamp:this._measurements["mark.fid"].value}),t.setMeasurements(this._measurements),this._tagMetricInfo(t)}}},t.prototype._tagMetricInfo=function(t){this._lcpEntry&&(o.a.log("[Measurements] Adding LCP Data"),this._lcpEntry.element&&t.setTag("lcp.element",Object(v.a)(this._lcpEntry.element)),this._lcpEntry.id&&t.setTag("lcp.id",this._lcpEntry.id),this._lcpEntry.url&&t.setTag("lcp.url",this._lcpEntry.url.trim().slice(0,200)),t.setTag("lcp.size",this._lcpEntry.size)),this._clsEntry&&(o.a.log("[Measurements] Adding CLS Data"),this._clsEntry.sources.map((function(e,n){return t.setTag("cls.source."+(n+1),Object(v.a)(e.node))})))},t.prototype._trackCLS=function(){var t=this
 !function(t,e){void 0===e&&(e=!1)
 var n,i=b("CLS",0),a=function(t){t.hadRecentInput||(i.value+=t.value,i.entries.push(t),n())},r=_("layout-shift",a)
 r&&(n=g(t,i,r,e),S((function(t){var e=t.isUnloading
-r.takeRecords().map(a),e&&(i.isFinal=!0),n()})))}((function(e){e.entries.pop()&&(o.a.log("[Measurements] Adding CLS"),t._measurements.cls={value:e.value})}))},t.prototype._trackNavigator=function(t){var e=x.navigator
+r.takeRecords().map(a),e&&(i.isFinal=!0),n()})))}((function(e){var n=e.entries.pop()
+n&&(o.a.log("[Measurements] Adding CLS"),t._measurements.cls={value:e.value},t._clsEntry=n)}))},t.prototype._trackNavigator=function(t){var e=x.navigator
 if(e){var n=e.connection
-n&&(n.effectiveType&&t.setTag("effectiveConnectionType",n.effectiveType),n.type&&t.setTag("connectionType",n.type),C(n.rtt)&&(this._measurements["connection.rtt"]={value:n.rtt}),C(n.downlink)&&(this._measurements["connection.downlink"]={value:n.downlink})),C(e.deviceMemory)&&t.setTag("deviceMemory",String(e.deviceMemory)),C(e.hardwareConcurrency)&&t.setTag("hardwareConcurrency",String(e.hardwareConcurrency))}},t.prototype._trackLCP=function(){var t=this;(function(t,e){void 0===e&&(e=!1)
+n&&(n.effectiveType&&t.setTag("effectiveConnectionType",n.effectiveType),n.type&&t.setTag("connectionType",n.type),w(n.rtt)&&(this._measurements["connection.rtt"]={value:n.rtt}),w(n.downlink)&&(this._measurements["connection.downlink"]={value:n.downlink})),w(e.deviceMemory)&&t.setTag("deviceMemory",String(e.deviceMemory)),w(e.hardwareConcurrency)&&t.setTag("hardwareConcurrency",String(e.hardwareConcurrency))}},t.prototype._trackLCP=function(){var t=this;(function(t,e){void 0===e&&(e=!1)
 var n,i=b("LCP"),a=j(),s=function(t){var e=t.startTime
 e<a.timeStamp?(i.value=e,i.entries.push(t)):i.isFinal=!0,n()},o=_("largest-contentful-paint",s)
 if(o){n=g(t,i,o,e)
@@ -44,8 +45,8 @@ a?S((function(){a.takeRecords().map(i),a.disconnect()}),!0):window.perfMetrics&&
 if(n){var i=Object(l.e)(f.b),a=Object(l.e)(n.startTime)
 o.a.log("[Measurements] Adding FID"),t._measurements.fid={value:e.value},t._measurements["mark.fid"]={value:i+a}}}))},t}()
 function E(t){var e=t.transaction,n=t.entry,i=t.event,a=t.timeOrigin,r=t.eventEnd,s=t.description,o=r?n[r]:n[i+"End"],c=n[i+"Start"]
-c&&o&&w(e,{op:"browser",description:null!=s?s:i,startTimestamp:a+Object(l.e)(c),endTimestamp:a+Object(l.e)(o)})}function w(t,e){var n=e.startTimestamp,i=Object(s.d)(e,["startTimestamp"])
-return n&&t.startTimestamp>n&&(t.startTimestamp=n),t.startChild(Object(s.a)({startTimestamp:n},i))}function C(t){return"number"==typeof t&&isFinite(t)}var k=n(9),R=n(52),A=n(4),M={traceFetch:!0,traceXHR:!0,tracingOrigins:["localhost",/^\//]}
+c&&o&&C(e,{op:"browser",description:null!=s?s:i,startTimestamp:a+Object(l.e)(c),endTimestamp:a+Object(l.e)(o)})}function C(t,e){var n=e.startTimestamp,i=Object(s.d)(e,["startTimestamp"])
+return n&&t.startTimestamp>n&&(t.startTimestamp=n),t.startChild(Object(s.a)({startTimestamp:n},i))}function w(t){return"number"==typeof t&&isFinite(t)}var k=n(9),R=n(52),A=n(4),M={traceFetch:!0,traceXHR:!0,tracingOrigins:["localhost",/^\//]}
 function D(t){var e=Object(s.a)(Object(s.a)({},M),t),n=e.traceFetch,i=e.traceXHR,a=e.tracingOrigins,r=e.shouldCreateSpanForRequest,o={},c=function(t){if(o[t])return o[t]
 var e=a
 return o[t]=e.some((function(e){return Object(k.a)(t,e)}))&&!Object(k.a)(t,"sentry_key"),o[t]},u=c
@@ -186,4 +187,4 @@ var i=n(52),a=n(11),r=n(429),s=n(428)
 function o(){Object(i.a)({callback:c,type:"error"}),Object(i.a)({callback:c,type:"unhandledrejection"})}function c(){var t=Object(s.c)()
 t&&(a.a.log("[Tracing] Transaction: "+r.a.InternalError+" -> Global error occured"),t.setStatus(r.a.InternalError))}}}])
 
-//# sourceMappingURL=chunk.3.d7dfbdfb494969a0bc46.map
+//# sourceMappingURL=chunk.3.3e509e2c8d72041a789a.map

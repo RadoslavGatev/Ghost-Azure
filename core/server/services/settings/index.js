@@ -2,8 +2,9 @@
  * Settings Lib
  * A collection of utilities for handling settings including a cache
  */
+const events = require('../../lib/common/events');
 const models = require('../../models');
-const SettingsCache = require('./cache');
+const SettingsCache = require('../../../shared/settings-cache');
 
 // The string returned when a setting is set as write-only
 const obfuscatedSetting = '••••••••';
@@ -22,26 +23,19 @@ function hideValueIfSecret(setting) {
 }
 
 module.exports = {
+    /**
+     * Initialise the cache, used in boot and in testing
+     */
     async init() {
         const settingsCollection = await models.Settings.populateDefaults();
-        SettingsCache.init(settingsCollection);
+        SettingsCache.init(events, settingsCollection);
     },
 
-    async reinit() {
-        const oldSettings = SettingsCache.getAll();
-
-        SettingsCache.shutdown();
-        const settingsCollection = await models.Settings.populateDefaults();
-        const newSettings = SettingsCache.init(settingsCollection);
-
-        for (const model of settingsCollection.models) {
-            const key = model.attributes.key;
-
-            // The type of setting is object. That's why we need to compare the value of the `value` property.
-            if (newSettings[key].value !== oldSettings[key].value) {
-                model.emitChange(key + '.' + 'edited', {});
-            }
-        }
+    /**
+     * Shutdown the cache, used in force boot during testing
+     */
+    shutdown() {
+        SettingsCache.reset(events);
     },
 
     /**
