@@ -1,11 +1,18 @@
 const _ = require('lodash');
 const Promise = require('bluebird');
-const SafeString = require('../../frontend/services/theme-engine/engine').SafeString;
+const SafeString = require('express-hbs').SafeString;
 const errors = require('@tryghost/errors');
-const i18n = require('../../shared/i18n');
 const logging = require('@tryghost/logging');
-const settingsCache = require('../../shared/settings-cache');
-const config = require('../../shared/config');
+const tpl = require('@tryghost/tpl');
+
+const settingsCache = require('./settings-cache');
+const config = require('./config');
+
+const messages = {
+    errorMessage: 'The \\{\\{{helperName}\\}\\} helper is not available.',
+    errorContext: 'The {flagName} flag must be enabled in labs if you wish to use the \\{\\{{helperName}\\}\\} helper.',
+    errorHelp: 'See {url}'
+};
 
 // NOTE: this allowlist is meant to be used to filter out any unexpected
 //       input for the "labs" setting value
@@ -16,7 +23,8 @@ const BETA_FEATURES = [
 
 const ALPHA_FEATURES = [
     'emailCardSegments',
-    'multipleProducts'
+    'multipleProducts',
+    'savedIndicator'
 ];
 
 module.exports.WRITABLE_KEYS_ALLOWLIST = [...BETA_FEATURES, ...ALPHA_FEATURES];
@@ -45,6 +53,20 @@ module.exports.isSet = function isSet(flag) {
     return !!(labsConfig && labsConfig[flag] && labsConfig[flag] === true);
 };
 
+/**
+ *
+ * @param {object} options
+ * @param {string} options.flagKey the interal lookup key of the flag e.g. labs.isSet(matchHelper)
+ * @param {string} options.flagName the user-facing name of the flag e.g. Match helper
+ * @param {string} options.helperName Name of the helper to be enabled/disabled
+ * @param {string} [options.errorMessage] Optional replacement error message
+ * @param {string} [options.errorContext] Optional replacement context message
+ * @param {string} [options.errorHelp] Optional replacement help message
+ * @param {string} [options.helpUrl] Url to show in the help message
+ * @param {string} [options.async] is the helper async?
+ * @param {function} callback
+ * @returns {Promise<Handlebars.SafeString>|Handlebars.SafeString}
+ */
 module.exports.enabledHelper = function enabledHelper(options, callback) {
     const errDetails = {};
     let errString;
@@ -55,12 +77,12 @@ module.exports.enabledHelper = function enabledHelper(options, callback) {
     }
 
     // Else, the helper is not active and we need to handle this as an error
-    errDetails.message = i18n.t(options.errMessagePath || 'warnings.helpers.helperNotAvailable', {helperName: options.helperName}),
-    errDetails.context = i18n.t(options.errContextPath || 'warnings.helpers.flagMustBeEnabled', {
+    errDetails.message = tpl(options.errorMessage || messages.errorMessage, {helperName: options.helperName}),
+    errDetails.context = tpl(options.errorContext || messages.errorContext, {
         helperName: options.helperName,
         flagName: options.flagName
     });
-    errDetails.help = i18n.t(options.errHelpPath || 'warnings.helpers.seeLink', {url: options.helpUrl});
+    errDetails.help = tpl(options.errorHelp || messages.errorHelp, {url: options.helpUrl});
 
     logging.error(new errors.DisabledFeatureError(errDetails));
 
@@ -71,4 +93,12 @@ module.exports.enabledHelper = function enabledHelper(options, callback) {
     }
 
     return errString;
+};
+
+module.exports.enabledMiddleware = flag => (req, res, next) => {
+    if (this.isSet(flag) === true) {
+        return next();
+    } else {
+        return next(new errors.NotFoundError());
+    }
 };

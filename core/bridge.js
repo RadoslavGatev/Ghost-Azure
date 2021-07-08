@@ -8,13 +8,17 @@
  *
  * This file is a great place for all the cross-component event handling in lieu of refactoring
  */
+
+const debug = require('@tryghost/debug')('bridge');
 const errors = require('@tryghost/errors');
 const config = require('./shared/config');
 const logging = require('@tryghost/logging');
-const events = require('./server/lib/common/events');
 const tpl = require('@tryghost/tpl');
 const themeEngine = require('./frontend/services/theme-engine');
 const settingsCache = require('./shared/settings-cache');
+
+// Listen to settings.lang.edited, similar to the member service and models/base/listeners
+const events = require('./server/lib/common/events');
 
 const messages = {
     activateFailed: 'Unable to activate the theme "{theme}".'
@@ -27,6 +31,7 @@ class Bridge {
          * @deprecated: the term "lang" was deprecated in favor of "locale" publicly in 4.0
          */
         events.on('settings.lang.edited', (model) => {
+            debug('Active theme init18n');
             this.getActiveTheme().initI18n({locale: model.get('value')});
         });
     }
@@ -73,6 +78,7 @@ class Bridge {
 
     reloadFrontend() {
         const apiVersion = this.getFrontendApiVersion();
+        debug('reload frontend', apiVersion);
         const siteApp = require('./server/web/site/app');
         siteApp.reload({apiVersion});
     }
