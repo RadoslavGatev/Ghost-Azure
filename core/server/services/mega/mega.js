@@ -23,7 +23,11 @@ const labs = require('../../../shared/labs');
 const events = require('../../lib/common/events');
 
 const messages = {
-    invalidSegment: 'Invalid segment value. Use one of the valid:"status:free" or "status:-free" values.'
+    invalidSegment: 'Invalid segment value. Use one of the valid:"status:free" or "status:-free" values.',
+    unexpectedEmailRecipientFilterError: 'Unexpected email_recipient_filter value "{emailRecipientFilter}", expected an NQL equivalent',
+    noneEmailRecipientFilterError: 'Cannot sent email to "none" email_recipient_filter',
+    unexpectedRecipientFilterError: 'Unexpected recipient_filter value "{recipientFilter}", expected an NQL equivalent',
+    noneRecipientFileterError: 'Cannot sent email to "none" recipient_filter'
 };
 
 const getFromAddress = () => {
@@ -129,12 +133,20 @@ const addEmail = async (postModel, options) => {
     // `paid` and `free` were swapped out for NQL filters in 4.5.0, we shouldn't see them here now
     case 'paid':
     case 'free':
-        throw new Error(`Unexpected email_recipient_filter value "${emailRecipientFilter}", expected an NQL equivalent`);
+        throw new errors.GhostError({
+            message: tpl(messages.unexpectedEmailRecipientFilterError, {
+                emailRecipientFilter
+            })
+        });
     case 'all':
         filterOptions.filter = 'subscribed:true';
         break;
     case 'none':
-        throw new Error('Cannot sent email to "none" email_recipient_filter');
+        throw new errors.GhostError({
+            message: tpl(messages.noneEmailRecipientFilterError, {
+                emailRecipientFilter
+            })
+        });
     default:
         filterOptions.filter = `subscribed:true+${emailRecipientFilter}`;
     }
@@ -342,12 +354,18 @@ async function getEmailMemberRows({emailModel, memberSegment, options}) {
     // `paid` and `free` were swapped out for NQL filters in 4.5.0, we shouldn't see them here now
     case 'paid':
     case 'free':
-        throw new Error(`Unexpected recipient_filter value "${recipientFilter}", expected an NQL equivalent`);
+        throw new errors.GhostError({
+            message: tpl(messages.unexpectedRecipientFilterError, {
+                recipientFilter
+            })
+        });
     case 'all':
         filterOptions.filter = 'subscribed:true';
         break;
     case 'none':
-        throw new Error('Cannot sent email to "none" recipient_filter');
+        throw new errors.GhostError({
+            message: tpl(messages.noneRecipientFileterError)
+        });
     default:
         filterOptions.filter = `subscribed:true+${recipientFilter}`;
     }
@@ -523,7 +541,9 @@ module.exports = {
     retryFailedEmail,
     sendTestEmail,
     handleUnsubscribeRequest,
-    partitionMembersBySegment // NOTE: only exposed for testing
+    // NOTE: below are only exposed for testing purposes
+    _partitionMembersBySegment: partitionMembersBySegment,
+    _getEmailMemberRows: getEmailMemberRows
 };
 
 /**
