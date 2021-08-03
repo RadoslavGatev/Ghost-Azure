@@ -62,8 +62,9 @@ async function initDatabase({config, logging}) {
  * (There's more to do to make this true)
  * @param {object} options
  * @param {object} options.ghostServer
+ * @param {object} options.config
  */
-async function initCore({ghostServer}) {
+async function initCore({ghostServer, config}) {
     debug('Begin: initCore');
 
     // URL Utils is a bit slow, put it here so the timing is visible separate from models
@@ -81,6 +82,7 @@ async function initCore({ghostServer}) {
     debug('Begin: settings');
     const settings = require('./server/services/settings');
     await settings.init();
+    await settings.syncEmailSettings(config.get('hostSettings:emailVerification:verified'));
     debug('End: settings');
 
     // The URLService is a core part of Ghost, which depends on models. It needs moving from the frontend to make this clear.
@@ -162,7 +164,7 @@ async function initDynamicRouting() {
 }
 
 /**
- * Services are components that make up part of Ghost and need initialising on boot
+ * Services are components that make up part of Ghost and need initializing on boot
  * These services should all be part of core, frontend services should be loaded with the frontend
  * We are working towards this being a service loader, with the ability to make certain services optional
  *
@@ -206,7 +208,7 @@ async function initServices({config}) {
     ]);
     debug('End: Services');
 
-    // Initialise analytics events
+    // Initialize analytics events
     if (config.get('segment:key')) {
         require('./server/analytics-events').init();
     }
@@ -295,7 +297,7 @@ async function bootGhost() {
         require('@tryghost/version');
         debug('End: Load version info');
 
-        // Sentry must be initialised early, but requires config
+        // Sentry must be initialized early, but requires config
         debug('Begin: Load sentry');
         require('./shared/sentry');
         debug('End: Load sentry');
@@ -323,7 +325,7 @@ async function bootGhost() {
 
         // Step 4 - Load Ghost with all its services
         debug('Begin: Load Ghost Services & Apps');
-        await initCore({ghostServer});
+        await initCore({ghostServer, config});
         await initFrontend();
         const ghostApp = await initExpressApps();
         await initDynamicRouting();

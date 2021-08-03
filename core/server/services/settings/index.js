@@ -24,7 +24,7 @@ function hideValueIfSecret(setting) {
 
 module.exports = {
     /**
-     * Initialise the cache, used in boot and in testing
+     * Initialize the cache, used in boot and in testing
      */
     async init() {
         const settingsCollection = await models.Settings.populateDefaults();
@@ -39,7 +39,7 @@ module.exports = {
     },
 
     /**
-     * Handles syncronization of routes.yaml hash loaded in the frontend with
+     * Handles synchronization of routes.yaml hash loaded in the frontend with
      * the value stored in the settings table.
      * getRoutesHash is a function to allow keeping "frontend" decoupled from settings
      *
@@ -52,6 +52,22 @@ module.exports = {
             return await models.Settings.edit([{
                 key: 'routes_hash',
                 value: currentRoutesHash
+            }], {context: {internal: true}});
+        }
+    },
+
+    /**
+     * Handles email setting synchronization when email has been verified per instance
+     *
+     * @param {boolean} configValue current email verification value from local config
+     */
+    async syncEmailSettings(configValue) {
+        const isEmailDisabled = SettingsCache.get('email_verification_required');
+
+        if (configValue === true && isEmailDisabled) {
+            return await models.Settings.edit([{
+                key: 'email_verification_required',
+                value: false
             }], {context: {internal: true}});
         }
     },

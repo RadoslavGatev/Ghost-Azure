@@ -3,25 +3,33 @@ const tpl = require('@tryghost/tpl');
 const MembersSSR = require('@tryghost/members-ssr');
 const db = require('../../data/db');
 const MembersConfigProvider = require('./config');
-const MembersCSVImporter = require('./importer');
+const MembersCSVImporter = require('@tryghost/members-importer');
 const MembersStats = require('./stats');
 const createMembersApiInstance = require('./api');
 const createMembersSettingsInstance = require('./settings');
 const logging = require('@tryghost/logging');
 const urlUtils = require('../../../shared/url-utils');
+const labsService = require('../../../shared/labs');
 const settingsCache = require('../../../shared/settings-cache');
 const config = require('../../../shared/config');
+const models = require('../../models');
 const ghostVersion = require('@tryghost/version');
 const _ = require('lodash');
+const {GhostMailer} = require('../mail');
+const jobsService = require('../jobs');
 
 const messages = {
     noLiveKeysInDevelopment: 'Cannot use live stripe keys in development. Please restart in production mode.',
     sslRequiredForStripe: 'Cannot run Ghost without SSL when Stripe is connected. Please update your url config to use "https://".',
-    remoteWebhooksInDevelopment: 'Cannot use remote webhooks in development. See https://ghost.org/docs/webhooks/#stripe-webhooks for developing with Stripe.'
+    remoteWebhooksInDevelopment: 'Cannot use remote webhooks in development. See https://ghost.org/docs/webhooks/#stripe-webhooks for developing with Stripe.',
+    emailVerificationNeeded: `To make sure you get great deliverability on a list of that size, we'll need to enable some extra features for your account. A member of our team will be in touch with you by email to review your account make sure everything is configured correctly so you're ready to go.`,
+    emailVerificationEmailMessage: `Email verification needed for site: {siteUrl}, just imported: {importedNumber} members.`
 };
 
 // Bind to settings.edited to update systems based on settings changes, similar to the bridge and models/base/listeners
 const events = require('../../lib/common/events');
+
+const ghostMailer = new GhostMailer();
 
 const membersConfig = new MembersConfigProvider({
     config,
@@ -43,6 +51,68 @@ function reconfigureMembersAPI() {
         logging.error(err);
     });
 }
+
+const getThreshold = () => {
+    return _.get(config.get('hostSettings'), 'emailVerification.importThreshold');
+};
+
+const membersImporter = new MembersCSVImporter({
+    storagePath: config.getContentPath('data'),
+    getTimezone: () => settingsCache.get('timezone'),
+    getMembersApi: () => membersService.api,
+    sendEmail: ghostMailer.send.bind(ghostMailer),
+    isSet: labsService.isSet.bind(labsService),
+    addJob: jobsService.addJob.bind(jobsService),
+    knex: db.knex,
+    urlFor: urlUtils.urlFor.bind(urlUtils),
+    importThreshold: getThreshold()
+});
+
+const startEmailVerification = async (importedNumber) => {
+    const isVerifiedEmail = config.get('hostSettings:emailVerification:verified') === true;
+
+    if ((!isVerifiedEmail)) {
+        // Only trigger flag change and escalation email the first time
+        if (settingsCache.get('email_verification_required') !== true) {
+            await models.Settings.edit([{
+                key: 'email_verification_required',
+                value: true
+            }], {context: {internal: true}});
+
+            const escalationAddress = config.get('hostSettings:emailVerification:escalationAddress');
+
+            if (escalationAddress) {
+                ghostMailer.send({
+                    subject: 'Email needs verification',
+                    html: tpl(messages.emailVerificationEmailMessage, {
+                        importedNumber,
+                        siteUrl: urlUtils.getSiteUrl()
+                    }),
+                    forceTextContent: true,
+                    to: escalationAddress
+                });
+            }
+        }
+
+        throw new errors.ValidationError({
+            message: tpl(messages.emailVerificationNeeded)
+        });
+    }
+};
+
+const processImport = async (options) => {
+    const result = await membersImporter.process(options);
+    const freezeTriggered = result.meta.freeze;
+    const importSize = result.meta.originalImportSize;
+    delete result.meta.freeze;
+    delete result.meta.originalImportSize;
+
+    if (freezeTriggered) {
+        await startEmailVerification(importSize);
+    }
+
+    return result;
+};
 
 const debouncedReconfigureMembersAPI = _.debounce(reconfigureMembersAPI, 600);
 
@@ -122,7 +192,7 @@ const membersService = {
 
     stripeConnect: require('./stripe-connect'),
 
-    importer: new MembersCSVImporter({storagePath: config.getContentPath('data')}, settingsCache, () => membersApi),
+    processImport: processImport,
 
     stats: new MembersStats({
         db: db,

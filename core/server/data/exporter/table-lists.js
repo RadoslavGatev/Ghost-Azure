@@ -14,6 +14,7 @@ const BACKUP_TABLES = [
     'members_stripe_customers_subscriptions',
     'migrations',
     'migrations_lock',
+    'oauth',
     'permissions',
     'permissions_roles',
     'permissions_users',
@@ -62,7 +63,8 @@ const SETTING_KEYS_BLOCKLIST = [
     'members_stripe_webhook_id',
     'members_stripe_webhook_secret',
     'oauth_client_id',
-    'oauth_client_secret'
+    'oauth_client_secret',
+    'email_verification_required'
 ];
 
 module.exports = {

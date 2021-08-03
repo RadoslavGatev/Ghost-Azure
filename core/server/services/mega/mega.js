@@ -25,7 +25,8 @@ const events = require('../../lib/common/events');
 const messages = {
     invalidSegment: 'Invalid segment value. Use one of the valid:"status:free" or "status:-free" values.',
     unexpectedFilterError: 'Unexpected {property} value "{value}", expected an NQL equivalent',
-    noneFilterError: 'Cannot send email to "none" {property}'
+    noneFilterError: 'Cannot send email to "none" {property}',
+    emailSendingDisabled: `Sending is temporarily disabled because your account is currently in review. You should have an email about this from us already, but you can also reach us any time at support@ghost.org`
 };
 
 const getFromAddress = () => {
@@ -72,11 +73,16 @@ const getEmailData = async (postModel, options) => {
  *
  * @param {Object} postModel - post model instance
  * @param {[string]} toEmails - member email addresses to send email to
- * @param {ValidAPIVersion} options.apiVersion - api version to be used when serializing email data
+ * @param {ValidAPIVersion} apiVersion - api version to be used when serializing email data
+ * @param {ValidMemberSegment} memberSegment
  */
-const sendTestEmail = async (postModel, toEmails, apiVersion) => {
-    const emailData = await getEmailData(postModel, {apiVersion});
+const sendTestEmail = async (postModel, toEmails, apiVersion, memberSegment) => {
+    let emailData = await getEmailData(postModel, {apiVersion});
     emailData.subject = `[Test] ${emailData.subject}`;
+
+    if (labs.isSet('emailCardSegments') && memberSegment) {
+        emailData = postEmailSerializer.renderEmailForSegment(emailData, memberSegment);
+    }
 
     // fetch any matching members so that replacements use expected values
     const recipients = await Promise.all(toEmails.map(async (email) => {
@@ -152,6 +158,12 @@ const transformEmailRecipientFilter = (emailRecipientFilter, {errorProperty = 'e
 const addEmail = async (postModel, options) => {
     if (limitService.isLimited('emails')) {
         await limitService.errorIfWouldGoOverLimit('emails');
+    }
+
+    if (settingsCache.get('email_verification_required') === true) {
+        throw new errors.HostLimitError({
+            message: tpl(messages.emailSendingDisabled)
+        });
     }
 
     const knexOptions = _.pick(options, ['transacting', 'forUpdate']);
@@ -539,4 +551,5 @@ module.exports = {
 
 /**
  * @typedef {'v2' | 'v3' | 'v4' | 'canary' } ValidAPIVersion
+ * @typedef {'status:free' | 'status:-free'} ValidMemberSegment
  */
