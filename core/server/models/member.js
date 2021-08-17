@@ -17,6 +17,50 @@ const Member = ghostBookshelf.Model.extend({
         };
     },
 
+    filterExpansions() {
+        return [{
+            key: 'label',
+            replacement: 'labels.slug'
+        }, {
+            key: 'labels',
+            replacement: 'labels.slug'
+        }, {
+            key: 'product',
+            replacement: 'products.slug'
+        }, {
+            key: 'products',
+            replacement: 'products.slug'
+        }];
+    },
+
+    filterRelations() {
+        return {
+            labels: {
+                tableName: 'labels',
+                type: 'manyToMany',
+                joinTable: 'members_labels',
+                joinFrom: 'member_id',
+                joinTo: 'label_id'
+            },
+            products: {
+                tableName: 'products',
+                type: 'manyToMany',
+                joinTable: 'members_products',
+                joinFrom: 'member_id',
+                joinTo: 'product_id'
+            },
+            subscriptions: {
+                tableName: 'members_stripe_customers_subscriptions',
+                tableNameAs: 'subscriptions',
+                type: 'manyToMany',
+                joinTable: 'members_stripe_customers',
+                joinFrom: 'member_id',
+                joinTo: 'customer_id',
+                joinToForeign: 'customer_id'
+            }
+        };
+    },
+
     relationships: ['products', 'labels', 'stripeCustomers', 'email_recipients'],
 
     // do not delete email_recipients records when a member is destroyed. Recipient

@@ -26,8 +26,8 @@ function getFromAddress(requestedFromAddress) {
 
     // If we do have a from address, and it's just an email
     if (validator.isEmail(address, {require_tld: false})) {
-        const defaultBlogTitle = settingsCache.get('title') ? settingsCache.get('title').replace(/"/g, '\\"') : i18n.t('common.mail.title', {domain: getDomain()});
-        return `"${defaultBlogTitle}" <${address}>`;
+        const defaultSiteTitle = settingsCache.get('title') ? settingsCache.get('title').replace(/"/g, '\\"') : i18n.t('common.mail.title', {domain: getDomain()});
+        return `"${defaultSiteTitle}" <${address}>`;
     }
 
     return address;
@@ -37,6 +37,8 @@ function getFromAddress(requestedFromAddress) {
  * Decorates incoming message object wit    h nodemailer compatible fields.
  * For nodemailer 0.7.1 reference see - https://github.com/nodemailer/nodemailer/tree/da2f1d278f91b4262e940c0b37638e7027184b1d#e-mail-message-fields
  * @param {Object} message
+ * @param {boolean} [message.forceTextContent] - force text content
+ * @param {string} [message.from] - sender email address
  * @returns {Object}
  */
 function createMessage(message) {
@@ -82,10 +84,11 @@ module.exports = class GhostMailer {
      * @param {string} message.subject - email subject
      * @param {string} message.html - email content
      * @param {string} message.to - email recipient address
+     * @param {string} [message.from] - sender email address
      * @param {boolean} [message.forceTextContent] - maps to generateTextFromHTML nodemailer option
      * which is: "if set to true uses HTML to generate plain text body part from the HTML if the text is not defined"
      * (ref: https://github.com/nodemailer/nodemailer/tree/da2f1d278f91b4262e940c0b37638e7027184b1d#e-mail-message-fields)
-     * @returns {Promise}
+     * @returns {Promise<any>}
      */
     async send(message) {
         if (!(message && message.subject && message.html && message.to)) {
