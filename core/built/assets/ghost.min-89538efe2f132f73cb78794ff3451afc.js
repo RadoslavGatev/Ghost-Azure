@@ -2516,7 +2516,7 @@ e.default=r})),define("ghost-admin/serializers/notification",["exports","ghost-a
 var n=t.default.extend({attrs:{key:{key:"location"}}})
 e.default=n})),define("ghost-admin/serializers/page",["exports","ghost-admin/serializers/post"],(function(e,t){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
 var n=t.default.extend({serialize(){let e=this._super(...arguments)
-return delete e.email_subject,delete e.send_email_when_published,delete e.email_recipient_filter,delete e.email_id,delete e.email,e}})
+return delete e.email_subject,delete e.send_email_when_published,delete e.email_recipient_filter,delete e.email_only,delete e.email_id,delete e.email,e}})
 e.default=n})),define("ghost-admin/serializers/post",["exports","ghost-admin/serializers/application","@ember-data/serializer/rest","ember-inflector"],(function(e,t,n,r){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
 var i=t.default.extend(n.EmbeddedRecordsMixin,{attrs:{authors:{embedded:"always"},tags:{embedded:"always"},publishedAtUTC:{key:"published_at"},createdAtUTC:{key:"created_at"},updatedAtUTC:{key:"updated_at"},email:{embedded:"always"}},normalizeSingleResponse(e,t,n){let i=this.keyForAttribute(t.modelName),a=(0,r.pluralize)(t.modelName)
 return n[a]&&(n[i]=n[a][0],delete n[a]),this._super(...arguments)},normalizeArrayResponse(){return this._super(...arguments)},serialize(){let e=this._super(...arguments)
@@ -3138,4 +3138,4 @@ var t=Ember.Component.extend({})
 e.default=t})),define("ghost-admin/config/environment",[],(function(){try{var e="ghost-admin/config/environment",t=document.querySelector('meta[name="'+e+'"]').getAttribute("content"),n={default:JSON.parse(decodeURIComponent(t))}
 return Object.defineProperty(n,"__esModule",{value:!0}),n}catch(r){throw new Error('Could not read config from meta tag with name "'+e+'".')}})),runningTests||require("ghost-admin/app").default.create({version:"4.12",name:"ghost-admin"})
 
-//# sourceMappingURL=ghost.min-03a3f03bd212b0d97f0d9c63817b5240.map
+//# sourceMappingURL=ghost.min-89538efe2f132f73cb78794ff3451afc.map
