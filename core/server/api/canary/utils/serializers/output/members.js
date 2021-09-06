@@ -12,7 +12,7 @@ module.exports = {
     editSubscription: createSerializer('editSubscription', singleMember),
     createSubscription: createSerializer('createSubscription', singleMember),
     bulkDestroy: createSerializer('bulkDestroy', passthrough),
-
+    bulkEdit: createSerializer('bulkEdit', bulkAction),
     exportCSV: createSerializer('exportCSV', exportCSV),
 
     importCSV: createSerializer('importCSV', passthrough),
@@ -54,6 +54,29 @@ function singleMember(model, _apiConfig, frame) {
 }
 
 /**
+ * @param {object} bulkActionResult
+ * @param {APIConfig} _apiConfig
+ * @param {Frame} frame
+ *
+ * @returns {{bulk: SerializedBulkAction}}
+ */
+function bulkAction(bulkActionResult, _apiConfig, frame) {
+    return {
+        bulk: {
+            action: frame.data.action,
+            meta: {
+                stats: {
+                    successful: bulkActionResult.successful,
+                    unsuccessful: bulkActionResult.unsuccessful
+                },
+                errors: bulkActionResult.errors,
+                unsuccessfulData: bulkActionResult.unsuccessfulData
+            }
+        }
+    };
+}
+
+/**
  * @template PageMeta
  *
  * @param {{data: import('bookshelf').Model[], meta: PageMeta}} page
@@ -77,7 +100,7 @@ function exportCSV(page, _apiConfig, frame) {
  * @returns {SerializedMember}
  */
 function serializeMember(member, options) {
-    const json = member.toJSON(options);
+    const json = member.toJSON ? member.toJSON(options) : member;
 
     let comped = false;
     if (json.subscriptions) {
@@ -250,6 +273,21 @@ function createSerializer(debugString, serialize) {
  * @prop {string} created_by
  * @prop {string} updated_at
  * @prop {string} updated_by
+ */
+
+/**
+ *
+ * @typedef {Object} SerializedBulkAction
+ *
+ * @prop {string} action
+ *
+ * @prop {object} meta
+ * @prop {object[]} meta.unsuccessfulData
+ * @prop {Error[]} meta.errors
+ * @prop {object} meta.stats
+ *
+ * @prop {number} meta.stats.successful
+ * @prop {number} meta.stats.unsuccessful
  */
 
 /**

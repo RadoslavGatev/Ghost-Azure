@@ -66,27 +66,15 @@ module.exports = {
         },
         permissions: true,
         async query(frame) {
-            const defaultWithRelated = ['labels', 'stripeSubscriptions', 'stripeSubscriptions.customer', 'stripeSubscriptions.stripePrice', 'stripeSubscriptions.stripePrice.stripeProduct'];
+            let member = await membersService.api.memberBREADService.read(frame.data, frame.options);
 
-            if (!frame.options.withRelated) {
-                frame.options.withRelated = defaultWithRelated;
-            } else {
-                frame.options.withRelated = frame.options.withRelated.concat(defaultWithRelated);
-            }
-
-            if (frame.options.withRelated.includes('email_recipients')) {
-                frame.options.withRelated.push('email_recipients.email');
-            }
-
-            let model = await membersService.api.members.get(frame.data, frame.options);
-
-            if (!model) {
+            if (!member) {
                 throw new errors.NotFoundError({
                     message: i18n.t('errors.api.members.memberNotFound')
                 });
             }
 
-            return model;
+            return member;
         }
     },
 
@@ -392,6 +380,34 @@ module.exports = {
                     errors: bulkDestroyResult.errors
                 }
             };
+        }
+    },
+
+    bulkEdit: {
+        statusCode: 200,
+        headers: {},
+        options: [
+            'all',
+            'filter',
+            'search'
+        ],
+        data: [
+            'action',
+            'meta'
+        ],
+        validation: {
+            data: {
+                action: {
+                    required: true,
+                    values: ['unsubscribe', 'addLabel', 'removeLabel']
+                }
+            }
+        },
+        permissions: {
+            method: 'edit'
+        },
+        async query(frame) {
+            return membersService.api.members.bulkEdit(frame.data, frame.options);
         }
     },
 

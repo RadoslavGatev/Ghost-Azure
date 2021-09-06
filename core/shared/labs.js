@@ -26,11 +26,11 @@ const ALPHA_FEATURES = [
     'multipleProducts',
     'savedIndicator',
     'featureImgDragDrop',
-    'checkEmailList',
     'oauthLogin',
     'membersFiltering',
     'emailOnlyPosts',
-    'dashboardTwo'
+    'dashboardTwo',
+    'snippetReplacements'
 ];
 
 module.exports.WRITABLE_KEYS_ALLOWLIST = [...BETA_FEATURES, ...ALPHA_FEATURES];
@@ -102,7 +102,7 @@ module.exports.enabledHelper = function enabledHelper(options, callback) {
 };
 
 module.exports.enabledMiddleware = flag => (req, res, next) => {
-    if (this.isSet(flag) === true) {
+    if (module.exports.isSet(flag) === true) {
         return next();
     } else {
         return next(new errors.NotFoundError());
