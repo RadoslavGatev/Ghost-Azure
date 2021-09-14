@@ -18,19 +18,15 @@ const messages = {
 //       input for the "labs" setting value
 const BETA_FEATURES = [
     'activitypub',
-    'matchHelper'
+    'matchHelper',
+    'multipleProducts'
 ];
 
 const ALPHA_FEATURES = [
-    'emailCardSegments',
-    'multipleProducts',
-    'savedIndicator',
-    'featureImgDragDrop',
     'oauthLogin',
     'membersFiltering',
     'emailOnlyPosts',
-    'dashboardTwo',
-    'snippetReplacements'
+    'dashboardTwo'
 ];
 
 module.exports.WRITABLE_KEYS_ALLOWLIST = [...BETA_FEATURES, ...ALPHA_FEATURES];

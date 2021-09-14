@@ -17,7 +17,6 @@ const db = require('../../data/db');
 const models = require('../../models');
 const postEmailSerializer = require('./post-email-serializer');
 const {getSegmentsFromHtml} = require('./segment-parser');
-const labs = require('../../../shared/labs');
 
 // Used to listen to email.added and email.edited model events originally, I think to offload this - ideally would just use jobs now if possible
 const events = require('../../lib/common/events');
@@ -74,16 +73,15 @@ const getEmailData = async (postModel, options) => {
  * @param {Object} postModel - post model instance
  * @param {[string]} toEmails - member email addresses to send email to
  * @param {ValidAPIVersion} apiVersion - api version to be used when serializing email data
- * @param {ValidMemberSegment} memberSegment
+ * @param {ValidMemberSegment} [memberSegment]
  */
 const sendTestEmail = async (postModel, toEmails, apiVersion, memberSegment) => {
     let emailData = await getEmailData(postModel, {apiVersion});
     emailData.subject = `[Test] ${emailData.subject}`;
 
-    if (labs.isSet('emailCardSegments') && memberSegment) {
+    if (memberSegment) {
         emailData = postEmailSerializer.renderEmailForSegment(emailData, memberSegment);
     }
-
     // fetch any matching members so that replacements use expected values
     const recipients = await Promise.all(toEmails.map(async (email) => {
         const member = await membersService.api.members.get({email});
@@ -107,6 +105,14 @@ const sendTestEmail = async (postModel, toEmails, apiVersion, memberSegment) => 
 
     if (response instanceof bulkEmailService.FailedBatch) {
         return Promise.reject(response.error);
+    }
+
+    if (response && response[0] && response[0].error) {
+        return Promise.reject(new errors.EmailError({
+            statusCode: response[0].error.statusCode,
+            message: response[0].error.message,
+            context: response[0].error.originalMessage
+        }));
     }
 
     return response;
@@ -437,28 +443,26 @@ async function createSegmentedEmailBatches({emailModel, options}) {
         return [];
     }
 
-    if (labs.isSet('emailCardSegments')) {
-        const segments = getSegmentsFromHtml(emailModel.get('html'));
-        const batchIds = [];
+    const segments = getSegmentsFromHtml(emailModel.get('html'));
+    const batchIds = [];
 
-        if (segments.length) {
-            const partitionedMembers = partitionMembersBySegment(memberRows, segments);
+    if (segments.length) {
+        const partitionedMembers = partitionMembersBySegment(memberRows, segments);
 
-            for (const partition in partitionedMembers) {
-                const emailBatchIds = await createEmailBatches({
-                    emailModel,
-                    memberRows: partitionedMembers[partition],
-                    memberSegment: partition === 'unsegmented' ? null : partition,
-                    options
-                });
-                batchIds.push(emailBatchIds);
-            }
-            return batchIds;
+        for (const partition in partitionedMembers) {
+            const emailBatchIds = await createEmailBatches({
+                emailModel,
+                memberRows: partitionedMembers[partition],
+                memberSegment: partition === 'unsegmented' ? null : partition,
+                options
+            });
+            batchIds.push(emailBatchIds);
         }
+    } else {
+        const emailBatchIds = await createEmailBatches({emailModel, memberRows, options});
+        batchIds.push(emailBatchIds);
     }
 
-    const emailBatchIds = await createEmailBatches({emailModel, memberRows, options});
-    const batchIds = [emailBatchIds];
     return batchIds;
 }
 
