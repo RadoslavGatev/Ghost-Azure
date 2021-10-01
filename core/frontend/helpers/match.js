@@ -1,5 +1,14 @@
-const {logging, i18n, SafeString, labs} = require('../services/proxy');
+const {labs} = require('../services/proxy');
+const {SafeString} = require('../services/rendering');
+
+const logging = require('@tryghost/logging');
+const tpl = require('@tryghost/tpl');
+
 const _ = require('lodash');
+
+const messages = {
+    invalidAttribute: 'Invalid or no attribute given to match helper'
+};
 
 /**
  * This is identical to the built-in if helper, except inverse/fn calls are replaced with false/true
@@ -58,7 +67,7 @@ function match(...attrs) {
     let result;
 
     if (_.isEmpty(attrs)) {
-        logging.warn(i18n.t('warnings.helpers.has.invalidAttribute'));
+        logging.warn(tpl(messages.invalidAttribute));
         return;
     }
 
@@ -68,7 +77,7 @@ function match(...attrs) {
     } else if (attrs.length === 3) {
         result = handleMatch(attrs[0], attrs[1], attrs[2], options);
     } else {
-        logging.warn(i18n.t('warnings.helpers.has.invalidAttribute'));
+        logging.warn(tpl(messages.invalidAttribute));
         return;
     }
 

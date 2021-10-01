@@ -112,10 +112,10 @@ async function initCore({ghostServer, config}) {
 async function initFrontend() {
     debug('Begin: initFrontend');
 
-    debug('Begin: Frontend Settings');
-    const frontendSettings = require('./frontend/services/settings');
-    await frontendSettings.init();
-    debug('End: Frontend Settings');
+    debug('Begin: Frontend Routing Settings');
+    const routeSettings = require('./server/services/route-settings');
+    await routeSettings.init();
+    debug('End: Frontend Routing Settings');
 
     debug('Begin: Themes');
     const themeService = require('./server/services/themes');
@@ -146,16 +146,16 @@ async function initExpressApps() {
 async function initDynamicRouting() {
     debug('Begin: Dynamic Routing');
     const routing = require('./frontend/services/routing');
-    const frontendSettings = require('./frontend/services/settings');
+    const routeSettingsService = require('./server/services/route-settings');
     const bridge = require('./bridge');
 
     // We pass the frontend API version + the dynamic routes here, so that the frontend services are slightly less tightly-coupled
     const apiVersion = bridge.getFrontendApiVersion();
-    const routeSettings = frontendSettings.get('routes');
+    const routeSettings = await routeSettingsService.loadRouteSettings();
     debug(`Frontend API Version: ${apiVersion}`);
 
     routing.bootstrap.start(apiVersion, routeSettings);
-    const getRoutesHash = () => frontendSettings.getCurrentHash('routes');
+    const getRoutesHash = () => routeSettingsService.api.getCurrentHash();
 
     const settings = require('./server/services/settings');
     await settings.syncRoutesHash(getRoutesHash);
