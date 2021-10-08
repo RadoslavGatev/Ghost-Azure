@@ -16,6 +16,7 @@ const appService = require('../../../frontend/services/apps');
 const themeEngine = require('../../../frontend/services/theme-engine');
 const themeMiddleware = themeEngine.middleware;
 const membersService = require('../../services/members');
+const offersService = require('../../services/offers');
 const siteRoutes = require('./routes');
 const shared = require('../shared');
 const mw = require('./middleware');
@@ -84,6 +85,8 @@ module.exports = function setupSiteApp(options = {}) {
     // enable CORS headers (allows admin client to hit front-end when configured on separate URLs)
     siteApp.use(cors(corsOptionsDelegate));
 
+    siteApp.use(offersService.middleware);
+
     // you can extend Ghost with a custom redirects file
     // see https://github.com/TryGhost/Ghost/issues/7707
     shared.middlewares.customRedirects.use(siteApp);
@@ -114,8 +117,9 @@ module.exports = function setupSiteApp(options = {}) {
     // We do this here, at the top level, because helpers require so much stuff.
     // Moving this to being inside themes, where it probably should be requires the proxy to be refactored
     // Else we end up with circular dependencies
-    themeEngine.loadCoreHelpers();
-    debug('Helpers done');
+    // themeEngine.loadCoreHelpers();
+    // themeEngine.registerHandlebarsHelpers();
+    // debug('Helpers done');
 
     // Global handling for member session, ensures a member is logged in to the frontend
     siteApp.use(membersService.middleware.loadMemberSession);

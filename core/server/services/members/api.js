@@ -1,3 +1,4 @@
+const stripeService = require('../stripe');
 const settingsCache = require('../../../shared/settings-cache');
 const MembersApi = require('@tryghost/members-api');
 const logging = require('@tryghost/logging');
@@ -10,6 +11,7 @@ const updateEmail = require('./emails/updateEmail');
 const SingleUseTokenProvider = require('./SingleUseTokenProvider');
 const urlUtils = require('../../../shared/url-utils');
 const labsService = require('../../../shared/labs');
+const offersService = require('../offers');
 
 const MAGIC_LINK_TOKEN_VALIDITY = 24 * 60 * 60 * 1000;
 
@@ -183,7 +185,9 @@ function createApiInstance(config) {
             Product: models.Product,
             Settings: models.Settings
         },
+        stripeAPIService: stripeService.api,
         logger: logging,
+        offerRepository: offersService.repository,
         labsService: labsService
     });
 
