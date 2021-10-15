@@ -386,6 +386,7 @@ module.exports = {
     },
     offers: {
         id: {type: 'string', maxlength: 24, nullable: false, primary: true},
+        active: {type: 'boolean', nullable: false, defaultTo: true},
         name: {type: 'string', maxlength: 191, nullable: false, unique: true},
         code: {type: 'string', maxlength: 191, nullable: false, unique: true},
         product_id: {type: 'string', maxlength: 24, nullable: false, references: 'products.id'},
@@ -527,6 +528,12 @@ module.exports = {
         plan_interval: {type: 'string', maxlength: 50, nullable: false},
         plan_amount: {type: 'integer', nullable: false},
         plan_currency: {type: 'string', maxLength: 3, nullable: false}
+    },
+    offer_redemptions: {
+        id: {type: 'string', maxlength: 24, nullable: false, primary: true},
+        offer_id: {type: 'string', maxlength: 24, nullable: false, references: 'offers.id', cascadeDelete: true},
+        member_id: {type: 'string', maxlength: 24, nullable: false, references: 'members.id', cascadeDelete: true},
+        subscription_id: {type: 'string', maxlength: 24, nullable: false, references: 'members_stripe_customers_subscriptions.id'}
     },
     members_subscribe_events: {
         id: {type: 'string', maxlength: 24, nullable: false, primary: true},
@@ -671,7 +678,11 @@ module.exports = {
             nullable: false,
             validations: {
                 isIn: [[
-                    'select'
+                    'select',
+                    'boolean',
+                    'color',
+                    'text',
+                    'image'
                 ]]
             }
         },

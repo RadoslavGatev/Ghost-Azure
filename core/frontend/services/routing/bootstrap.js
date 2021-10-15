@@ -16,6 +16,7 @@ const defaultApiVersion = 'v4';
 
 const registry = require('./registry');
 let siteRouter;
+let _urlService;
 
 /**
  * @description The `init` function will return the wrapped parent express router and will start creating all
@@ -27,9 +28,14 @@ let siteRouter;
  *   - if you change your route settings, we will re-initialise routing
  *
  * @param {Object} options
+ * @param {Boolean} [options.start] - flag controlling if the frontend Routes should be reinitialized
+ * @param {String} options.apiVersion - API version frontend Routes should communicate through
+ * @param {Object} options.routerSettings - JSON configuration to build frontend Routes
+ * @param {Object} options.urlService - service providing resouce URL utility functions such as owns, getUrlByResourceId, and getResourceById
  * @returns {ExpressRouter}
  */
-module.exports.init = ({start = false, routerSettings, apiVersion}) => {
+const init = ({start = false, routerSettings, apiVersion, urlService}) => {
+    _urlService = urlService;
     debug('bootstrap init', start, apiVersion, routerSettings);
 
     registry.resetAllRouters();
@@ -64,7 +70,7 @@ module.exports.init = ({start = false, routerSettings, apiVersion}) => {
  * @param {string} apiVersion
  * @param {object} routerSettings
  */
-module.exports.start = (apiVersion, routerSettings) => {
+const start = (apiVersion, routerSettings) => {
     debug('bootstrap start', apiVersion, routerSettings);
     const RESOURCE_CONFIG = require(`./config/${apiVersion}`);
 
@@ -112,3 +118,17 @@ module.exports.start = (apiVersion, routerSettings) => {
 
     debug('Routes:', registry.getAllRoutes());
 };
+
+module.exports.internal = {
+    owns: (routerId, id) => {
+        return _urlService.owns(routerId, id);
+    },
+    getUrlByResourceId: (id, options) => {
+        return _urlService.getUrlByResourceId(id, options);
+    },
+    getResourceById: (resourceId) => {
+        return _urlService.getResourceById(resourceId);
+    }
+};
+module.exports.init = init;
+module.exports.start = start;

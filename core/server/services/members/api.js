@@ -180,6 +180,7 @@ function createApiInstance(config) {
             MemberStatusEvent: models.MemberStatusEvent,
             MemberProductEvent: models.MemberProductEvent,
             MemberAnalyticEvent: models.MemberAnalyticEvent,
+            OfferRedemption: models.OfferRedemption,
             StripeProduct: models.StripeProduct,
             StripePrice: models.StripePrice,
             Product: models.Product,
@@ -187,7 +188,7 @@ function createApiInstance(config) {
         },
         stripeAPIService: stripeService.api,
         logger: logging,
-        offerRepository: offersService.repository,
+        offersAPI: offersService.api,
         labsService: labsService
     });
 
