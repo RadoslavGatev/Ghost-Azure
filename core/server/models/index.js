@@ -3,6 +3,7 @@
  */
 
 const _ = require('lodash');
+const glob = require('glob');
 
 // enable event listeners
 require('./base/listeners');
@@ -12,55 +13,12 @@ require('./base/listeners');
  */
 exports = module.exports;
 
-const models = [
-    'permission',
-    'post',
-    'role',
-    'settings',
-    'custom-theme-setting',
-    'session',
-    'tag',
-    'tag-public',
-    'user',
-    'author',
-    'invite',
-    'webhook',
-    'integration',
-    'api-key',
-    'mobiledoc-revision',
-    'member',
-    'offer',
-    'offer-redemption',
-    'product',
-    'benefit',
-    'stripe-product',
-    'stripe-price',
-    'member-subscribe-event',
-    'member-paid-subscription-event',
-    'member-login-event',
-    'member-email-change-event',
-    'member-payment-event',
-    'member-status-event',
-    'member-product-event',
-    'member-analytic-event',
-    'posts-meta',
-    'member-stripe-customer',
-    'stripe-customer-subscription',
-    'email',
-    'email-batch',
-    'email-recipient',
-    'label',
-    'single-use-token',
-    'snippet',
-    // Action model MUST be loaded last as it loops through all of the registered models
-    // Please do not append items to this array.
-    'action'
-];
-
 function init() {
     exports.Base = require('./base');
 
-    models.forEach(function (name) {
+    let modelsFiles = glob.sync('!(index).js', {cwd: __dirname});
+    modelsFiles.forEach((model) => {
+        const name = model.replace(/.js$/, '');
         _.extend(exports, require('./' + name));
     });
 }

@@ -90,9 +90,9 @@ async function initCore({ghostServer, config}) {
     await settings.syncEmailSettings(config.get('hostSettings:emailVerification:verified'));
     debug('End: settings');
 
-    // The URLService is a core part of Ghost, which depends on models. It needs moving from the frontend to make this clear.
+    // The URLService is a core part of Ghost, which depends on models.
     debug('Begin: Url Service');
-    const urlService = require('./frontend/services/url');
+    const urlService = require('./server/services/url');
     // Note: there is no await here, we do not wait for the url service to finish
     // We can return, but the site will remain in (the shared, not global) maintenance mode until this finishes
     // This is managed on request: https://github.com/TryGhost/Ghost/blob/main/core/server/web/shared/middlewares/maintenance.js#L13
@@ -158,7 +158,7 @@ async function initExpressApps() {
 
 /**
  * Dynamic routing is generated from the routes.yaml file
- * When Ghost's DB and core are loaded, we can access this file and call routing.bootstrap.start
+ * When Ghost's DB and core are loaded, we can access this file and call routing.routingManager.start
  * However this _must_ happen after the express Apps are loaded, hence why this is here and not in initFrontend
  * Routing is currently tightly coupled between the frontend and backend
  */
@@ -173,7 +173,7 @@ async function initDynamicRouting() {
     const routeSettings = await routeSettingsService.loadRouteSettings();
     debug(`Frontend API Version: ${apiVersion}`);
 
-    routing.bootstrap.start(apiVersion, routeSettings);
+    routing.routerManager.start(apiVersion, routeSettings);
     const getRoutesHash = () => routeSettingsService.api.getCurrentHash();
 
     const settings = require('./server/services/settings');

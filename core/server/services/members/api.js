@@ -70,7 +70,6 @@ function createApiInstance(config) {
                         For your security, the link will expire in 24 hours time.
 
                         All the best!
-                        The team at ${siteTitle}
 
                         ---
 
@@ -88,7 +87,6 @@ function createApiInstance(config) {
                         For your security, the link will expire in 24 hours time.
 
                         See you soon!
-                        The team at ${siteTitle}
 
                         ---
 
@@ -122,7 +120,6 @@ function createApiInstance(config) {
                         For your security, the link will expire in 24 hours time.
 
                         See you soon!
-                        The team at ${siteTitle}
 
                         ---
 
@@ -181,6 +178,7 @@ function createApiInstance(config) {
             MemberProductEvent: models.MemberProductEvent,
             MemberAnalyticEvent: models.MemberAnalyticEvent,
             OfferRedemption: models.OfferRedemption,
+            Offer: models.Offer,
             StripeProduct: models.StripeProduct,
             StripePrice: models.StripePrice,
             Product: models.Product,

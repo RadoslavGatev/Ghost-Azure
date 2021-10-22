@@ -18,8 +18,8 @@ module.exports = (options) => {
     // otherwise we serve assets/pages with http. This can cause mixed content warnings in the admin client.
     frontendApp.use(shared.middlewares.urlRedirects.frontendSSLRedirect);
 
-    frontendApp.use('/members', require('../members')());
-    frontendApp.use('/', require('../site')(options));
+    frontendApp.lazyUse('/members', require('../members'));
+    frontendApp.use('/', require('../../../frontend/web')(options));
 
     return frontendApp;
 };

@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const Promise = require('bluebird');
-const SafeString = require('express-hbs').SafeString;
 const errors = require('@tryghost/errors');
 const logging = require('@tryghost/logging');
 const tpl = require('@tryghost/tpl');
@@ -14,6 +13,12 @@ const messages = {
     errorHelp: 'See {url}'
 };
 
+// flags in this list always return `true`, allows quick global enable prior to full flag removal
+const GA_FEATURES = [
+    'customThemeSettings',
+    'offers'
+];
+
 // NOTE: this allowlist is meant to be used to filter out any unexpected
 //       input for the "labs" setting value
 const BETA_FEATURES = [
@@ -23,11 +28,10 @@ const BETA_FEATURES = [
 
 const ALPHA_FEATURES = [
     'oauthLogin',
-    'customThemeSettings',
-    'membersActivity',
-    'offers'
+    'membersActivity'
 ];
 
+module.exports.GA_KEYS = [...GA_FEATURES];
 module.exports.WRITABLE_KEYS_ALLOWLIST = [...BETA_FEATURES, ...ALPHA_FEATURES];
 
 module.exports.getAll = () => {
@@ -37,6 +41,10 @@ module.exports.getAll = () => {
         if (labs[alphaKey] && !(config.get('enableDeveloperExperiments') || process.env.NODE_ENV.match(/^testing/))) {
             delete labs[alphaKey];
         }
+    });
+
+    GA_FEATURES.forEach((gaKey) => {
+        labs[gaKey] = true;
     });
 
     labs.members = settingsCache.get('members_signup_access') !== 'none';
@@ -78,7 +86,7 @@ module.exports.enabledHelper = function enabledHelper(options, callback) {
     }
 
     // Else, the helper is not active and we need to handle this as an error
-    errDetails.message = tpl(options.errorMessage || messages.errorMessage, {helperName: options.helperName}),
+    errDetails.message = tpl(options.errorMessage || messages.errorMessage, {helperName: options.helperName});
     errDetails.context = tpl(options.errorContext || messages.errorContext, {
         helperName: options.helperName,
         flagName: options.flagName
@@ -87,6 +95,7 @@ module.exports.enabledHelper = function enabledHelper(options, callback) {
 
     logging.error(new errors.DisabledFeatureError(errDetails));
 
+    const {SafeString} = require('express-hbs');
     errString = new SafeString(`<script>console.error("${_.values(errDetails).join(' ')}");</script>`);
 
     if (options.async) {
