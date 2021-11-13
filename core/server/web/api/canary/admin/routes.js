@@ -100,10 +100,10 @@ module.exports = function apiRoutes() {
     router.del('/members', mw.authAdminApi, http(api.members.bulkDestroy));
     router.put('/members/bulk', mw.authAdminApi, http(api.members.bulkEdit));
 
-    router.get('/offers', labs.enabledMiddleware('offers'), mw.authAdminApi, http(api.offers.browse));
-    router.post('/offers', labs.enabledMiddleware('offers'), mw.authAdminApi, http(api.offers.add));
-    router.get('/offers/:id', labs.enabledMiddleware('offers'), mw.authAdminApi, http(api.offers.read));
-    router.put('/offers/:id', labs.enabledMiddleware('offers'), mw.authAdminApi, http(api.offers.edit));
+    router.get('/offers', mw.authAdminApi, http(api.offers.browse));
+    router.post('/offers', mw.authAdminApi, http(api.offers.add));
+    router.get('/offers/:id', mw.authAdminApi, http(api.offers.read));
+    router.put('/offers/:id', mw.authAdminApi, http(api.offers.edit));
 
     router.get('/members/stats/count', mw.authAdminApi, http(api.members.memberStats));
     router.get('/members/stats/mrr', mw.authAdminApi, http(api.members.mrrStats));
@@ -234,6 +234,30 @@ module.exports = function apiRoutes() {
         apiMw.upload.validation({type: 'images'}),
         apiMw.normalizeImage,
         http(api.images.upload)
+    );
+
+    // ## media
+    router.post('/media/upload',
+        labs.enabledMiddleware('mediaAPI'),
+        mw.authAdminApi,
+        apiMw.upload.media('file', 'thumbnail'),
+        apiMw.upload.mediaValidation({type: 'media'}),
+        http(api.media.upload)
+    );
+    router.put('/media/thumbnail/upload',
+        labs.enabledMiddleware('mediaAPI'),
+        mw.authAdminApi,
+        apiMw.upload.single('file'),
+        apiMw.upload.validation({type: 'images'}),
+        http(api.media.uploadThumbnail)
+    );
+
+    // ## files
+    router.post('/files/upload',
+        labs.enabledMiddleware('filesAPI'),
+        mw.authAdminApi,
+        apiMw.upload.single('file'),
+        http(api.files.upload)
     );
 
     // ## Invites

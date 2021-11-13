@@ -107,17 +107,15 @@ class BlogIcon {
     }
 
     /**
-     * Return path for Blog icon without [subdirectory]/content/image prefix
-     * Always returns {string} getIconPath
-     * @returns {string} physical storage path of icon
      * @description Checks if we have a custom uploaded icon. If no custom uploaded icon
      * exists, we're returning the default `favicon.ico`
+     * @returns {string} physical storage path of site icon without [subdirectory]/content/image prefix
      */
     getIconPath() {
         const blogIcon = this.settingsCache.get('icon');
 
         if (blogIcon) {
-            return this.storageUtils.getLocalFileStoragePath(blogIcon);
+            return this.storageUtils.getLocalImagesStoragePath(blogIcon);
         } else {
             return path.join(this.config.get('paths:publicFilePath'), 'favicon.ico');
         }

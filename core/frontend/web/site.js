@@ -17,11 +17,15 @@ const themeEngine = require('../services/theme-engine');
 const themeMiddleware = themeEngine.middleware;
 const membersService = require('../../server/services/members');
 const offersService = require('../../server/services/offers');
+const customRedirects = require('../../server/services/redirects');
 const siteRoutes = require('./routes');
 const shared = require('../../server/web/shared');
 const mw = require('./middleware');
+const labs = require('../../shared/labs');
 
 const STATIC_IMAGE_URL_PREFIX = `/${urlUtils.STATIC_IMAGE_URL_PREFIX}`;
+const STATIC_MEDIA_URL_PREFIX = `/${constants.STATIC_MEDIA_URL_PREFIX}`;
+const STATIC_FILES_URL_PREFIX = `/${constants.STATIC_FILES_URL_PREFIX}`;
 
 let router;
 
@@ -89,7 +93,7 @@ module.exports = function setupSiteApp(options = {}) {
 
     // you can extend Ghost with a custom redirects file
     // see https://github.com/TryGhost/Ghost/issues/7707
-    shared.middlewares.customRedirects.use(siteApp);
+    siteApp.use(customRedirects.middleware);
 
     // (Optionally) redirect any requests to /ghost to the admin panel
     siteApp.use(mw.redirectGhostToAdmin());
@@ -106,16 +110,16 @@ module.exports = function setupSiteApp(options = {}) {
     siteApp.use(mw.servePublicFile('public/ghost.css', 'text/css', constants.ONE_HOUR_S));
     siteApp.use(mw.servePublicFile('public/ghost.min.css', 'text/css', constants.ONE_YEAR_S));
 
+    // Card assets
+    siteApp.use(mw.servePublicFile('public/cards.min.css', 'text/css', constants.ONE_YEAR_S));
+    siteApp.use(mw.servePublicFile('public/cards.min.js', 'text/js', constants.ONE_YEAR_S));
+
     // Serve blog images using the storage adapter
     siteApp.use(STATIC_IMAGE_URL_PREFIX, mw.handleImageSizes, storage.getStorage('images').serve());
-
-    // @TODO find this a better home
-    // We do this here, at the top level, because helpers require so much stuff.
-    // Moving this to being inside themes, where it probably should be requires the proxy to be refactored
-    // Else we end up with circular dependencies
-    // themeEngine.loadCoreHelpers();
-    // themeEngine.registerHandlebarsHelpers();
-    // debug('Helpers done');
+    // Serve blog media using the storage adapter
+    siteApp.use(STATIC_MEDIA_URL_PREFIX, labs.enabledMiddleware('mediaAPI'), storage.getStorage('media').serve());
+    // Serve blog files using the storage adapter
+    siteApp.use(STATIC_FILES_URL_PREFIX, labs.enabledMiddleware('filesAPI'), storage.getStorage('files').serve());
 
     // Global handling for member session, ensures a member is logged in to the frontend
     siteApp.use(membersService.middleware.loadMemberSession);

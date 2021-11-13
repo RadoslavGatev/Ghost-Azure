@@ -105,6 +105,9 @@ async function initCore({ghostServer, config}) {
     ghostServer.registerCleanupTask(async () => {
         await jobService.shutdown();
     });
+    ghostServer.registerCleanupTask(async () => {
+        await urlService.persistUrls();
+    });
     debug('End: Job Service');
 
     debug('End: initCore');
@@ -140,6 +143,9 @@ async function initFrontend() {
 
     const helperService = require('./frontend/services/helpers');
     await helperService.init();
+
+    const cardAssetService = require('./frontend/services/card-assets');
+    await cardAssetService.init();
 
     debug('End: initFrontend');
 }
@@ -208,6 +214,7 @@ async function initServices({config}) {
     const appService = require('./frontend/services/apps');
     const limits = require('./server/services/limits');
     const scheduling = require('./server/adapters/scheduling');
+    const customRedirects = require('./server/services/redirects');
 
     const urlUtils = require('./shared/url-utils');
 
@@ -221,6 +228,7 @@ async function initServices({config}) {
     await offers.init();
 
     await Promise.all([
+        customRedirects.init(),
         members.init(),
         permissions.init(),
         xmlrpc.listen(),
