@@ -3,7 +3,7 @@ const url = require('url');
 const os = require('os');
 const urlUtils = require('../../../../shared/url-utils');
 
-let allowlist = [];
+let whitelist = [];
 const ENABLE_CORS = {origin: true, maxAge: 86400};
 const DISABLE_CORS = {origin: false};
 
@@ -46,16 +46,16 @@ function getUrls() {
     return urls;
 }
 
-function getAllowlist() {
+function getWhitelist() {
     // This needs doing just one time after init
-    if (allowlist.length === 0) {
+    if (whitelist.length === 0) {
         // origins that always match: localhost, local IPs, etc.
-        allowlist = allowlist.concat(getIPs());
+        whitelist = whitelist.concat(getIPs());
         // Trusted urls from config.js
-        allowlist = allowlist.concat(getUrls());
+        whitelist = whitelist.concat(getUrls());
     }
 
-    return allowlist;
+    return whitelist;
 }
 
 /**
@@ -73,7 +73,7 @@ function handleCORS(req, cb) {
     }
 
     // Origin matches whitelist
-    if (getAllowlist().indexOf(url.parse(origin).hostname) > -1) {
+    if (getWhitelist().indexOf(url.parse(origin).hostname) > -1) {
         return cb(null, ENABLE_CORS);
     }
 

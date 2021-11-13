@@ -31,10 +31,6 @@ module.exports = {
         return require('./media');
     },
 
-    get files() {
-        return require('./files');
-    },
-
     get settings() {
         return require('./settings');
     },

@@ -2,7 +2,7 @@
 n.r(e),n.d(e,"Integrations",(function(){return X})),n.d(e,"Span",(function(){return W.a})),n.d(e,"Transaction",(function(){return J.a})),n.d(e,"registerRequestInstrumentation",(function(){return A})),n.d(e,"defaultRequestInstrumentationOptions",(function(){return R})),n.d(e,"SpanStatus",(function(){return u.a})),n.d(e,"IdleTransaction",(function(){return c.b})),n.d(e,"startIdleTransaction",(function(){return o.b})),n.d(e,"addExtensionMethods",(function(){return o.a})),n.d(e,"extractTraceparentData",(function(){return d.b})),n.d(e,"getActiveTransaction",(function(){return d.c})),n.d(e,"hasTracingEnabled",(function(){return d.d})),n.d(e,"stripUrlQueryAndFragment",(function(){return G.i})),n.d(e,"TRACEPARENT_REGEXP",(function(){return d.a}))
 var i={}
 n.r(i),n.d(i,"Express",(function(){return q})),n.d(i,"Postgres",(function(){return L})),n.d(i,"Mysql",(function(){return z})),n.d(i,"Mongo",(function(){return Y}))
-var a=n(0),r=n(18),s=n(5),o=n(610),c=n(611),u=n(609),d=n(608),p=Object(s.a)(),l=n(17),m=n(82),h=n(32),f=function(t,e,n){var i
+var a=n(0),r=n(18),s=n(5),o=n(610),c=n(611),u=n(609),d=n(608),p=Object(s.a)(),l=n(17),m=n(83),h=n(33),f=function(t,e,n){var i
 return function(a){e.value>=0&&(a||n)&&(e.delta=e.value-(i||0),(e.delta||void 0===i)&&(i=e.value,t(e)))}},v=function(t,e){return{name:t,value:null!=e?e:-1,delta:0,entries:[],id:"v2-"+Date.now()+"-"+(Math.floor(8999999999999*Math.random())+1e12)}},g=function(t,e){try{if(PerformanceObserver.supportedEntryTypes.includes(t)){if("first-input"===t&&!("PerformanceEventTiming"in self))return
 var n=new PerformanceObserver((function(t){return t.getEntries().map(e)}))
 return n.observe({type:t,buffered:!0}),n}}catch(t){}},b=function(t,e){var n=function(i){"pagehide"!==i.type&&"hidden"!==Object(s.a)().document.visibilityState||(t(i),e&&(removeEventListener("visibilitychange",n,!0),removeEventListener("pagehide",n,!0)))}
@@ -46,7 +46,7 @@ if(n){var i=Object(d.e)(m.b),a=Object(d.e)(n.startTime)
 r.b.log("[Measurements] Adding FID"),t._measurements.fid={value:e.value},t._measurements["mark.fid"]={value:i+a}}}))},t}()
 function E(t){var e=t.transaction,n=t.entry,i=t.event,a=t.timeOrigin,r=t.eventEnd,s=t.description,o=r?n[r]:n[i+"End"],c=n[i+"Start"]
 c&&o&&x(e,{op:"browser",description:null!=s?s:i,startTimestamp:a+Object(d.e)(c),endTimestamp:a+Object(d.e)(o)})}function x(t,e){var n=e.startTimestamp,i=Object(a.d)(e,["startTimestamp"])
-return n&&t.startTimestamp>n&&(t.startTimestamp=n),t.startChild(Object(a.a)({startTimestamp:n},i))}function I(t){return"number"==typeof t&&isFinite(t)}var C=n(12),k=n(91),w=n(4),R={traceFetch:!0,traceXHR:!0,tracingOrigins:["localhost",/^\//]}
+return n&&t.startTimestamp>n&&(t.startTimestamp=n),t.startChild(Object(a.a)({startTimestamp:n},i))}function I(t){return"number"==typeof t&&isFinite(t)}var C=n(12),k=n(92),w=n(4),R={traceFetch:!0,traceXHR:!0,tracingOrigins:["localhost",/^\//]}
 function A(t){var e=Object(a.a)(Object(a.a)({},R),t),n=e.traceFetch,i=e.traceXHR,r=e.tracingOrigins,s=e.shouldCreateSpanForRequest,o={},c=function(t){if(o[t])return o[t]
 var e=r
 return o[t]=e.some((function(e){return Object(C.b)(t,e)}))&&!Object(C.b)(t,"sentry_key"),o[t]},p=c
@@ -115,7 +115,7 @@ return t.call.apply(t,Object(a.e)([this],u.slice(0,-1),[function(t,e){var n
 null===(n=v)||void 0===n||n.finish(),p(t,e)}]))}}))}},t.prototype._getSpanContextFromOperationArguments=function(t,e,n){var i={collectionName:t.collectionName,dbName:t.dbName,namespace:t.namespace},r={op:"db",description:e,data:i},s=U[e],o=Array.isArray(this._describeOperations)?this._describeOperations.includes(e):this._describeOperations
 if(!s||!o)return r
 try{if("mapReduce"===e){var c=Object(a.c)(n,2),u=c[0],d=c[1]
-i[s[0]]="string"==typeof u?u:u.name||"<anonymous>",i[s[1]]="string"==typeof d?d:d.name||"<anonymous>"}else for(var p=0;p<s.length;p++)i[s[p]]=JSON.stringify(n[p])}catch(t){}return r},t.id="Mongo",t}(),W=n(612),J=n(613),G=n(83),X=Object(a.a)(Object(a.a)({},i),{BrowserTracing:D})
+i[s[0]]="string"==typeof u?u:u.name||"<anonymous>",i[s[1]]="string"==typeof d?d:d.name||"<anonymous>"}else for(var p=0;p<s.length;p++)i[s[p]]=JSON.stringify(n[p])}catch(t){}return r},t.id="Mongo",t}(),W=n(612),J=n(613),G=n(84),X=Object(a.a)(Object(a.a)({},i),{BrowserTracing:D})
 Object(o.a)()},608:function(t,e,n){"use strict"
 n.d(e,"a",(function(){return a})),n.d(e,"d",(function(){return r})),n.d(e,"b",(function(){return s})),n.d(e,"c",(function(){return o})),n.d(e,"e",(function(){return c})),n.d(e,"f",(function(){return u}))
 var i=n(607),a=new RegExp("^[ \\t]*([0-9a-f]{32})?-?([0-9a-f]{16})?-?([01])?[ \\t]*$")
@@ -136,7 +136,7 @@ default:return t.InvalidArgument}if(e>=500&&e<600)switch(e){case 501:return t.Un
 case 503:return t.Unavailable
 case 504:return t.DeadlineExceeded
 default:return t.InternalError}return t.UnknownError}}(i||(i={}))},610:function(t,e,n){"use strict";(function(t){n.d(e,"b",(function(){return f})),n.d(e,"a",(function(){return v}))
-var i=n(0),a=n(607),r=n(92),s=n(18),o=n(17),c=n(615),u=n(611),d=n(613),p=n(608)
+var i=n(0),a=n(607),r=n(93),s=n(18),o=n(17),c=n(615),u=n(611),d=n(613),p=n(608)
 function l(){var t=this.getScope()
 if(t){var e=t.getSpan()
 if(e)return{"sentry-trace":e.toTraceparent()}}return{}}function m(t,e,n){return Object(p.d)(e)?void 0!==t.sampled?(t.setMetadata({transactionSampling:{method:r.a.Explicit}}),t):("function"==typeof e.tracesSampler?(i=e.tracesSampler(n),t.setMetadata({transactionSampling:{method:r.a.Sampler,rate:Number(i)}})):void 0!==n.parentSampled?(i=n.parentSampled,t.setMetadata({transactionSampling:{method:r.a.Inheritance}})):(i=e.tracesSampleRate,t.setMetadata({transactionSampling:{method:r.a.Rate,rate:Number(i)}})),function(t){return isNaN(t)||"number"!=typeof t&&"boolean"!=typeof t?(s.b.warn("[Tracing] Given sample rate is invalid. Sample rate must be a boolean or a number between 0 and 1. Got "+JSON.stringify(t)+" of type "+JSON.stringify(typeof t)+"."),!1):!(t<0||t>1)||(s.b.warn("[Tracing] Given sample rate is invalid. Sample rate must be between 0 and 1. Got "+t+"."),!1)}(i)?i?(t.sampled=Math.random()<i,t.sampled?(s.b.log("[Tracing] starting "+t.op+" transaction - "+t.name),t):(s.b.log("[Tracing] Discarding transaction because it's not included in the random sample (sampling rate = "+Number(i)+")"),t)):(s.b.log("[Tracing] Discarding transaction because "+("function"==typeof e.tracesSampler?"tracesSampler returned 0 or false":"a negative sampling decision was inherited or tracesSampleRate is set to 0")),t.sampled=!1,t):(s.b.warn("[Tracing] Discarding transaction because of invalid sample rate."),t.sampled=!1,t)):(t.sampled=!1,t)
@@ -144,9 +144,9 @@ var i}function h(t,e){var n,a,r=(null===(n=this.getClient())||void 0===n?void 0:
 return(s=m(s,r,Object(i.a)({parentSampled:t.parentSampled,transactionContext:t},e))).sampled&&s.initSpanRecorder(null===(a=r._experiments)||void 0===a?void 0:a.maxSpans),s}function f(t,e,n,a,r){var s,o,c=(null===(s=t.getClient())||void 0===s?void 0:s.getOptions())||{},d=new u.b(e,t,n,a)
 return(d=m(d,c,Object(i.a)({parentSampled:e.parentSampled,transactionContext:e},r))).sampled&&d.initSpanRecorder(null===(o=c._experiments)||void 0===o?void 0:o.maxSpans),d}function v(){var e;(e=Object(a.d)()).__SENTRY__&&(e.__SENTRY__.extensions=e.__SENTRY__.extensions||{},e.__SENTRY__.extensions.startTransaction||(e.__SENTRY__.extensions.startTransaction=h),e.__SENTRY__.extensions.traceHeaders||(e.__SENTRY__.extensions.traceHeaders=l)),Object(o.b)()&&function(){var e=Object(a.d)()
 if(e.__SENTRY__){var n={mongodb:function(){return new(Object(o.a)(t,"./integrations/node/mongo").Mongo)},mongoose:function(){return new(Object(o.a)(t,"./integrations/node/mongo").Mongo)({mongoose:!0})},mysql:function(){return new(Object(o.a)(t,"./integrations/node/mysql").Mysql)},pg:function(){return new(Object(o.a)(t,"./integrations/node/postgres").Postgres)}},r=Object.keys(n).filter((function(t){return!!Object(o.c)(t)})).map((function(t){try{return n[t]()}catch(t){return}})).filter((function(t){return t}))
-r.length>0&&(e.__SENTRY__.integrations=Object(i.e)(e.__SENTRY__.integrations||[],r))}}(),Object(c.a)()}}).call(this,n(47)(t))},611:function(t,e,n){"use strict"
+r.length>0&&(e.__SENTRY__.integrations=Object(i.e)(e.__SENTRY__.integrations||[],r))}}(),Object(c.a)()}}).call(this,n(48)(t))},611:function(t,e,n){"use strict"
 n.d(e,"a",(function(){return u})),n.d(e,"b",(function(){return p}))
-var i=n(0),a=n(82),r=n(18),s=n(612),o=n(609),c=n(613),u=1e3,d=function(t){function e(e,n,i,a){void 0===i&&(i="")
+var i=n(0),a=n(83),r=n(18),s=n(612),o=n(609),c=n(613),u=1e3,d=function(t){function e(e,n,i,a){void 0===i&&(i="")
 var r=t.call(this,a)||this
 return r._pushActivity=e,r._popActivity=n,r.transactionSpanId=i,r}return Object(i.b)(e,t),e.prototype.add=function(e){var n=this
 e.spanId!==this.transactionSpanId&&(e.finish=function(t){e.endTimestamp="number"==typeof t?t:Object(a.e)(),n._popActivity(e.spanId)},void 0===e.endTimestamp&&this._pushActivity(e.spanId)),t.prototype.add.call(this,e)},e}(s.b),p=function(t){function e(e,n,i,a){void 0===i&&(i=u),void 0===a&&(a=!1)
@@ -166,7 +166,7 @@ r.b.log("pinging Heartbeat -> current counter: "+this._heartbeatCounter),setTime
 function l(t){if(t){var e=t.getScope()
 e&&e.getTransaction()&&e.setSpan(void 0)}}},612:function(t,e,n){"use strict"
 n.d(e,"b",(function(){return c})),n.d(e,"a",(function(){return u}))
-var i=n(0),a=n(83),r=n(82),s=n(7),o=n(609),c=function(){function t(t){void 0===t&&(t=1e3),this.spans=[],this._maxlen=t}return t.prototype.add=function(t){this.spans.length>this._maxlen?t.spanRecorder=void 0:this.spans.push(t)},t}(),u=function(){function t(t){if(this.traceId=Object(a.j)(),this.spanId=Object(a.j)().substring(16),this.startTimestamp=Object(r.e)(),this.tags={},this.data={},!t)return this
+var i=n(0),a=n(84),r=n(83),s=n(7),o=n(609),c=function(){function t(t){void 0===t&&(t=1e3),this.spans=[],this._maxlen=t}return t.prototype.add=function(t){this.spans.length>this._maxlen?t.spanRecorder=void 0:this.spans.push(t)},t}(),u=function(){function t(t){if(this.traceId=Object(a.j)(),this.spanId=Object(a.j)().substring(16),this.startTimestamp=Object(r.e)(),this.tags={},this.data={},!t)return this
 t.traceId&&(this.traceId=t.traceId),t.spanId&&(this.spanId=t.spanId),t.parentSpanId&&(this.parentSpanId=t.parentSpanId),"sampled"in t&&(this.sampled=t.sampled),t.op&&(this.op=t.op),t.description&&(this.description=t.description),t.data&&(this.data=t.data),t.tags&&(this.tags=t.tags),t.status&&(this.status=t.status),t.startTimestamp&&(this.startTimestamp=t.startTimestamp),t.endTimestamp&&(this.endTimestamp=t.endTimestamp)}return t.prototype.child=function(t){return this.startChild(t)},t.prototype.startChild=function(e){var n=new t(Object(i.a)(Object(i.a)({},e),{parentSpanId:this.spanId,sampled:this.sampled,traceId:this.traceId}))
 return n.spanRecorder=this.spanRecorder,n.spanRecorder&&n.spanRecorder.add(n),n.transaction=this.transaction,n},t.prototype.setTag=function(t,e){var n
 return this.tags=Object(i.a)(Object(i.a)({},this.tags),((n={})[t]=e,n)),this},t.prototype.setData=function(t,e){var n
@@ -176,7 +176,7 @@ return e!==o.a.UnknownError&&this.setStatus(e),this},t.prototype.isSuccess=funct
 return void 0!==this.sampled&&(t=this.sampled?"-1":"-0"),this.traceId+"-"+this.spanId+t},t.prototype.toContext=function(){return Object(s.a)({data:this.data,description:this.description,endTimestamp:this.endTimestamp,op:this.op,parentSpanId:this.parentSpanId,sampled:this.sampled,spanId:this.spanId,startTimestamp:this.startTimestamp,status:this.status,tags:this.tags,traceId:this.traceId})},t.prototype.updateWithContext=function(t){var e,n,i,a,r
 return this.data=null!=(e=t.data)?e:{},this.description=t.description,this.endTimestamp=t.endTimestamp,this.op=t.op,this.parentSpanId=t.parentSpanId,this.sampled=t.sampled,this.spanId=null!=(n=t.spanId)?n:this.spanId,this.startTimestamp=null!=(i=t.startTimestamp)?i:this.startTimestamp,this.status=t.status,this.tags=null!=(a=t.tags)?a:{},this.traceId=null!=(r=t.traceId)?r:this.traceId,this},t.prototype.getTraceContext=function(){return Object(s.a)({data:Object.keys(this.data).length>0?this.data:void 0,description:this.description,op:this.op,parent_span_id:this.parentSpanId,span_id:this.spanId,status:this.status,tags:Object.keys(this.tags).length>0?this.tags:void 0,trace_id:this.traceId})},t.prototype.toJSON=function(){return Object(s.a)({data:Object.keys(this.data).length>0?this.data:void 0,description:this.description,op:this.op,parent_span_id:this.parentSpanId,span_id:this.spanId,start_timestamp:this.startTimestamp,status:this.status,tags:Object.keys(this.tags).length>0?this.tags:void 0,timestamp:this.endTimestamp,trace_id:this.traceId})},t}()},613:function(t,e,n){"use strict"
 n.d(e,"a",(function(){return d}))
-var i=n(0),a=n(607),r=n(88),s=n(4),o=n(18),c=n(7),u=n(612),d=function(t){function e(e,n){var i=t.call(this,e)||this
+var i=n(0),a=n(607),r=n(89),s=n(4),o=n(18),c=n(7),u=n(612),d=function(t){function e(e,n){var i=t.call(this,e)||this
 return i._measurements={},i._hub=Object(a.b)(),Object(s.g)(n,a.a)&&(i._hub=n),i.name=e.name||"",i.metadata=e.metadata||{},i._trimEnd=e.trimEnd,i.transaction=i,i}return Object(i.b)(e,t),e.prototype.setName=function(t){this.name=t},e.prototype.initSpanRecorder=function(t){void 0===t&&(t=1e3),this.spanRecorder||(this.spanRecorder=new u.b(t)),this.spanRecorder.add(this)},e.prototype.setMeasurements=function(t){this._measurements=Object(i.a)({},t)},e.prototype.setMetadata=function(t){this.metadata=Object(i.a)(Object(i.a)({},this.metadata),t)},e.prototype.finish=function(e){var n,i,a,s,c,u=this
 if(void 0===this.endTimestamp){if(this.name||(o.b.warn("Transaction has no name, falling back to `<unlabeled transaction>`."),this.name="<unlabeled transaction>"),t.prototype.finish.call(this,e),!0!==this.sampled)return o.b.log("[Tracing] Discarding transaction because its trace was not chosen to be sampled."),void(null===(c=null===(a=null===(n=this._hub.getClient())||void 0===n?void 0:(i=n).getTransport)||void 0===a?void 0:(s=a.call(i)).recordLostEvent)||void 0===c||c.call(s,r.a.SampleRate,"transaction"))
 var d=this.spanRecorder?this.spanRecorder.spans.filter((function(t){return t!==u&&t.endTimestamp})):[]
@@ -186,8 +186,8 @@ return Object.keys(this._measurements).length>0&&(o.b.log("[Measurements] Adding
 return Object(c.a)(Object(i.a)(Object(i.a)({},e),{name:this.name,trimEnd:this._trimEnd}))},e.prototype.updateWithContext=function(e){var n
 return t.prototype.updateWithContext.call(this,e),this.name=null!=(n=e.name)?n:"",this._trimEnd=e.trimEnd,this},e}(u.a)},615:function(t,e,n){"use strict"
 n.d(e,"a",(function(){return o}))
-var i=n(91),a=n(18),r=n(609),s=n(608)
+var i=n(92),a=n(18),r=n(609),s=n(608)
 function o(){Object(i.a)({callback:c,type:"error"}),Object(i.a)({callback:c,type:"unhandledrejection"})}function c(){var t=Object(s.c)()
 t&&(a.b.log("[Tracing] Transaction: "+r.a.InternalError+" -> Global error occured"),t.setStatus(r.a.InternalError))}}}])
 
-//# sourceMappingURL=chunk.3.324fd0cc598c73650219.map
+//# sourceMappingURL=chunk.3.1148677ff3b78e5aeaee.map

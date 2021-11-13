@@ -8,7 +8,7 @@ const errors = require('@tryghost/errors');
 class Resource extends EventEmitter {
     /**
      * @param {('posts'|'pages'|'tags'|'authors')} type - of the resource
-     * @param {Object} obj - object data to store
+     * @param {Object} obj - object data to sotre
      */
     constructor(type, obj) {
         super();

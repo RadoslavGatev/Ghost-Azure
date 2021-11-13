@@ -16,8 +16,7 @@ const StorageBase = require('ghost-storage-base');
 const messages = {
     notFound: 'File not found',
     notFoundWithRef: 'File not found: {file}',
-    cannotRead: 'Could not read file: {file}',
-    invalidUrlParameter: `The URL "{url}" is not a valid URL for this site.`
+    cannotRead: 'Could not read file: {file}'
 };
 
 class LocalStorageBase extends StorageBase {
@@ -25,20 +24,17 @@ class LocalStorageBase extends StorageBase {
      *
      * @param {Object} options
      * @param {String} options.storagePath
-     * @param {String} options.siteUrl
      * @param {String} [options.staticFileURLPrefix]
      * @param {Object} [options.errorMessages]
      * @param {String} [options.errorMessages.notFound]
      * @param {String} [options.errorMessages.notFoundWithRef]
      * @param {String} [options.errorMessages.cannotRead]
      */
-    constructor({storagePath, staticFileURLPrefix, siteUrl, errorMessages}) {
+    constructor({storagePath, staticFileURLPrefix, errorMessages}) {
         super();
 
         this.storagePath = storagePath;
         this.staticFileURLPrefix = staticFileURLPrefix;
-        this.siteUrl = siteUrl;
-        this.staticFileUrl = `${siteUrl}${staticFileURLPrefix}`;
         this.errorMessages = errorMessages || messages;
     }
 
@@ -73,26 +69,6 @@ class LocalStorageBase extends StorageBase {
         ).replace(new RegExp(`\\${path.sep}`, 'g'), '/');
 
         return fullUrl;
-    }
-
-    /**
-     *
-     * @param {String} url full url under which the stored content is served, result of save method
-     * @returns {String} path under which the content is stored
-     */
-    urlToPath(url) {
-        let filePath;
-
-        if (url.match(this.staticFileUrl)) {
-            filePath = url.replace(this.staticFileUrl, '');
-            filePath = path.join(this.storagePath, filePath);
-        } else {
-            throw new errors.IncorrectUsageError({
-                message: tpl(messages.invalidUrlParameter, {url})
-            });
-        }
-
-        return filePath;
     }
 
     exists(fileName, targetDir) {
@@ -156,12 +132,11 @@ class LocalStorageBase extends StorageBase {
     }
 
     /**
-     * @param {String} filePath
+     * Not implemented.
      * @returns {Promise.<*>}
      */
-    async delete(fileName, targetDir) {
-        const filePath = path.join(targetDir, fileName);
-        return await fs.remove(filePath);
+    delete() {
+        return Promise.reject('not implemented');
     }
 
     /**

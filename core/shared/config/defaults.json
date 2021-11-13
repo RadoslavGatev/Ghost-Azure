@@ -25,9 +25,7 @@
     "storage": {
         "active": "LocalImagesStorage",
         "media": "LocalMediaStorage",
-        "files": "LocalFilesStorage",
-        "LocalMediaStorage": {},
-        "LocalFilesStorage": {}
+        "LocalMediaStorage": {}
     },
     "scheduling": {
         "active": "SchedulingDefault"

@@ -1,9 +1,7 @@
-const fs = require('fs-extra');
 const _debug = require('@tryghost/debug')._base;
 const debug = _debug('ghost:services:url:service');
 const _ = require('lodash');
 const errors = require('@tryghost/errors');
-const labs = require('../../../shared/labs');
 const UrlGenerator = require('./UrlGenerator');
 const Queue = require('./Queue');
 const Urls = require('./Urls');
@@ -19,18 +17,12 @@ const events = require('../../lib/common/events');
  * It will tell you if the url generation is in progress or not.
  */
 class UrlService {
-    /**
-     *
-     * @param {Object} options
-     * @param {String} [options.urlCachePath] - path to store cached URLs at
-     */
-    constructor({urlCachePath} = {}) {
+    constructor() {
         this.utils = urlUtils;
-        this.urlCachePath = urlCachePath;
+
         this.finished = false;
         this.urlGenerators = [];
 
-        // Get urls
         this.urls = new Urls();
         this.queue = new Queue();
         this.resources = new Resources(this.queue);
@@ -289,63 +281,13 @@ class UrlService {
     }
 
     /**
-     * @description Initializes components needed for the URL Service to function
+     * @description Internal helper to re-trigger fetching resources on theme change.
+     *
+     * @TODO: Either remove this helper or rename to `_init`, because it's a little confusing,
+     *        because this service get's initalised via events.
      */
-    async init() {
-        this.resources.initResourceConfig();
-        this.resources.initEvenListeners();
-
-        const persistedUrls = await this.fetchUrls();
-        if (persistedUrls) {
-            this.urls = new Urls({
-                urls: persistedUrls
-            });
-            this.finished = true;
-        } else {
-            await this.resources.fetchResources();
-        }
-
-        // CASE: all resources are fetched, start the queue
-        this.queue.start({
-            event: 'init',
-            tolerance: 100,
-            requiredSubscriberCount: 1
-        });
-    }
-
-    async persistUrls() {
-        if (!labs.isSet('urlCache') || !this.urlCachePath) {
-            return null;
-        }
-
-        return fs.writeFile(this.urlCachePath, JSON.stringify(this.urls.urls, null, 4));
-    }
-
-    async fetchUrls() {
-        if (!labs.isSet('urlCache') || !this.urlCachePath) {
-            return null;
-        }
-
-        let urlsCacheExists = false;
-        let urls;
-
-        try {
-            await fs.stat(this.urlCachePath);
-            urlsCacheExists = true;
-        } catch (e) {
-            urlsCacheExists = false;
-        }
-
-        if (urlsCacheExists) {
-            try {
-                const urlsFile = await fs.readFile(this.urlCachePath, 'utf8');
-                urls = JSON.parse(urlsFile);
-            } catch (e) {
-                //noop as we'd start a long boot process if there are any errors in the file
-            }
-        }
-
-        return urls;
+    init() {
+        this.resources.fetchResources();
     }
 
     /**

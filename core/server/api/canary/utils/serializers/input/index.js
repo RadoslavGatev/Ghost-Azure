@@ -35,10 +35,6 @@ module.exports = {
         return require('./members');
     },
 
-    get media() {
-        return require('./media');
-    },
-
     get products() {
         return require('./products');
     },
