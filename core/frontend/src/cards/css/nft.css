@@ -1,0 +1,85 @@
+a.kg-nft-card {
+    position: static;
+    display: flex;
+    flex: auto;
+    flex-direction: column;
+    text-decoration: none;
+    font-family: -apple-system, BlinkMacSystemFont,
+                'avenir next', avenir,
+                'helvetica neue', helvetica,
+                ubuntu,
+                roboto, noto,
+                'segoe ui', arial,
+                sans-serif;
+    font-size: 1.4rem;
+    font-weight: 400;
+    box-shadow: 0 2px 6px -2px rgb(0 0 0 / 10%), 0 0 1px rgb(0 0 0 / 40%);
+    width: 100%;
+    max-width: 512px;
+    color: #222;
+    background: #fff;
+    border-radius: 5px;
+    transition: none;
+}
+
+a.kg-nft-card:hover {
+    color: #333;
+    opacity: 1.0;
+    transition: none;
+}
+
+a.kg-nft-card * {
+    position: static;
+    line-height: 1;
+}
+
+.kg-nft-metadata {
+    padding: 2.0rem;
+}
+
+.kg-nft-card img {
+    min-width: unset;
+    max-width: unset;
+    margin: -1px;
+    border-radius: 5px 5px 0 0;
+}
+
+.kg-nft-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.kg-nft-header h4.kg-nft-title {
+    font-family: inherit;
+    font-size: 1.9rem;
+    font-weight: 700;
+    min-width: unset;
+    max-width: unset;
+    margin: 0;
+    color: #222;
+}
+
+.kg-nft-header svg {
+    width: 100px;
+    height: auto;
+}
+
+.kg-nft-creator {
+    font-family: inherit;
+    margin: 0.8rem 0 0;
+    color: #ababab;
+}
+
+.kg-nft-creator span {
+    font-weight: 500;
+    color: #222;
+}
+
+.kg-nft-card p.kg-nft-description {
+    font-family: inherit;
+    font-size: 1.4rem;
+    line-height: 1.4em;
+    margin: 2.0rem 0 0;
+    color: #222;
+}

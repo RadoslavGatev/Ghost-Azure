@@ -29,8 +29,15 @@ const ALPHA_FEATURES = [
     'oauthLogin',
     'membersActivity',
     'cardSettingsPanel',
+    'urlCache',
     'mediaAPI',
-    'membersAutoLogin'
+    'filesAPI',
+    'membersAutoLogin',
+    'buttonCard',
+    'calloutCard',
+    'nftCard',
+    'accordionCard',
+    'gifsCard'
 ];
 
 module.exports.GA_KEYS = [...GA_FEATURES];
