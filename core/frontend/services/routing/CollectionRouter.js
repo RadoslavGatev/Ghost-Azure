@@ -3,7 +3,7 @@ const urlUtils = require('../../../shared/url-utils');
 const ParentRouter = require('./ParentRouter');
 
 const controllers = require('./controllers');
-const middlewares = require('./middlewares');
+const middleware = require('./middleware');
 const RSSRouter = require('./RSSRouter');
 
 /**
@@ -27,7 +27,6 @@ class CollectionRouter extends ParentRouter {
         this.rss = object.rss !== false;
 
         this.permalinks = {
-            originalValue: object.permalink,
             value: object.permalink
         };
 
@@ -71,7 +70,7 @@ class CollectionRouter extends ParentRouter {
         this.mountRoute(this.route.value, controllers.collection);
 
         // REGISTER: enable pagination by default
-        this.router().param('page', middlewares.pageParam);
+        this.router().param('page', middleware.pageParam);
         this.mountRoute(urlUtils.urlJoin(this.route.value, 'page', ':page(\\d+)'), controllers.collection);
 
         // REGISTER: is rss enabled?
@@ -93,7 +92,7 @@ class CollectionRouter extends ParentRouter {
     }
 
     /**
-     * @description Prepare index context for further middlewares/controllers.
+     * @description Prepare index context for further middleware/controllers.
      */
     _prepareEntriesContext(req, res, next) {
         res.routerOptions = {
@@ -116,7 +115,7 @@ class CollectionRouter extends ParentRouter {
     }
 
     /**
-     * @description Prepare entry context for further middlewares/controllers.
+     * @description Prepare entry context for further middleware/controllers.
      */
     _prepareEntryContext(req, res, next) {
         res.routerOptions.context = ['post'];

@@ -1,4 +1,11 @@
-a.kg-nft-card {
+.kg-nft-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.kg-nft-card-container {
     position: static;
     display: flex;
     flex: auto;
@@ -22,31 +29,30 @@ a.kg-nft-card {
     transition: none;
 }
 
-a.kg-nft-card:hover {
+.kg-nft-card:hover {
     color: #333;
     opacity: 1.0;
     transition: none;
 }
 
-a.kg-nft-card * {
+.kg-nft-card * {
     position: static;
-    line-height: 1;
 }
 
 .kg-nft-metadata {
     padding: 2.0rem;
+    width: 100%;
 }
 
-.kg-nft-card img {
-    min-width: unset;
-    max-width: unset;
-    margin: -1px;
+.kg-nft-image {
     border-radius: 5px 5px 0 0;
+    width: 100%;
 }
 
 .kg-nft-header {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
     gap: 20px;
 }
 
@@ -54,20 +60,23 @@ a.kg-nft-card * {
     font-family: inherit;
     font-size: 1.9rem;
     font-weight: 700;
+    line-height: 1.3em;
     min-width: unset;
     max-width: unset;
     margin: 0;
     color: #222;
 }
 
-.kg-nft-header svg {
+.kg-nft-opensea-logo {
+    margin-top: 2px;
     width: 100px;
-    height: auto;
+    object-fit: scale-down;
 }
 
 .kg-nft-creator {
     font-family: inherit;
-    margin: 0.8rem 0 0;
+    line-height: 1.4em;
+    margin: 0.4rem 0 0;
     color: #ababab;
 }
 

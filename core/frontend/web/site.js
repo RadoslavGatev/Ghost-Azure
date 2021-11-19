@@ -104,15 +104,15 @@ module.exports = function setupSiteApp(options = {}) {
     siteApp.use(mw.serveFavicon());
 
     // Serve sitemap.xsl file
-    siteApp.use(mw.servePublicFile('sitemap.xsl', 'text/xsl', constants.ONE_DAY_S));
+    siteApp.use(mw.servePublicFile('static', 'sitemap.xsl', 'text/xsl', constants.ONE_DAY_S));
 
     // Serve stylesheets for default templates
-    siteApp.use(mw.servePublicFile('public/ghost.css', 'text/css', constants.ONE_HOUR_S));
-    siteApp.use(mw.servePublicFile('public/ghost.min.css', 'text/css', constants.ONE_YEAR_S));
+    siteApp.use(mw.servePublicFile('static', 'public/ghost.css', 'text/css', constants.ONE_HOUR_S));
+    siteApp.use(mw.servePublicFile('static', 'public/ghost.min.css', 'text/css', constants.ONE_YEAR_S));
 
     // Card assets
-    siteApp.use(mw.servePublicFile('public/cards.min.css', 'text/css', constants.ONE_YEAR_S));
-    siteApp.use(mw.servePublicFile('public/cards.min.js', 'text/js', constants.ONE_YEAR_S));
+    siteApp.use(mw.servePublicFile('built', 'public/cards.min.css', 'text/css', constants.ONE_YEAR_S));
+    siteApp.use(mw.servePublicFile('built', 'public/cards.min.js', 'text/js', constants.ONE_YEAR_S));
 
     // Serve blog images using the storage adapter
     siteApp.use(STATIC_IMAGE_URL_PREFIX, mw.handleImageSizes, storage.getStorage('images').serve());
@@ -147,26 +147,26 @@ module.exports = function setupSiteApp(options = {}) {
     debug('Themes done');
 
     // Serve robots.txt if not found in theme
-    siteApp.use(mw.servePublicFile('robots.txt', 'text/plain', constants.ONE_HOUR_S));
+    siteApp.use(mw.servePublicFile('static', 'robots.txt', 'text/plain', constants.ONE_HOUR_S));
 
     // site map - this should probably be refactored to be an internal app
     sitemapHandler(siteApp);
     debug('Internal apps done');
 
     // send 503 error page in case of maintenance
-    siteApp.use(shared.middlewares.maintenance);
+    siteApp.use(shared.middleware.maintenance);
 
     // Add in all trailing slashes & remove uppercase
     // must happen AFTER asset loading and BEFORE routing
-    siteApp.use(shared.middlewares.prettyUrls);
+    siteApp.use(shared.middleware.prettyUrls);
 
     // ### Caching
     siteApp.use(function (req, res, next) {
         // Site frontend is cacheable UNLESS request made by a member or blog is in private mode
         if (req.member || res.isPrivateBlog) {
-            return shared.middlewares.cacheControl('private')(req, res, next);
+            return shared.middleware.cacheControl('private')(req, res, next);
         } else {
-            return shared.middlewares.cacheControl('public', {maxAge: config.get('caching:frontend:maxAge')})(req, res, next);
+            return shared.middleware.cacheControl('public', {maxAge: config.get('caching:frontend:maxAge')})(req, res, next);
         }
     });
 
@@ -179,7 +179,7 @@ module.exports = function setupSiteApp(options = {}) {
     siteApp.use(SiteRouter);
 
     // ### Error handlers
-    siteApp.use(shared.middlewares.errorHandler.pageNotFound);
+    siteApp.use(shared.middleware.errorHandler.pageNotFound);
     config.get('apps:internal').forEach((appName) => {
         const app = require(path.join(config.get('paths').internalAppPath, appName));
 
@@ -187,7 +187,7 @@ module.exports = function setupSiteApp(options = {}) {
             app.setupErrorHandling(siteApp);
         }
     });
-    siteApp.use(shared.middlewares.errorHandler.handleThemeResponse);
+    siteApp.use(shared.middleware.errorHandler.handleThemeResponse);
 
     debug('Site setup end');
 

@@ -68,8 +68,9 @@ async function initDatabase({config, logging}) {
  * @param {object} options
  * @param {object} options.ghostServer
  * @param {object} options.config
+ * @param {object} options.bootLogger
  */
-async function initCore({ghostServer, config}) {
+async function initCore({ghostServer, config, bootLogger}) {
     debug('Begin: initCore');
 
     // URL Utils is a bit slow, put it here so the timing is visible separate from models
@@ -95,8 +96,12 @@ async function initCore({ghostServer, config}) {
     const urlService = require('./server/services/url');
     // Note: there is no await here, we do not wait for the url service to finish
     // We can return, but the site will remain in (the shared, not global) maintenance mode until this finishes
-    // This is managed on request: https://github.com/TryGhost/Ghost/blob/main/core/server/web/shared/middlewares/maintenance.js#L13
-    urlService.init();
+    // This is managed on request: https://github.com/TryGhost/Ghost/blob/main/core/server/web/shared/middleware/maintenance.js#L13
+    urlService.init({
+        onFinished: () => {
+            bootLogger.log('URL Service Ready');
+        }
+    });
     debug('End: Url Service');
 
     // Job Service allows parts of Ghost to run in the background
@@ -106,7 +111,7 @@ async function initCore({ghostServer, config}) {
         await jobService.shutdown();
     });
     ghostServer.registerCleanupTask(async () => {
-        await urlService.persistUrls();
+        await urlService.shutdown();
     });
     debug('End: Job Service');
 
@@ -307,12 +312,18 @@ async function bootGhost() {
     // These require their own try-catch block and error format, because we can't log an error if logging isn't working
     try {
         // Step 0 - Load config and logging - fundamental required components
-        // Config must be the first thing we do, because it is required for absolutely everything
+        // Version is required by logging, sentry & Migration config & so is fundamental to booting
+        // However, it involves reading package.json so its slow & it's here for visibility on that slowness
+        debug('Begin: Load version info');
+        require('@tryghost/version');
+        debug('End: Load version info');
+
+        // Loading config must be the first thing we do, because it is required for absolutely everything
         debug('Begin: Load config');
         config = require('./shared/config');
         debug('End: Load config');
 
-        // Logging is used absolutely everywhere
+        // Logging is also used absolutely everywhere
         debug('Begin: Load logging');
         logging = require('@tryghost/logging');
         metrics = require('@tryghost/metrics');
@@ -327,12 +338,6 @@ async function bootGhost() {
 
     try {
         // Step 1 - require more fundamental components
-        // Version is required by sentry & Migration config & so is fundamental to booting
-        // However, it involves reading package.json so its slow & it's here for visibility on that slowness
-        debug('Begin: Load version info');
-        require('@tryghost/version');
-        debug('End: Load version info');
-
         // Sentry must be initialized early, but requires config
         debug('Begin: Load sentry');
         require('./shared/sentry');
@@ -355,7 +360,7 @@ async function bootGhost() {
 
         // Step 4 - Load Ghost with all its services
         debug('Begin: Load Ghost Services & Apps');
-        await initCore({ghostServer, config});
+        await initCore({ghostServer, config, bootLogger});
         await initServicesForFrontend();
         await initFrontend();
         const ghostApp = await initExpressApps();

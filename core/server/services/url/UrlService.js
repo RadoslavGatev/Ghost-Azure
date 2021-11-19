@@ -22,18 +22,25 @@ class UrlService {
     /**
      *
      * @param {Object} options
-     * @param {String} [options.urlCachePath] - path to store cached URLs at
+     * @param {String} [options.urlsCachePath] - cached URLs storage path
+     * @param {String} [options.resourcesCachePath] - cached resources storage path
      */
-    constructor({urlCachePath} = {}) {
+    constructor({urlsCachePath, resourcesCachePath} = {}) {
         this.utils = urlUtils;
-        this.urlCachePath = urlCachePath;
+        this.urlsCachePath = urlsCachePath;
+        this.resourcesCachePath = resourcesCachePath;
+        this.onFinished = null;
         this.finished = false;
         this.urlGenerators = [];
 
         // Get urls
-        this.urls = new Urls();
         this.queue = new Queue();
-        this.resources = new Resources(this.queue);
+        // NOTE: Urls and Resources should not be initialized here but only in the init method.
+        //      Way too many tests fail if the initialization is removed so leaving it as is for time being
+        this.urls = new Urls();
+        this.resources = new Resources({
+            queue: this.queue
+        });
 
         this._listeners();
     }
@@ -76,26 +83,41 @@ class UrlService {
     _onQueueEnded(event) {
         if (event === 'init') {
             this.finished = true;
+            if (this.onFinished) {
+                this.onFinished();
+            }
         }
     }
 
     /**
      * @description Router was created, connect it with a url generator.
-     * @param {ExpressRouter} router
+     * @param {String} identifier frontend router ID reference
+     * @param {String} filter NQL filter
+     * @param {String} resourceType
+     * @param {String} permalink
      */
-    onRouterAddedType(router) {
-        debug('Registering route: ', router.name);
+    onRouterAddedType(identifier, filter, resourceType, permalink) {
+        debug('Registering route: ', filter, resourceType, permalink);
 
-        let urlGenerator = new UrlGenerator(router, this.queue, this.resources, this.urls, this.urlGenerators.length);
+        let urlGenerator = new UrlGenerator({
+            identifier,
+            filter,
+            resourceType,
+            permalink,
+            queue: this.queue,
+            resources: this.resources,
+            urls: this.urls,
+            position: this.urlGenerators.length
+        });
         this.urlGenerators.push(urlGenerator);
     }
 
     /**
      * @description Router update handler - regenerates it's resources
-     * @param {ExpressRouter} router
+     * @param {String} identifier router ID linked to the UrlGenerator
      */
-    onRouterUpdated(router) {
-        const generator = this.urlGenerators.find(g => g.router.id === router.id);
+    onRouterUpdated(identifier) {
+        const generator = this.urlGenerators.find(g => g.identifier === identifier);
         generator.regenerateResources();
     }
 
@@ -254,7 +276,7 @@ class UrlService {
         let urlGenerator;
 
         this.urlGenerators.every((_urlGenerator) => {
-            if (_urlGenerator.router.identifier === routerId) {
+            if (_urlGenerator.identifier === routerId) {
                 urlGenerator = _urlGenerator;
                 return false;
             }
@@ -284,68 +306,90 @@ class UrlService {
             return null;
         }
 
-        return _.find(this.urlGenerators, {uid: object.generatorId}).router.getPermalinks()
-            .getValue(options);
+        const permalink = _.find(this.urlGenerators, {uid: object.generatorId}).permalink;
+
+        if (options.withUrlOptions) {
+            return urlUtils.urlJoin(permalink, '/:options(edit)?/');
+        }
+
+        return permalink;
     }
 
     /**
      * @description Initializes components needed for the URL Service to function
+     * @param {Object} options
+     * @param {Function} [options.onFinished] - callback when url generation is finished
      */
-    async init() {
-        this.resources.initResourceConfig();
-        this.resources.initEvenListeners();
+    async init(options = {}) {
+        this.onFinished = options.onFinished;
 
-        const persistedUrls = await this.fetchUrls();
-        if (persistedUrls) {
+        let persistedUrls;
+        let persistedResources;
+
+        if (labs.isSet('urlCache')) {
+            persistedUrls = await this.readCacheFile(this.urlsCachePath);
+            persistedResources = await this.readCacheFile(this.resourcesCachePath);
+        }
+
+        if (persistedUrls && persistedResources) {
             this.urls = new Urls({
                 urls: persistedUrls
             });
-            this.finished = true;
+            this.resources = new Resources({
+                queue: this.queue,
+                resources: persistedResources
+            });
+            this.resources.initResourceConfig();
+            this.resources.initEvenListeners();
+
+            this._onQueueEnded('init');
         } else {
+            this.resources.initResourceConfig();
+            this.resources.initEvenListeners();
             await this.resources.fetchResources();
+            // CASE: all resources are fetched, start the queue
+            this.queue.start({
+                event: 'init',
+                tolerance: 100,
+                requiredSubscriberCount: 1
+            });
         }
-
-        // CASE: all resources are fetched, start the queue
-        this.queue.start({
-            event: 'init',
-            tolerance: 100,
-            requiredSubscriberCount: 1
-        });
     }
 
-    async persistUrls() {
-        if (!labs.isSet('urlCache') || !this.urlCachePath) {
+    async shutdown() {
+        if (!labs.isSet('urlCache')) {
             return null;
         }
 
-        return fs.writeFile(this.urlCachePath, JSON.stringify(this.urls.urls, null, 4));
+        await this.persistToCacheFile(this.urlsCachePath, this.urls.urls);
+        await this.persistToCacheFile(this.resourcesCachePath, this.resources.getAll());
     }
 
-    async fetchUrls() {
-        if (!labs.isSet('urlCache') || !this.urlCachePath) {
-            return null;
-        }
+    async persistToCacheFile(filePath, data) {
+        return fs.writeFile(filePath, JSON.stringify(data, null, 4));
+    }
 
-        let urlsCacheExists = false;
-        let urls;
+    async readCacheFile(filePath) {
+        let cacheExists = false;
+        let cacheData;
 
         try {
-            await fs.stat(this.urlCachePath);
-            urlsCacheExists = true;
+            await fs.stat(filePath);
+            cacheExists = true;
         } catch (e) {
-            urlsCacheExists = false;
+            cacheExists = false;
         }
 
-        if (urlsCacheExists) {
+        if (cacheExists) {
             try {
-                const urlsFile = await fs.readFile(this.urlCachePath, 'utf8');
-                urls = JSON.parse(urlsFile);
+                const cacheFile = await fs.readFile(filePath, 'utf8');
+                cacheData = JSON.parse(cacheFile);
             } catch (e) {
                 //noop as we'd start a long boot process if there are any errors in the file
             }
         }
 
-        return urls;
+        return cacheData;
     }
 
     /**

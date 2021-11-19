@@ -33,18 +33,29 @@ const EXPANSIONS = [{
  * Each router is represented by a url generator.
  */
 class UrlGenerator {
-    constructor(router, queue, resources, urls, position) {
-        this.router = router;
+    /**
+     * @param {Object} options
+     * @param {String} options.identifier frontend router ID reference
+     * @param {String} options.filter NQL filter string
+     * @param {String} options.resourceType resource type (e.g. 'posts', 'tags')
+     * @param {String} options.permalink permalink string
+     * @param {Object} options.queue instance of the backend Queue
+     * @param {Object} options.resources instance of the backend Resources
+     * @param {Object} options.urls instance of the backend URLs (used to store the urls)
+     * @param {Number} options.position an ID of the generator
+     */
+    constructor({identifier, filter, resourceType, permalink, queue, resources, urls, position}) {
+        this.identifier = identifier;
+        this.resourceType = resourceType;
+        this.permalink = permalink;
         this.queue = queue;
         this.urls = urls;
         this.resources = resources;
         this.uid = position;
 
-        debug('constructor', this.toString());
-
         // CASE: routers can define custom filters, but not required.
-        if (this.router.getFilter()) {
-            this.filter = this.router.getFilter();
+        if (filter) {
+            this.filter = filter;
             this.nql = nql(this.filter, {
                 expansions: EXPANSIONS,
                 transformer: nql.utils.mapKeyValues({
@@ -110,10 +121,10 @@ class UrlGenerator {
      * @private
      */
     _onInit() {
-        debug('_onInit', this.router.getResourceType());
+        debug('_onInit', this.resourceType);
 
         // @NOTE: get the resources of my type e.g. posts.
-        const resources = this.resources.getAllByType(this.router.getResourceType());
+        const resources = this.resources.getAllByType(this.resourceType);
 
         debug(resources.length);
 
@@ -131,7 +142,7 @@ class UrlGenerator {
         debug('onAdded', this.toString());
 
         // CASE: you are type "pages", but the incoming type is "users"
-        if (event.type !== this.router.getResourceType()) {
+        if (event.type !== this.resourceType) {
             return;
         }
 
@@ -182,8 +193,7 @@ class UrlGenerator {
      * @NOTE We currently generate relative urls (https://github.com/TryGhost/Ghost/commit/7b0d5d465ba41073db0c3c72006da625fa11df32).
      */
     _generateUrl(resource) {
-        const permalink = this.router.getPermalinks().getValue();
-        return localUtils.replacePermalink(permalink, resource.data);
+        return localUtils.replacePermalink(this.permalink, resource.data);
     }
 
     /**
@@ -214,7 +224,7 @@ class UrlGenerator {
                 action: 'added:' + resource.data.id,
                 eventData: {
                     id: resource.data.id,
-                    type: this.router.getResourceType()
+                    type: this.resourceType
                 }
             });
         };
@@ -246,18 +256,11 @@ class UrlGenerator {
 
     /**
      * @description Get all urls of this url generator.
+     * NOTE: the method is only used for testing purposes at the moment.
      * @returns {Array}
      */
     getUrls() {
         return this.urls.getByGeneratorId(this.uid);
-    }
-
-    /**
-     * @description Override of `toString`
-     * @returns {string}
-     */
-    toString() {
-        return this.router.toString();
     }
 }
 
