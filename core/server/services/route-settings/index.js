@@ -1,32 +1,55 @@
-const routeSettings = require('./route-settings');
-const SettingsLoader = require('./settings-loader');
 const config = require('../../../shared/config');
 const parseYaml = require('./yaml-parser');
-const DefaultSettingsManager = require('./default-settings-manager');
+const SettingsPathManager = require('@tryghost/settings-path-manager');
 
-const defaultSettingsManager = new DefaultSettingsManager({
-    type: 'routes',
-    extension: '.yaml',
-    destinationFolderPath: config.getContentPath('settings'),
-    sourceFolderPath: config.get('paths').defaultSettings
-});
-
-const settingsLoader = new SettingsLoader({parseYaml});
+let settingsLoader;
+let routeSettings;
 
 module.exports = {
     init: async () => {
+        const RouteSettings = require('./route-settings');
+        const SettingsLoader = require('./settings-loader');
+        const DefaultSettingsManager = require('./default-settings-manager');
+
+        const settingsPathManager = new SettingsPathManager({type: 'routes', paths: [config.getContentPath('settings')]});
+        settingsLoader = new SettingsLoader({parseYaml, settingFilePath: settingsPathManager.getDefaultFilePath()});
+        routeSettings = new RouteSettings({
+            settingsLoader,
+            settingsPath: settingsPathManager.getDefaultFilePath(),
+            backupPath: settingsPathManager.getBackupFilePath()
+        });
+        const defaultSettingsManager = new DefaultSettingsManager({
+            type: 'routes',
+            extension: '.yaml',
+            destinationFolderPath: config.getContentPath('settings'),
+            sourceFolderPath: config.get('paths').defaultSettings
+        });
+
         return await defaultSettingsManager.ensureSettingsFileExists();
     },
 
-    loadRouteSettingsSync: settingsLoader.loadSettingsSync.bind(settingsLoader),
-    loadRouteSettings: settingsLoader.loadSettings.bind(settingsLoader),
-    getDefaultHash: routeSettings.getDefaultHash,
+    get loadRouteSettingsSync() {
+        return settingsLoader.loadSettingsSync.bind(settingsLoader);
+    },
+    get loadRouteSettings() {
+        return settingsLoader.loadSettings.bind(settingsLoader);
+    },
+    get getDefaultHash() {
+        return routeSettings.getDefaultHash.bind(routeSettings);
+    },
+
     /**
      * Methods used in the API
      */
     api: {
-        setFromFilePath: routeSettings.setFromFilePath,
-        get: routeSettings.get,
-        getCurrentHash: routeSettings.getCurrentHash
+        get setFromFilePath() {
+            return routeSettings.setFromFilePath.bind(routeSettings);
+        },
+        get get() {
+            return routeSettings.get.bind(routeSettings);
+        },
+        get getCurrentHash() {
+            return routeSettings.getCurrentHash.bind(routeSettings);
+        }
     }
 };

@@ -1,13 +1,10 @@
 const fs = require('fs-extra');
 const path = require('path');
-const moment = require('moment-timezone');
 const yaml = require('js-yaml');
 
 const logging = require('@tryghost/logging');
 const tpl = require('@tryghost/tpl');
 const errors = require('@tryghost/errors');
-
-const validation = require('./validation');
 
 const messages = {
     jsonParse: 'Could not parse JSON: {context}.',
@@ -22,7 +19,7 @@ const messages = {
  * @typedef {Object} RedirectConfig
  * @property {String} from - Defines the relative incoming URL or pattern (regex)
  * @property {String} to - Defines where the incoming traffic should be redirected to, which can be a static URL, or a dynamic value using regex (example: "to": "/$1/")
- * @property {boolean} permanent - Can be defined with true for a permanent HTTP 301 redirect, or false for a temporary HTTP 302 redirect
+ * @property {boolean} [permanent] - Can be defined with true for a permanent HTTP 301 redirect, or false for a temporary HTTP 302 redirect
  */
 
 /**
@@ -121,16 +118,6 @@ const parseRedirectsFile = (content, ext) => {
 };
 
 /**
- * @param {string} filePath
- * @returns {string}
- */
-const getBackupRedirectsFilePath = (filePath) => {
-    const {dir, name, ext} = path.parse(filePath);
-
-    return path.join(dir, `${name}-${moment().format('YYYY-MM-DD-HH-mm-ss')}${ext}`);
-};
-
-/**
  * @typedef {object} IRedirectManager
  */
 
@@ -138,14 +125,22 @@ class CustomRedirectsAPI {
     /**
      * @param {object} config
      * @param {string} config.basePath
-     *
-     * @param {IRedirectManager} redirectManager
+     * @param {Function} config.validate - validates redirects configuration
+     * @param {Function} config.getBackupFilePath
+     * @param {IRedirectManager} config.redirectManager
      */
-    constructor(config, redirectManager) {
+    constructor({basePath, validate, redirectManager, getBackupFilePath}) {
         /** @private */
-        this.config = config;
+        this.basePath = basePath;
+
         /** @private */
         this.redirectManager = redirectManager;
+
+        /** @private */
+        this.validate = validate;
+
+        /** @private */
+        this.getBackupFilePath = getBackupFilePath;
     }
 
     async init() {
@@ -159,7 +154,7 @@ class CustomRedirectsAPI {
                 const content = await readRedirectsFile(filePath);
                 const ext = path.extname(filePath);
                 const redirects = parseRedirectsFile(content, ext);
-                validation.validate(redirects);
+                this.validate(redirects);
 
                 this.redirectManager.removeAllRedirects();
                 for (const redirect of redirects) {
@@ -187,7 +182,7 @@ class CustomRedirectsAPI {
      * @returns {string}
      */
     createRedirectsFilePath(ext) {
-        return path.join(this.config.basePath, `redirects${ext}`);
+        return path.join(this.basePath, `redirects${ext}`);
     }
 
     /**
@@ -222,7 +217,7 @@ class CustomRedirectsAPI {
         const redirectsFilePath = await this.getRedirectsFilePath();
 
         if (redirectsFilePath) {
-            const backupRedirectsPath = getBackupRedirectsFilePath(redirectsFilePath);
+            const backupRedirectsPath = this.getBackupFilePath(redirectsFilePath);
 
             const backupExists = await fs.pathExists(backupRedirectsPath);
             if (backupExists) {
@@ -234,10 +229,10 @@ class CustomRedirectsAPI {
 
         const content = await readRedirectsFile(filePath);
         const parsed = parseRedirectsFile(content, ext);
-        validation.validate(parsed);
+        this.validate(parsed);
 
         if (ext === '.json') {
-            await fs.writeFile(this.createRedirectsFilePath('.json'), JSON.stringify(content), 'utf-8');
+            await fs.writeFile(this.createRedirectsFilePath('.json'), JSON.stringify(parsed), 'utf-8');
         } else if (ext === '.yaml') {
             await fs.copy(filePath, this.createRedirectsFilePath('.yaml'));
         }

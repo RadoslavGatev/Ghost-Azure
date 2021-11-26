@@ -1,19 +1,12 @@
 const Promise = require('bluebird');
-const moment = require('moment-timezone');
 const fs = require('fs-extra');
-const path = require('path');
 const crypto = require('crypto');
 const urlService = require('../url');
 
 const debug = require('@tryghost/debug')('services:route-settings');
 const errors = require('@tryghost/errors');
 const tpl = require('@tryghost/tpl');
-const config = require('../../../shared/config');
 const bridge = require('../../../bridge');
-const SettingsLoader = require('./settings-loader');
-const parseYaml = require('./yaml-parser');
-
-const settingsLoader = new SettingsLoader({parseYaml});
 
 const messages = {
     loadError: 'Could not load {filename} file.'
@@ -31,134 +24,154 @@ const messages = {
  * - then we reload the whole site app, which will reset all routers and re-create the url generators
  */
 
-const filename = 'routes';
-const ext = 'yaml';
+class RouteSettings {
+    /**
+     *
+     * @param {Object} options
+     * @param {Object} options.settingsLoader
+     * @param {String} options.settingsPath
+     * @param {String} options.backupPath
+     */
+    constructor({settingsLoader, settingsPath, backupPath}) {
+        /**
+         * md5 hashes of default routes settings
+         * @private
+         */
+        this.defaultRoutesSettingHash = '3d180d52c663d173a6be791ef411ed01';
+        /**
+         * @private
+         */
+        this.filename = 'routes';
+        /**
+         * @private
+         */
+        this.ext = 'yaml';
 
-const getSettingsFilePath = () => {
-    const settingsFolder = config.getContentPath('settings');
-    return path.join(settingsFolder, `${filename}.${ext}`);
-};
+        this.settingsLoader = settingsLoader;
+        this.settingsPath = settingsPath;
+        this.backupPath = backupPath;
+    }
 
-const getBackupFilePath = () => {
-    const settingsFolder = config.getContentPath('settings');
-    return path.join(settingsFolder, `${filename}-${moment().format('YYYY-MM-DD-HH-mm-ss')}.${ext}`);
-};
+    /**
+     * @private
+     * @param {String} settingsPath
+     * @param {String} backupPath
+     */
+    async createBackupFile(settingsPath, backupPath) {
+        return await fs.copy(settingsPath, backupPath);
+    }
 
-const createBackupFile = async (settingsPath, backupPath) => {
-    return await fs.copy(settingsPath, backupPath);
-};
+    /**
+     * @private
+     * @param {String} settingsPath
+     * @param {String} backupPath
+     */
+    async restoreBackupFile(settingsPath, backupPath) {
+        return await fs.copy(backupPath, settingsPath);
+    }
 
-const restoreBackupFile = async (settingsPath, backupPath) => {
-    return await fs.copy(backupPath, settingsPath);
-};
+    /**
+     * @private
+     * @param {String} filePath
+     * @param {String} settingsPath
+     */
+    async saveFile(filePath, settingsPath) {
+        return await fs.copy(filePath, settingsPath);
+    }
 
-const saveFile = async (filePath, settingsPath) => {
-    return await fs.copy(filePath, settingsPath);
-};
+    /**
+     * @private
+     * @param {String} settingsFilePath
+     */
+    async readFile(settingsFilePath) {
+        return fs.readFile(settingsFilePath, 'utf-8')
+            .catch((err) => {
+                if (err.code === 'ENOENT') {
+                    return Promise.resolve([]);
+                }
 
-const readFile = (settingsFilePath) => {
-    return fs.readFile(settingsFilePath, 'utf-8')
-        .catch((err) => {
-            if (err.code === 'ENOENT') {
-                return Promise.resolve([]);
-            }
+                if (errors.utils.isIgnitionError(err)) {
+                    throw err;
+                }
 
-            if (errors.utils.isIgnitionError(err)) {
-                throw err;
-            }
-
-            throw new errors.NotFoundError({
-                err: err
+                throw new errors.NotFoundError({
+                    err: err
+                });
             });
-        });
-};
+    }
 
-const setFromFilePath = async (filePath) => {
-    const settingsPath = getSettingsFilePath();
-    const backupPath = getBackupFilePath();
+    async setFromFilePath(filePath) {
+        await this.createBackupFile(this.settingsPath, this.backupPath);
+        await this.saveFile(filePath, this.settingsPath);
 
-    await createBackupFile(settingsPath, backupPath);
-    await saveFile(filePath, settingsPath);
-
-    urlService.resetGenerators({releaseResourcesOnly: true});
-
-    const bringBackValidRoutes = async () => {
         urlService.resetGenerators({releaseResourcesOnly: true});
 
-        await restoreBackupFile(settingsPath, backupPath);
+        const bringBackValidRoutes = async () => {
+            urlService.resetGenerators({releaseResourcesOnly: true});
 
-        return bridge.reloadFrontend();
-    };
+            await this.restoreBackupFile(this.settingsPath, this.backupPath);
 
-    try {
-        bridge.reloadFrontend();
-    } catch (err) {
-        return bringBackValidRoutes()
-            .finally(() => {
-                throw err;
-            });
-    }
+            return bridge.reloadFrontend();
+        };
 
-    // @TODO: how can we get rid of this from here?
-    let tries = 0;
-
-    function isBlogRunning() {
-        debug('waiting for blog running');
-        return Promise.delay(1000)
-            .then(() => {
-                debug('waited for blog running');
-                if (!urlService.hasFinished()) {
-                    if (tries > 5) {
-                        throw new errors.InternalServerError({
-                            message: tpl(messages.loadError, {filename: `${filename}.${ext}`})
-                        });
-                    }
-
-                    tries = tries + 1;
-                    return isBlogRunning();
-                }
-            });
-    }
-
-    return isBlogRunning()
-        .catch((err) => {
+        try {
+            bridge.reloadFrontend();
+        } catch (err) {
             return bringBackValidRoutes()
                 .finally(() => {
                     throw err;
                 });
-        });
-};
+        }
 
-const get = async () => {
-    const settingsFilePath = await getSettingsFilePath();
+        // @TODO: how can we get rid of this from here?
+        let tries = 0;
 
-    return readFile(settingsFilePath);
-};
+        function isBlogRunning() {
+            debug('waiting for blog running');
+            return Promise.delay(1000)
+                .then(() => {
+                    debug('waited for blog running');
+                    if (!urlService.hasFinished()) {
+                        if (tries > 5) {
+                            throw new errors.InternalServerError({
+                                message: tpl(messages.loadError, {filename: `${this.filename}.${this.ext}`})
+                            });
+                        }
 
-/**
- * md5 hashes of default routes settings
- */
-const defaultRoutesSettingHash = '3d180d52c663d173a6be791ef411ed01';
+                        tries = tries + 1;
+                        return isBlogRunning();
+                    }
+                });
+        }
 
-const calculateHash = (data) => {
-    return crypto.createHash('md5')
-        .update(data, 'binary')
-        .digest('hex');
-};
+        return isBlogRunning()
+            .catch((err) => {
+                return bringBackValidRoutes()
+                    .finally(() => {
+                        throw err;
+                    });
+            });
+    }
 
-const getDefaultHash = () => {
-    return defaultRoutesSettingHash;
-};
+    async get() {
+        return this.readFile(this.settingsPath);
+    }
 
-const getCurrentHash = async () => {
-    const data = await settingsLoader.loadSettings();
+    calculateHash(data) {
+        return crypto.createHash('md5')
+            .update(data, 'binary')
+            .digest('hex');
+    }
 
-    return calculateHash(JSON.stringify(data));
-};
+    getDefaultHash() {
+        return this.defaultRoutesSettingHash;
+    }
 
-module.exports = {
-    getDefaultHash: getDefaultHash,
-    setFromFilePath: setFromFilePath,
-    get: get,
-    getCurrentHash: getCurrentHash
-};
+    async getCurrentHash() {
+        const data = await this.settingsLoader.loadSettings();
+
+        return this.calculateHash(JSON.stringify(data));
+    }
+}
+
+module.exports = RouteSettings;

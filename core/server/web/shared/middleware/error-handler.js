@@ -60,6 +60,32 @@ _private.createHbsEngine = () => {
     return engine.express4();
 };
 
+_private.updateStack = (err) => {
+    let stackbits = err.stack.split(/\n/g);
+
+    // We build this up backwards, so we always insert at position 1
+
+    if (process.env.NODE_ENV === 'production' || err.statusCode === 404) {
+        // In production mode, remove the stack trace
+        stackbits.splice(1, stackbits.length - 1);
+    } else {
+        // In dev mode, clearly mark the strack trace
+        stackbits.splice(1, 0, `Stack Trace:`);
+    }
+
+    // Add in our custom cotext and help methods
+
+    if (err.help) {
+        stackbits.splice(1, 0, `${err.help}`);
+    }
+
+    if (err.context) {
+        stackbits.splice(1, 0, `${err.context}`);
+    }
+
+    return stackbits.join('\n');
+};
+
 /**
  * Get an error ready to be shown the the user
  *
@@ -79,14 +105,6 @@ _private.prepareError = (err, req, res, next) => {
             err = new errors.NotFoundError({
                 err: err
             });
-        } else if (err.stack.match(/node_modules\/handlebars\//)) {
-            // Temporary handling of theme errors from handlebars
-            // @TODO remove this when #10496 is solved properly
-            err = new errors.IncorrectUsageError({
-                err: err,
-                message: err.message,
-                statusCode: err.statusCode
-            });
         } else {
             err = new errors.GhostError({
                 err: err,
@@ -101,6 +119,8 @@ _private.prepareError = (err, req, res, next) => {
 
     // alternative for res.status();
     res.statusCode = err.statusCode;
+
+    err.stack = _private.updateStack(err);
 
     // never cache errors
     res.set({
@@ -119,6 +139,23 @@ _private.JSONErrorRenderer = (err, req, res, next) => { // eslint-disable-line n
             errorType: err.errorType,
             errorDetails: err.errorDetails,
             ghostErrorCode: err.ghostErrorCode
+        }]
+    });
+};
+
+_private.JSONErrorRendererV2 = (err, req, res, next) => { // eslint-disable-line no-unused-vars
+    const userError = _private.prepareUserMessage(err, req);
+
+    res.json({
+        errors: [{
+            message: userError.message || null,
+            context: userError.context || null,
+            type: err.errorType || null,
+            details: err.errorDetails || null,
+            property: err.property || null,
+            help: err.help || null,
+            code: err.code || null,
+            id: err.id || null
         }]
     });
 };
@@ -167,23 +204,6 @@ _private.prepareUserMessage = (err, res) => {
     }
 
     return userError;
-};
-
-_private.JSONErrorRendererV2 = (err, req, res, next) => { // eslint-disable-line no-unused-vars
-    const userError = _private.prepareUserMessage(err, req);
-
-    res.json({
-        errors: [{
-            message: userError.message || null,
-            context: userError.context || null,
-            type: err.errorType || null,
-            details: err.errorDetails || null,
-            property: err.property || null,
-            help: err.help || null,
-            code: err.code || null,
-            id: err.id || null
-        }]
-    });
 };
 
 _private.ErrorFallbackMessage = err => `<h1>${tpl(messages.oopsErrorTemplateHasError)}</h1>
@@ -241,39 +261,36 @@ _private.ThemeErrorRenderer = (err, req, res, next) => {
     });
 };
 
+/**
+ *  Borrowed heavily from finalHandler
+ */
+
+const DOUBLE_SPACE_REGEXP = /\x20{2}/g;
+const NEWLINE_REGEXP = /\n/g;
+
+function createHtmlDocument(status, message) {
+    let body = escapeExpression(message)
+        .replace(NEWLINE_REGEXP, '<br>')
+        .replace(DOUBLE_SPACE_REGEXP, ' &nbsp;');
+
+    return `<!DOCTYPE html>\n
+       <html lang="en">\n
+       <head>\n
+       <meta charset="utf-8">\n
+       <title>${status} Error</title>\n
+       </head>\n
+       <body>\n
+       <pre>${status} ${body}</pre>\n
+       </body>\n
+       </html>\n`;
+}
+
 _private.HTMLErrorRenderer = (err, req, res, next) => { // eslint-disable-line no-unused-vars
-    const data = {
-        message: err.message,
-        statusCode: err.statusCode,
-        errorDetails: err.errorDetails || []
-    };
-
-    // e.g. if you serve the admin /ghost and Ghost returns a 503 because it generates the urls at the moment.
-    // This ensures that no matter what res.render will work here
-    // @TODO: put to prepare error function?
-    if (_.isEmpty(req.app.engines)) {
-        res._template = 'error';
-        req.app.engine('hbs', _private.createHbsEngine());
-        req.app.set('view engine', 'hbs');
-        req.app.set('views', config.get('paths').defaultViews);
-    }
-
-    res.render('error', data, (_err, html) => {
-        if (!_err) {
-            return res.send(html);
-        }
-
-        // re-attach new error e.g. error template has syntax error or misusage
-        req.err = _err;
-
-        // And then try to explain things to the user...
-        // Cheat and output the error using handlebars escapeExpression
-        return res.status(500).send(_private.ErrorFallbackMessage(_err));
-    });
+    return res.send(createHtmlDocument(res.statusCode, err.stack));
 };
 
 _private.BasicErrorRenderer = (err, req, res, next) => { // eslint-disable-line no-unused-vars
-    return res.send(res.statusCode + ' ' + err.message);
+    return res.send(res.statusCode + ' ' + err.stack);
 };
 
 errorHandler.resourceNotFound = (req, res, next) => {

@@ -1,3 +1,4 @@
+const debug = require('@tryghost/debug')('card-assets');
 const Minifier = require('@tryghost/minifier');
 const _ = require('lodash');
 const path = require('path');
@@ -52,35 +53,31 @@ class CardAssetService {
     async minify(globs) {
         try {
             return await this.minifier.minify(globs);
-        } catch (err) {
-            // @TODO: Convert this back to a proper error once the underlying bug is fixed
-            if (err.code === 'EACCES') {
-                logging.warn('Ghost was not able to write card asset files due to permissions.');
+        } catch (error) {
+            if (error.code === 'EACCES') {
+                logging.error('Ghost was not able to write card asset files due to permissions.');
+                return;
             }
+
+            throw error;
         }
     }
 
     async clearFiles() {
         this.files = [];
 
-        // @deprecated switch this to use fs.rm when we drop support for Node v12
-        try {
-            await fs.unlink(path.join(this.dest, 'cards.min.css'));
-        } catch (error) {
-            // Don't worry if the file didn't exist or we don't have perms here
-            if (error.code !== 'ENOENT' && error.code !== 'EACCES') {
-                throw error;
-            }
-        }
+        const rmFile = async (name) => {
+            await fs.unlink(path.join(this.dest, name));
+        };
 
-        try {
-            await fs.unlink(path.join(this.dest, 'cards.min.js'));
-        } catch (error) {
-            // Don't worry if the file didn't exist or we don't have perms here
-            if (error.code !== 'ENOENT' && error.code !== 'EACCES') {
-                throw error;
-            }
-        }
+        let promises = [
+            // @deprecated switch this to use fs.rm when we drop support for Node v12
+            rmFile('cards.min.css'),
+            rmFile('cards.min.js')
+        ];
+
+        // We don't care if removing these files fails as it's valid for them to not exist
+        return Promise.allSettled(promises);
     }
 
     hasFile(type) {
@@ -98,9 +95,13 @@ class CardAssetService {
             this.config = cardAssetConfig;
         }
 
+        debug('loading with config', cardAssetConfig);
+
         await this.clearFiles();
 
         const globs = this.generateGlobs();
+
+        debug('globs', globs);
 
         this.files = await this.minify(globs) || [];
     }

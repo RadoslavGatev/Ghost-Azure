@@ -1,9 +1,7 @@
 const fs = require('fs-extra');
-const path = require('path');
 const debug = require('@tryghost/debug')('frontend:services:settings:settings-loader');
 const tpl = require('@tryghost/tpl');
 const errors = require('@tryghost/errors');
-const config = require('../../../shared/config');
 const validate = require('./validate');
 
 const messages = {
@@ -14,23 +12,12 @@ class SettingsLoader {
     /**
      * @param {Object} options
      * @param {Function} options.parseYaml yaml parser
+     * @param {String} options.settingFilePath routes settings file path
      */
-    constructor({parseYaml}) {
+    constructor({parseYaml, settingFilePath}) {
         this.parseYaml = parseYaml;
-    }
 
-    /**
-     * NOTE: this method will have to go to an external module to reuse in redirects settings
-     * @param {String} setting type of the settings to load, e.g:'routes' or 'redirects'
-     * @returns {String} setting file path
-     */
-    getSettingFilePath(setting) {
-        // we only support the `yaml` file extension. `yml` will be ignored.
-        const fileName = `${setting}.yaml`;
-        const contentPath = config.getContentPath('settings');
-        const filePath = path.join(contentPath, fileName);
-
-        return filePath;
+        this.settingFilePath = settingFilePath;
     }
 
     /**
@@ -40,16 +27,12 @@ class SettingsLoader {
      * @returns {Promise<Object>} settingsFile
      */
     async loadSettings() {
-        const setting = 'routes';
-        const filePath = this.getSettingFilePath(setting);
-
         try {
-            const file = await fs.readFile(filePath, 'utf8');
-            debug('settings file found for', setting);
+            const file = await fs.readFile(this.settingFilePath, 'utf8');
+            debug('routes settings file found for:', this.settingFilePath);
 
             const object = this.parseYaml(file);
-
-            debug('YAML settings file parsed:', filePath);
+            debug('YAML settings file parsed:', this.settingFilePath);
 
             return validate(object);
         } catch (err) {
@@ -59,8 +42,8 @@ class SettingsLoader {
 
             throw new errors.GhostError({
                 message: tpl(messages.settingsLoaderError, {
-                    setting: setting,
-                    path: filePath
+                    setting: 'routes',
+                    path: this.settingFilePath
                 }),
                 err: err
             });
@@ -74,14 +57,13 @@ class SettingsLoader {
      * @returns {Object} settingsFile in following format: {routes: {}, collections: {}, resources: {}}
      */
     loadSettingsSync() {
-        const setting = 'routes';
-        const filePath = this.getSettingFilePath(setting);
-
         try {
-            const file = fs.readFileSync(filePath, 'utf8');
-            debug('settings file found for', setting);
+            const file = fs.readFileSync(this.settingFilePath, 'utf8');
+            debug('routes settings file found for:', this.settingFilePath);
 
             const object = this.parseYaml(file);
+            debug('YAML settings file parsed:', this.settingFilePath);
+
             return validate(object);
         } catch (err) {
             if (errors.utils.isIgnitionError(err)) {
@@ -90,8 +72,8 @@ class SettingsLoader {
 
             throw new errors.GhostError({
                 message: tpl(messages.settingsLoaderError, {
-                    setting: setting,
-                    path: filePath
+                    setting: 'routes',
+                    path: this.settingFilePath
                 }),
                 err: err
             });
