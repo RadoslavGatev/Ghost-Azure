@@ -284,6 +284,10 @@ class OEmbed {
         try {
             const urlObject = new URL(url);
 
+            // Trimming solves the difference of url validation between `new URL(url)`
+            // and metascraper.
+            url = url.trim();
+
             for (const provider of this.customProviders) {
                 if (await provider.canSupportRequest(urlObject)) {
                     const result = await provider.getOEmbedData(urlObject, this.externalRequest);
@@ -314,12 +318,12 @@ class OEmbed {
             return data;
         } catch (err) {
             // allow specific validation errors through for better error messages
-            if (errors.utils.isIgnitionError(err) && err.errorType === 'ValidationError') {
+            if (errors.utils.isGhostError(err) && err.errorType === 'ValidationError') {
                 throw err;
             }
 
             // log the real error because we're going to throw a generic "Unknown provider" error
-            logging.error(new errors.GhostError({
+            logging.error(new errors.InternalServerError({
                 message: 'Encountered error when fetching oembed',
                 err
             }));

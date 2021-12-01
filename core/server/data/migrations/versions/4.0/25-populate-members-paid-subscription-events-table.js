@@ -44,7 +44,7 @@ module.exports = createTransactionalMigration(
                 return amount * 30;
             }
 
-            throw new errors.GhostError({
+            throw new errors.InternalServerError({
                 message: tpl(messages.unknownSubscriptionIntervalError , {
                     interval
                 })
@@ -116,6 +116,7 @@ module.exports = createTransactionalMigration(
 
         const eventChunks = chunk(allEvents, chunkSize);
 
+        // eslint-disable-next-line no-restricted-syntax
         for (const events of eventChunks) {
             await knex.insert(events).into('members_paid_subscription_events');
         }

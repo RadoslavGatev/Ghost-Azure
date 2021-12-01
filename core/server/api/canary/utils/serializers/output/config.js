@@ -1,5 +1,4 @@
 const _ = require('lodash');
-const labs = require('../../../../../../shared/labs');
 const debug = require('@tryghost/debug')('api:canary:utils:serializers:output:config');
 
 module.exports = {
@@ -18,12 +17,9 @@ module.exports = {
             'stripeDirect',
             'mailgunIsConfigured',
             'emailAnalytics',
-            'hostSettings'
+            'hostSettings',
+            'tenor'
         ];
-
-        if (labs.isSet('gifsCard')) {
-            keys.push('tenor');
-        }
 
         frame.response = {
             config: _.pick(data, keys)
