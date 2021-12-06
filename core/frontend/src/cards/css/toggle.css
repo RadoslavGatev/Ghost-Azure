@@ -1,3 +1,7 @@
+.kg-toggle-card+.kg-toggle-card {
+    margin-top: 1em;
+}
+
 .kg-toggle-card[data-kg-toggle-state="close"] .kg-toggle-content{
     height: auto;
     opacity: 1;
@@ -57,6 +61,15 @@
     color: rgba(124, 139, 154, 0.5);
     transition: all 0.3s;
     transform: rotate(-180deg);
+}
+
+.kg-toggle-heading path {
+    fill: none;
+    stroke: currentcolor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.5;
+    fill-rule: evenodd;
 }
 
 .kg-toggle-heading-text {
