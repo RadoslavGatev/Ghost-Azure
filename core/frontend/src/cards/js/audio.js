@@ -1,18 +1,34 @@
 const handleAudioPlayer = function (audioElementContainer) {
-    const audioPlayerContainer = audioElementContainer.querySelector('.kg-audio-player-container');
+    const audioPlayerContainer = audioElementContainer.querySelector('.kg-player-container');
     const playIconContainer = audioElementContainer.querySelector('.kg-audio-play-icon');
+    const pauseIconContainer = audioElementContainer.querySelector('.kg-audio-pause-icon');
     const seekSlider = audioElementContainer.querySelector('.kg-audio-seek-slider');
-    const volumeSlider = audioElementContainer.querySelector('.kg-audio-volume-slider');
-    const muteIconContainer = audioElementContainer.querySelector('.kg-audio-mute-icon');
     const playbackRateContainer = audioElementContainer.querySelector('.kg-audio-playback-rate');
+    const muteIconContainer = audioElementContainer.querySelector('.kg-audio-mute-icon');
+    const unmuteIconContainer = audioElementContainer.querySelector('.kg-audio-unmute-icon');
+    const volumeSlider = audioElementContainer.querySelector('.kg-audio-volume-slider');
     const audio = audioElementContainer.querySelector('audio');
     const durationContainer = audioElementContainer.querySelector('.kg-audio-duration');
     const currentTimeContainer = audioElementContainer.querySelector('.kg-audio-current-time');
-    const outputContainer = audioElementContainer.querySelector('.kg-audio-volume-output');
-    let playState = 'play';
-    let muteState = 'unmute';
-    let playbackRate = 1.0;
+    let playbackRates = [{
+        rate: 0.75,
+        label: '0.7×'
+    }, {
+        rate: 1.0,
+        label: '1×'
+    }, {
+        rate: 1.25,
+        label: '1.2×'
+    }, {
+        rate: 1.75,
+        label: '1.7×'
+    }, {
+        rate: 2.0,
+        label: '2×'
+    }];
+
     let raf = null;
+    let currentPlaybackRateIdx = 1;
 
     audio.src = audioElementContainer.getAttribute('data-kg-audio-src');
 
@@ -67,41 +83,36 @@ const handleAudioPlayer = function (audioElementContainer) {
     }
 
     playIconContainer.addEventListener('click', () => {
-        if (playState === 'play') {
-            audio.play();
-            requestAnimationFrame(whilePlaying);
-            playState = 'pause';
-            playIconContainer.textContent = '||';
-        } else {
-            audio.pause();
-            cancelAnimationFrame(raf);
-            playState = 'play';
-            playIconContainer.textContent = '>';
-        }
+        playIconContainer.classList.add("kg-audio-hide");
+        pauseIconContainer.classList.remove("kg-audio-hide");
+        audio.play();
+        requestAnimationFrame(whilePlaying);
+    });
+
+    pauseIconContainer.addEventListener('click', () => {
+        pauseIconContainer.classList.add("kg-audio-hide");
+        playIconContainer.classList.remove("kg-audio-hide");
+        audio.pause();
+        cancelAnimationFrame(raf);
     });
 
     muteIconContainer.addEventListener('click', () => {
-        if (muteState === 'unmute') {
-            audio.muted = true;
-            muteState = 'mute';
-            muteIconContainer.textContent = 'UM';
-        } else {
-            audio.muted = false;
-            muteState = 'unmute';
-            muteIconContainer.textContent = 'M';
-        }
+        muteIconContainer.classList.add("kg-audio-hide");
+        unmuteIconContainer.classList.remove("kg-audio-hide");
+        audio.muted = false;
+    });
+
+    unmuteIconContainer.addEventListener('click', () => {
+        unmuteIconContainer.classList.add("kg-audio-hide");
+        muteIconContainer.classList.remove("kg-audio-hide");
+        audio.muted = true;
     });
 
     playbackRateContainer.addEventListener('click', () => {
-        if (playbackRate === 1.0) {
-            audio.playbackRate = 2;
-            playbackRate = 2;
-            playbackRateContainer.textContent = '2x';
-        } else {
-            audio.playbackRate = 1.0;
-            playbackRate = 1.0;
-            playbackRateContainer.textContent = '1x';
-        }
+        let nextPlaybackRate = playbackRates[(currentPlaybackRateIdx + 1) % 5];
+        currentPlaybackRateIdx = currentPlaybackRateIdx + 1;
+        audio.playbackRate = nextPlaybackRate.rate;
+        playbackRateContainer.textContent = nextPlaybackRate.label;
     });
 
     audio.addEventListener('progress', displayBufferedAmount);
@@ -124,7 +135,6 @@ const handleAudioPlayer = function (audioElementContainer) {
     volumeSlider.addEventListener('input', (e) => {
         const value = e.target.value;
         showRangeProgress(e.target);
-        outputContainer.textContent = value;
         audio.volume = value / 100;
     });
 }

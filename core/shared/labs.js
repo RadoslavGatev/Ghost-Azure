@@ -18,7 +18,8 @@ const GA_FEATURES = [
     'customThemeSettings',
     'nftCard',
     'calloutCard',
-    'accordionCard'
+    'accordionCard',
+    'richTwitterNewsletters'
 ];
 
 // NOTE: this allowlist is meant to be used to filter out any unexpected
@@ -40,8 +41,8 @@ const ALPHA_FEATURES = [
     'audioCard',
     'videoCard',
     'productCard',
-    'quoteStyles',
-    'beforeAfterCard'
+    'beforeAfterCard',
+    'tweetGridCard'
 ];
 
 module.exports.GA_KEYS = [...GA_FEATURES];
