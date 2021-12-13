@@ -1,6 +1,6 @@
 {
   "name": "ghost",
-  "version": "4.27.2",
+  "version": "4.28.0",
   "description": "The professional publishing platform",
   "author": "Ghost Foundation",
   "homepage": "https://ghost.org",
@@ -53,7 +53,7 @@
   },
   "dependencies": {
     "@nexes/nql": "0.6.0",
-    "@sentry/node": "6.16.0",
+    "@sentry/node": "6.16.1",
     "@tryghost/adapter-manager": "0.2.24",
     "@tryghost/admin-api-schema": "2.6.1",
     "@tryghost/bookshelf-plugins": "0.3.5",
@@ -72,13 +72,13 @@
     "@tryghost/job-manager": "0.8.16",
     "@tryghost/kg-card-factory": "3.1.0",
     "@tryghost/kg-default-atoms": "3.1.0",
-    "@tryghost/kg-default-cards": "5.13.1",
+    "@tryghost/kg-default-cards": "5.14.2",
     "@tryghost/kg-markdown-html-renderer": "5.1.0",
     "@tryghost/kg-mobiledoc-html-renderer": "5.3.1",
     "@tryghost/limit-service": "1.0.6",
     "@tryghost/logging": "1.0.2",
     "@tryghost/magic-link": "1.0.14",
-    "@tryghost/members-api": "2.8.4",
+    "@tryghost/members-api": "2.8.6",
     "@tryghost/members-csv": "1.2.0",
     "@tryghost/members-importer": "0.3.5",
     "@tryghost/members-offers": "0.10.3",
@@ -106,7 +106,7 @@
     "amperize": "0.6.1",
     "analytics-node": "6.0.0",
     "bluebird": "3.7.2",
-    "body-parser": "1.19.0",
+    "body-parser": "1.19.1",
     "bookshelf": "1.2.0",
     "bookshelf-relations": "2.3.0",
     "brute-knex": "4.0.1",
@@ -129,7 +129,7 @@
     "ghost-storage-base": "1.0.0",
     "glob": "7.2.0",
     "got": "9.6.0",
-    "gscan": "4.16.0",
+    "gscan": "4.17.0",
     "html-to-text": "5.1.1",
     "image-size": "1.0.0",
     "intl": "1.2.5",
@@ -142,7 +142,7 @@
     "knex": "0.21.21",
     "knex-migrator": "4.1.3",
     "lodash": "4.17.21",
-    "luxon": "2.1.1",
+    "luxon": "2.2.0",
     "mailgun-js": "0.22.0",
     "metascraper": "5.25.5",
     "metascraper-author": "5.25.5",
@@ -212,6 +212,7 @@
     "tmp": "0.2.1"
   },
   "resolutions": {
+    "@tryghost/logging": "2.0.0",
     "moment": "2.24.0",
     "moment-timezone": "0.5.23"
   }
