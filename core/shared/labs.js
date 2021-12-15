@@ -18,11 +18,13 @@ const GA_FEATURES = [
     'customThemeSettings',
     'nftCard',
     'calloutCard',
+    'videoCard',
     'accordionCard',
     'productCard',
     'richTwitterNewsletters',
     'audioCard',
     'mediaAPI',
+    'membersAutoLogin',
     'filesAPI'
 ];
 
@@ -38,9 +40,7 @@ const ALPHA_FEATURES = [
     'membersActivity',
     'cardSettingsPanel',
     'urlCache',
-    'membersAutoLogin',
     'fileCard',
-    'videoCard',
     'beforeAfterCard',
     'tweetGridCard',
     'headerCard'
