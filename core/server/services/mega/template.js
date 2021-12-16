@@ -638,6 +638,116 @@ figure blockquote p {
     font-size: 20px;
 }
 
+.kg-header-card {
+    margin: 0 0 1.5em 0;
+    padding: 110px 35px 110px 35px;
+    text-align: center;
+}
+
+.kg-header-card.kg-size-small {
+    padding-top: 75px;
+    padding-bottom: 75px;
+}
+
+.kg-header-card.kg-size-large {
+    padding-top: 140px;
+    padding-bottom: 140px;
+}
+
+.kg-header-card.kg-align-left {
+    text-align: left;
+}
+
+.kg-header-card.kg-style-invert {
+    background: #15171a;
+    color: #ffffff;
+}
+
+.kg-header-card.kg-style-clear {
+    border-top: 1px solid #e5eff6;
+    border-bottom: 1px solid #e5eff6;
+}
+
+.kg-header-card.kg-style-accent {
+    background: ${templateSettings.accentColor || '#15171a'};
+    color: #ffffff;
+}
+
+.kg-header-card.kg-style-image {
+    background-color: #e7e7eb;
+    background-size: cover;
+    background-position: center center;
+    color: #ffffff;
+}
+
+.kg-header-card h2 {
+    font-size: 3em;
+    font-weight: 700;
+    line-height: 1.1em;
+    margin: 0 0 0.125em;
+}
+
+.kg-header-card h2 strong {
+    font-weight: 800;
+}
+
+.kg-header-card.kg-size-small h2 {
+    font-size: 2.5em;
+}
+
+.kg-header-card.kg-size-large h2 {
+    font-size: 3.5em;
+}
+
+.kg-header-card h3 {
+    font-size: 1.125em;
+    font-weight: 500;
+    line-height: 1.3em;
+    margin: 0;
+}
+
+.kg-header-card h3 strong {
+    font-weight: 600;
+}
+
+.kg-header-card.kg-size-large h3 {
+    font-size: 1.25em;
+}
+
+.kg-header-card.kg-size-small h3 {
+    font-size: 1em;
+}
+
+.kg-header-card-button {
+    margin-top: 1.75em;
+    background: ${templateSettings.accentColor || '#15212A'};
+    border: solid 1px ${templateSettings.accentColor || '#15212A'};
+    border-radius: 5px;
+    box-sizing: border-box;
+    cursor: pointer;
+    display: inline-block;
+    font-size: 14px;
+    font-weight: bold;
+    margin: 0;
+    padding: 8px 16px;
+    text-decoration: none !important;
+    color: #FFFFFF !important;
+}
+
+.kg-size-large .kg-header-card-button {
+    margin-top: 2em;
+}
+
+.kg-size-small .kg-header-card-button {
+    margin-top: 1.5em;
+}
+
+.kg-style-accent .kg-header-card-button {
+    background: #ffffff;
+    color: ${templateSettings.accentColor || '#15212A'} !important;
+}
+
+
 /* -------------------------------------
     HEADER, FOOTER, MAIN
 ------------------------------------- */

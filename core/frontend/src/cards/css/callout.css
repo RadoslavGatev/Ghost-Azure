@@ -42,8 +42,9 @@
     color: #fff;
 }
 
-.kg-callout-card-accent a {
+.kg-callout-card.kg-callout-card-accent a {
     color: #fff;
+    text-decoration: underline;
 }
 
 .kg-callout-card div.kg-callout-emoji {
@@ -55,4 +56,8 @@
 .kg-callout-card div.kg-callout-text {
     font-size: .95em;
     line-height: 1.5em;
+}
+
+.kg-callout-card + .kg-callout-card {
+    margin-top: 1em;
 }
