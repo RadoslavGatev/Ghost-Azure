@@ -658,14 +658,13 @@ figure blockquote p {
     text-align: left;
 }
 
-.kg-header-card.kg-style-invert {
+.kg-header-card.kg-style-dark {
     background: #15171a;
     color: #ffffff;
 }
 
-.kg-header-card.kg-style-clear {
-    border-top: 1px solid #e5eff6;
-    border-bottom: 1px solid #e5eff6;
+.kg-header-card.kg-style-light {
+    background-color: #F9F9FA;
 }
 
 .kg-header-card.kg-style-accent {
@@ -720,8 +719,7 @@ figure blockquote p {
 
 .kg-header-card-button {
     margin-top: 1.75em;
-    background: ${templateSettings.accentColor || '#15212A'};
-    border: solid 1px ${templateSettings.accentColor || '#15212A'};
+    background: #ffffff;
     border-radius: 5px;
     box-sizing: border-box;
     cursor: pointer;
@@ -731,7 +729,7 @@ figure blockquote p {
     margin: 0;
     padding: 8px 16px;
     text-decoration: none !important;
-    color: #FFFFFF !important;
+    color: #15171A !important;
 }
 
 .kg-size-large .kg-header-card-button {
@@ -742,9 +740,9 @@ figure blockquote p {
     margin-top: 1.5em;
 }
 
-.kg-style-accent .kg-header-card-button {
-    background: #ffffff;
-    color: ${templateSettings.accentColor || '#15212A'} !important;
+.kg-style-light .kg-header-card-button {
+    background: ${templateSettings.accentColor || '#15212A'} !important;
+    color: #ffffff !important;
 }
 
 
@@ -1113,7 +1111,7 @@ ${ templateSettings.showBadge ? `
 </style>
 </head>
 
-<body class="">
+<body>
     <span class="preheader">${ post.excerpt ? post.excerpt : `${post.title} – ` }</span>
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="body" width="100%">
 

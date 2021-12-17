@@ -2958,7 +2958,7 @@ try{return JSON.parse(e)||{}}catch(t){return{}}})),accessibility:Ember.computed(
 try{return JSON.parse(e)||{}}catch(t){return{}}})),fetch(){return this.settings.fetch().then((()=>(this.set("_user",this.session.user),this._setAdminTheme().then((()=>!0)))))},update(e,t){let n=arguments.length>2&&void 0!==arguments[2]?arguments[2]:{},i=n.user?"accessibility":"labs",r=this.get(n.user?"_user":"settings"),a=this.get(i)
 return Ember.set(a,e,t),n.requires&&!0===t&&n.requires.forEach((e=>{Ember.set(a,e,!0)})),r.set(i,JSON.stringify(a)),r.save().then((()=>(this.notifyPropertyChange(i),this.get(`${i}.${e}`)))).catch((t=>{if(r.rollbackAttributes(),this.notifyPropertyChange(i),!t)throw new Ember.Error(`Validation of the feature service ${n.user?"user":"settings"} model failed when updating ${i}.`)
 return this.notifications.showAPIError(t),this.get(`${i}.${e}`)}))},_setAdminTheme(e){let n=e
-return void 0===n&&(n=e||this.nightShift),this.lazyLoader.loadStyle("dark","assets/ghost-dark-60b50b44689a4c79fd9e72356f94a844.css",!0).then((()=>{(0,t.default)("link[title=dark]").prop("disabled",!n)})).catch((()=>{(0,t.default)("link[title=dark]").prop("disabled",!0)}))}})
+return void 0===n&&(n=e||this.nightShift),this.lazyLoader.loadStyle("dark","assets/ghost-dark-43f5faa616791819b3ae91e128ec41f0.css",!0).then((()=>{(0,t.default)("link[title=dark]").prop("disabled",!n)})).catch((()=>{(0,t.default)("link[title=dark]").prop("disabled",!0)}))}})
 e.default=i})),define("ghost-admin/services/frontend",["exports","fetch","validator"],(function(e,t,n){var i,r,a,s,o,l,u
 function d(e,t,n,i){n&&Object.defineProperty(e,t,{enumerable:n.enumerable,configurable:n.configurable,writable:n.writable,value:n.initializer?n.initializer.call(i):void 0})}function c(e,t,n){return t in e?Object.defineProperty(e,t,{value:n,enumerable:!0,configurable:!0,writable:!0}):e[t]=n,e}function m(e,t,n,i,r){var a={}
 return Object.keys(i).forEach((function(e){a[e]=i[e]})),a.enumerable=!!a.enumerable,a.configurable=!!a.configurable,("value"in a||a.initializer)&&(a.writable=!0),a=n.slice().reverse().reduce((function(n,i){return i(e,t,n)||n}),a),r&&void 0!==a.initializer&&(a.value=a.initializer?a.initializer.call(r):void 0,a.initializer=void 0),void 0===a.initializer&&(Object.defineProperty(e,t,a),a=null),a}Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
@@ -3529,6 +3529,6 @@ var i=t.default.create({properties:["name","event","targetUrl"],name(e){Ember.is
 e.default=i})),define("ghost-admin/views/application",["exports"],(function(e){Object.defineProperty(e,"__esModule",{value:!0}),e.default=void 0
 var t=Ember.Component.extend({})
 e.default=t})),define("ghost-admin/config/environment",[],(function(){try{var e="ghost-admin/config/environment",t=document.querySelector('meta[name="'+e+'"]').getAttribute("content"),n={default:JSON.parse(decodeURIComponent(t))}
-return Object.defineProperty(n,"__esModule",{value:!0}),n}catch(i){throw new Error('Could not read config from meta tag with name "'+e+'".')}})),runningTests||require("ghost-admin/app").default.create({version:"4.31",name:"ghost-admin"})
+return Object.defineProperty(n,"__esModule",{value:!0}),n}catch(i){throw new Error('Could not read config from meta tag with name "'+e+'".')}})),runningTests||require("ghost-admin/app").default.create({version:"4.32",name:"ghost-admin"})
 
-//# sourceMappingURL=ghost.min-7690e7e32d3e53ec5480a234962341a6.map
+//# sourceMappingURL=ghost.min-2b20489c79323b165909749382adc158.map

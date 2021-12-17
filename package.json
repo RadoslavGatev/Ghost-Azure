@@ -1,6 +1,6 @@
 {
   "name": "ghost",
-  "version": "4.31.0",
+  "version": "4.32.0",
   "description": "The professional publishing platform",
   "author": "Ghost Foundation",
   "homepage": "https://ghost.org",
@@ -72,13 +72,13 @@
     "@tryghost/job-manager": "0.8.17",
     "@tryghost/kg-card-factory": "3.1.0",
     "@tryghost/kg-default-atoms": "3.1.0",
-    "@tryghost/kg-default-cards": "5.15.6",
+    "@tryghost/kg-default-cards": "5.15.11",
     "@tryghost/kg-markdown-html-renderer": "5.1.0",
     "@tryghost/kg-mobiledoc-html-renderer": "5.3.1",
     "@tryghost/limit-service": "1.0.8",
     "@tryghost/logging": "2.0.0",
     "@tryghost/magic-link": "1.0.14",
-    "@tryghost/members-api": "2.8.6",
+    "@tryghost/members-api": "2.8.7",
     "@tryghost/members-csv": "1.2.0",
     "@tryghost/members-importer": "0.3.5",
     "@tryghost/members-offers": "0.10.3",
@@ -119,7 +119,7 @@
     "cookie-session": "1.4.0",
     "cors": "2.8.5",
     "downsize": "0.0.8",
-    "express": "4.17.1",
+    "express": "4.17.2",
     "express-brute": "1.0.1",
     "express-hbs": "2.4.0",
     "express-jwt": "6.1.0",
@@ -161,7 +161,7 @@
     "nconf": "0.11.3",
     "node-jose": "2.0.0",
     "oembed-parser": "1.4.9",
-    "passport": "0.5.1",
+    "passport": "0.5.2",
     "passport-google-oauth": "2.0.0",
     "path-match": "1.2.4",
     "probe-image-size": "5.0.0",
@@ -175,7 +175,7 @@
     "applicationinsights": "^1.0.0"
   },
   "optionalDependencies": {
-    "@tryghost/html-to-mobiledoc": "1.7.1",
+    "@tryghost/html-to-mobiledoc": "1.8.2",
     "sqlite3": "5.0.2"
   },
   "devDependencies": {
