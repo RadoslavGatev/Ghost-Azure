@@ -4,7 +4,6 @@ const apiMw = require('../../middleware');
 const mw = require('./middleware');
 
 const shared = require('../../../shared');
-const labs = require('../../../../../shared/labs');
 
 module.exports = function apiRoutes() {
     const router = express.Router('canary admin');
@@ -238,14 +237,12 @@ module.exports = function apiRoutes() {
 
     // ## media
     router.post('/media/upload',
-        labs.enabledMiddleware('mediaAPI'),
         mw.authAdminApi,
         apiMw.upload.media('file', 'thumbnail'),
         apiMw.upload.mediaValidation({type: 'media'}),
         http(api.media.upload)
     );
     router.put('/media/thumbnail/upload',
-        labs.enabledMiddleware('mediaAPI'),
         mw.authAdminApi,
         apiMw.upload.single('file'),
         apiMw.upload.validation({type: 'images'}),
@@ -254,7 +251,6 @@ module.exports = function apiRoutes() {
 
     // ## files
     router.post('/files/upload',
-        labs.enabledMiddleware('filesAPI'),
         mw.authAdminApi,
         apiMw.upload.single('file'),
         http(api.files.upload)
@@ -303,8 +299,8 @@ module.exports = function apiRoutes() {
     router.del('/snippets/:id', mw.authAdminApi, http(api.snippets.destroy));
 
     // ## Custom theme settings
-    router.get('/custom_theme_settings', mw.authAdminApi, labs.enabledMiddleware('customThemeSettings'), http(api.customThemeSettings.browse));
-    router.put('/custom_theme_settings', mw.authAdminApi, labs.enabledMiddleware('customThemeSettings'), http(api.customThemeSettings.edit));
+    router.get('/custom_theme_settings', mw.authAdminApi, http(api.customThemeSettings.browse));
+    router.put('/custom_theme_settings', mw.authAdminApi, http(api.customThemeSettings.edit));
 
     return router;
 };

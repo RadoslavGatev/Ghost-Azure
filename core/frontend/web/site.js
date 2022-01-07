@@ -22,7 +22,6 @@ const siteRoutes = require('./routes');
 const shared = require('../../server/web/shared');
 const errorHandler = require('@tryghost/mw-error-handler');
 const mw = require('./middleware');
-const labs = require('../../shared/labs');
 
 const STATIC_IMAGE_URL_PREFIX = `/${urlUtils.STATIC_IMAGE_URL_PREFIX}`;
 const STATIC_MEDIA_URL_PREFIX = `/${constants.STATIC_MEDIA_URL_PREFIX}`;
@@ -118,9 +117,9 @@ module.exports = function setupSiteApp(options = {}) {
     // Serve blog images using the storage adapter
     siteApp.use(STATIC_IMAGE_URL_PREFIX, mw.handleImageSizes, storage.getStorage('images').serve());
     // Serve blog media using the storage adapter
-    siteApp.use(STATIC_MEDIA_URL_PREFIX, labs.enabledMiddleware('mediaAPI'), storage.getStorage('media').serve());
+    siteApp.use(STATIC_MEDIA_URL_PREFIX, storage.getStorage('media').serve());
     // Serve blog files using the storage adapter
-    siteApp.use(STATIC_FILES_URL_PREFIX, labs.enabledMiddleware('filesAPI'), storage.getStorage('files').serve());
+    siteApp.use(STATIC_FILES_URL_PREFIX, storage.getStorage('files').serve());
 
     // Global handling for member session, ensures a member is logged in to the frontend
     siteApp.use(membersService.middleware.loadMemberSession);
