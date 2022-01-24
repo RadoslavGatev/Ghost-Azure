@@ -109,10 +109,13 @@ const getPortalProductPrices = async function () {
             monthlyPrice: product.monthlyPrice,
             yearlyPrice: product.yearlyPrice,
             benefits: product.benefits,
+            type: product.type,
             prices: productPrices
         };
     });
-    const defaultProduct = products[0];
+    const defaultProduct = products.find((product) => {
+        return product.type === 'paid';
+    });
     const defaultPrices = defaultProduct ? defaultProduct.prices : [];
     let portalProducts = defaultProduct ? [defaultProduct] : [];
     if (labsService.isSet('multipleProducts')) {
@@ -234,6 +237,5 @@ module.exports = {
     getOfferData,
     updateMemberData,
     getMemberSiteData,
-    deleteSession,
-    stripeWebhooks: (req, res, next) => membersService.api.middleware.handleStripeWebhook(req, res, next)
+    deleteSession
 };
