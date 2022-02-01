@@ -60,7 +60,7 @@ const processImport = async (options) => {
     delete result.meta.originalImportSize;
 
     const importThreshold = await verificationTrigger.getImportThreshold();
-    if (importThreshold > importSize) {
+    if (importSize > importThreshold) {
         await verificationTrigger.startVerificationProcess({
             amountImported: importSize,
             throwOnTrigger: true
@@ -108,11 +108,11 @@ module.exports = {
                 const fromAddress = config.get('user_email');
     
                 if (escalationAddress) {
-                    this._ghostMailer.send({
+                    ghostMailer.send({
                         subject,
                         html: tpl(message, {
-                            amountImported,
-                            siteUrl: this._urlUtils.getSiteUrl()
+                            importedNumber: amountImported,
+                            siteUrl: urlUtils.getSiteUrl()
                         }),
                         forceTextContent: true,
                         from: fromAddress,
