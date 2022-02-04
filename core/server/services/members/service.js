@@ -16,13 +16,12 @@ const models = require('../../models');
 const {GhostMailer} = require('../mail');
 const jobsService = require('../jobs');
 const VerificationTrigger = require('@tryghost/verification-trigger');
+const events = require('../../lib/common/events');
 
 const messages = {
     noLiveKeysInDevelopment: 'Cannot use live stripe keys in development. Please restart in production mode.',
     sslRequiredForStripe: 'Cannot run Ghost without SSL when Stripe is connected. Please update your url config to use "https://".',
-    remoteWebhooksInDevelopment: 'Cannot use remote webhooks in development. See https://ghost.org/docs/webhooks/#stripe-webhooks for developing with Stripe.',
-    emailVerificationNeeded: `We're hard at work processing your import. To make sure you get great deliverability on a list of that size, we'll need to enable some extra features for your account. A member of our team will be in touch with you by email to review your account make sure everything is configured correctly so you're ready to go.`,
-    emailVerificationEmailMessage: `Email verification needed for site: {siteUrl}, just imported: {importedNumber} members.`
+    remoteWebhooksInDevelopment: 'Cannot use remote webhooks in development. See https://ghost.org/docs/webhooks/#stripe-webhooks for developing with Stripe.'
 };
 
 const ghostMailer = new GhostMailer();
@@ -63,7 +62,8 @@ const processImport = async (options) => {
     if (importSize > importThreshold) {
         await verificationTrigger.startVerificationProcess({
             amountImported: importSize,
-            throwOnTrigger: true
+            throwOnTrigger: true,
+            source: 'import'
         });
     }
 
@@ -75,6 +75,32 @@ module.exports = {
         const stripeService = require('../stripe');
         const createMembersApiInstance = require('./api');
         const env = config.get('env');
+
+        events.on('settings.edited', async function (settingModel) {
+            if (labsService.isSet('multipleProducts')) {
+                return;
+            }
+
+            const key = settingModel.get('key');
+            const value = settingModel.get('value');
+
+            if (key === 'members_free_signup_redirect') {
+                try {
+                    await models.Product.forge().query().update('welcome_page_url', value).where('type', 'free');
+                } catch (err) {
+                    logging.error(err);
+                }
+                return;
+            }
+            if (key === 'members_paid_signup_redirect') {
+                try {
+                    await models.Product.forge().query().update('welcome_page_url', value).where('type', 'paid');
+                } catch (err) {
+                    logging.error(err);
+                }
+                return;
+            }
+        });
 
         // @TODO Move to stripe service
         if (env !== 'production') {
