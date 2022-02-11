@@ -41,6 +41,7 @@ module.exports = {
                         email: frame.data.setup[0].email,
                         password: frame.data.setup[0].password,
                         blogTitle: frame.data.setup[0].blogTitle,
+                        theme: frame.data.setup[0].theme,
                         status: 'active'
                     };
 
@@ -52,6 +53,9 @@ module.exports = {
                     } catch (e) {
                         return data;
                     }
+                })
+                .then((data) => {
+                    return auth.setup.installTheme(data, api);
                 })
                 .then((data) => {
                     return auth.setup.doSettings(data, api.settings);
