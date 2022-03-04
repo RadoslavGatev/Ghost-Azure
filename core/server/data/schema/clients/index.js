@@ -3,5 +3,5 @@ const mysql = require('./mysql');
 
 module.exports = {
     sqlite3: sqlite3,
-    mysql: mysql
+    mysql2: mysql
 };

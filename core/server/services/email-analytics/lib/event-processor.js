@@ -1,5 +1,5 @@
 const {EventProcessor} = require('@tryghost/email-analytics-service');
-const moment = require('moment');
+const moment = require('moment-timezone');
 
 class GhostEventProcessor extends EventProcessor {
     constructor({db}) {
@@ -86,6 +86,23 @@ class GhostEventProcessor extends EventProcessor {
             .where('member_email', '=', event.recipientEmail)
             .update({
                 opened_at: this.db.knex.raw('COALESCE(opened_at, ?)', [moment.utc(event.timestamp).format('YYYY-MM-DD HH:mm:ss')])
+            });
+
+        // Using the default timezone set in https://github.com/TryGhost/Ghost/blob/2c5643623db0fc4db390f6997c81a73dca7ccacd/core/server/data/schema/default-settings/default-settings.json#L105
+        let timezone = 'Etc/UTC';
+        const timezoneData = await this.db.knex('settings').first('value').where('key', 'timezone');
+        if (timezoneData && timezoneData.value) {
+            timezone = timezoneData.value;
+        }
+
+        await this.db.knex('members')
+            .where('email', '=', event.recipientEmail)
+            .andWhere(builder => builder
+                .where('last_seen_at', '<', moment.utc(event.timestamp).tz(timezone).startOf('day').utc().format('YYYY-MM-DD HH:mm:ss'))
+                .orWhereNull('last_seen_at')
+            )
+            .update({
+                last_seen_at: moment.utc(event.timestamp).format('YYYY-MM-DD HH:mm:ss')
             });
 
         return updateResult > 0;

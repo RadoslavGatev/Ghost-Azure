@@ -1,6 +1,7 @@
 //@ts-check
 const debug = require('@tryghost/debug')('api:canary:utils:serializers:output:products');
 const _ = require('lodash');
+const utils = require('../../../../shared/utils');
 
 const allowedIncludes = ['stripe_prices', 'monthly_price', 'yearly_price'];
 
@@ -22,7 +23,7 @@ module.exports = {
  */
 function paginatedProducts(page, _apiConfig, frame) {
     const requestedQueryIncludes = frame.original && frame.original.query && frame.original.query.include && frame.original.query.include.split(',') || [];
-    const requestedOptionsIncludes = frame.original && frame.original.options && frame.original.options.include || [];
+    const requestedOptionsIncludes = utils.options.trimAndLowerCase(frame.original && frame.original.options && frame.original.options.include || []);
     return {
         products: page.data.map((model) => {
             return cleanIncludes(
@@ -74,6 +75,7 @@ function serializeProduct(product, options, apiType) {
         description: json.description,
         slug: json.slug,
         active: json.active,
+        visibility: json.visibility,
         type: json.type,
         welcome_page_url: json.welcome_page_url,
         created_at: json.created_at,
