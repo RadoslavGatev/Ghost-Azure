@@ -14,7 +14,7 @@ const messages = {
 
 // these are formats supported by image-size but not probe-image-size
 const FETCH_ONLY_FORMATS = [
-    'cur', 'icns', 'ico', 'dds'
+    'cur', 'icns', 'dds'
 ];
 
 class ImageSize {
@@ -34,6 +34,14 @@ class ImageSize {
             timeout: this.config.get('times:getImageSizeTimeoutInMS') || 10000,
             retry: 0, // for `got`, used with image-size
             encoding: null
+        };
+
+        this.NEEDLE_OPTIONS = {
+            // we need the user-agent, otherwise some https request may fail (e.g. cloudflare)
+            headers: {
+                'User-Agent': 'Mozilla/5.0 Safari/537.36'
+            },
+            response_timeout: this.config.get('times:getImageSizeTimeoutInMS') || 10000
         };
     }
 
@@ -71,7 +79,7 @@ class ImageSize {
             }));
         }
 
-        return probeSizeOf(imageUrl, this.REQUEST_OPTIONS);
+        return probeSizeOf(imageUrl, this.NEEDLE_OPTIONS);
     }
 
     // download full image then use image-size to get it's dimensions
@@ -162,14 +170,14 @@ class ImageSize {
                 statusCode: err.statusCode,
                 context: err.url || imagePath
             }));
-        }).catch({code: 'ETIMEDOUT'}, {code: 'ESOCKETTIMEDOUT'}, {statusCode: 408}, (err) => {
+        }).catch({code: 'ETIMEDOUT'}, {code: 'ESOCKETTIMEDOUT'}, {code: 'ECONNRESET'}, {statusCode: 408}, (err) => {
             return Promise.reject(new errors.InternalServerError({
                 message: 'Request timed out.',
                 code: 'IMAGE_SIZE_URL',
                 statusCode: err.statusCode,
                 context: err.url || imagePath
             }));
-        }).catch({code: 'ENOENT'}, {statusCode: 404}, (err) => {
+        }).catch({code: 'ENOENT'}, {code: 'ENOTFOUND'}, {statusCode: 404}, (err) => {
             return Promise.reject(new errors.NotFoundError({
                 message: 'Image not found.',
                 code: 'IMAGE_SIZE_URL',
