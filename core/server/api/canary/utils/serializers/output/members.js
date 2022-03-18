@@ -1,7 +1,6 @@
 //@ts-check
 const debug = require('@tryghost/debug')('api:canary:utils:serializers:output:members');
 const {unparse} = require('@tryghost/members-csv');
-const labs = require('../../../../../../shared/labs');
 
 module.exports = {
     hasActiveStripeSubscriptions: createSerializer('hasActiveStripeSubscriptions', passthrough),
@@ -17,7 +16,6 @@ module.exports = {
     exportCSV: createSerializer('exportCSV', exportCSV),
 
     importCSV: createSerializer('importCSV', passthrough),
-    stats: createSerializer('stats', passthrough),
     memberStats: createSerializer('memberStats', passthrough),
     mrrStats: createSerializer('mrrStats', passthrough),
     subscriberStats: createSerializer('subscriberStats', passthrough),
@@ -125,12 +123,9 @@ function serializeMember(member, options) {
         email_opened_count: json.email_opened_count,
         email_open_rate: json.email_open_rate,
         email_recipients: json.email_recipients,
-        status: json.status
+        status: json.status,
+        last_seen_at: json.last_seen_at
     };
-
-    if (labs.isSet('membersLastSeenFilter')) {
-        serialized.last_seen_at = json.last_seen_at;
-    }
 
     if (json.products) {
         serialized.products = json.products;
