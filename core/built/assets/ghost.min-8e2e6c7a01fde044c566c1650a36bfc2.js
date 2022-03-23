@@ -578,8 +578,8 @@ var L=Ember._setComponentTemplate(I,(a=Ember.inject.service,s=Ember.inject.servi
 if(this.member.get("isNew"))return!1
 if(this.member.get("products")?.length>0)return!1
 return!!this.productsList?.length}get isCreatingComplimentary(){return this.args.isSaveRunning}get products(){let e=this.member.get("subscriptions")||[],t=e.map((e=>e.tier||e.price.product)).filter(((e,t,n)=>void 0!==e.id&&n.findIndex((t=>(t.product_id||t.id)===(e.product_id||e.id)))===t)),r=e.filter((e=>!!e.price)).map((e=>({...e,startDate:e.start_date?(0,n.default)(e.start_date).format("D MMM YYYY"):"-",validUntil:e.current_period_end?(0,n.default)(e.current_period_end).format("D MMM YYYY"):"-",cancellationReason:e.cancellation_reason,price:{...e.price,currencySymbol:(0,i.getSymbol)(e.price.currency),nonDecimalAmount:(0,i.getNonDecimal)(e.price.amount)},isComplimentary:!e.id})))
-for(let n of t){let e=r.filter((e=>e?.price?.product?.product_id===(n.product_id||n.id)))
-n.subscriptions=e}return t}get customer(){let e=this.member.get("subscriptions").firstObject,t=e?.customer
+return t.map((e=>{let t=r.filter((t=>t?.price?.product?.product_id===(e.product_id||e.id)))
+return{...e,subscriptions:t}}))}get customer(){let e=this.member.get("subscriptions").firstObject,t=e?.customer
 return t?{...t,startDate:e?.startDate}:null}get isStripeConnected(){return this.settings.get("stripeConnectAccountId")}setup(){this.fetchProducts.perform()}setProperty(e,t){this.args.setProperty(e,t)}setLabels(e){this.member.set("labels",e)}closeMemberProductModal(){this.showMemberProductModal=!1}cancelSubscription(e){this.cancelSubscriptionTask.perform(e)}removeComplimentary(e){this.removeComplimentaryTask.perform(e)}continueSubscription(e){this.continueSubscriptionTask.perform(e)}*cancelSubscriptionTask(e){let t=this.ghostPaths.url.api("members",this.member.get("id"),"subscriptions",e),n=yield this.ajax.put(t,{data:{cancel_at_period_end:!0}})
 return this.store.pushPayload("member",n),n}*removeComplimentaryTask(e){let t=this.ghostPaths.url.api(`members/${this.member.get("id")}`)
 const n=(this.member.get("products")||[]).filter((t=>t.id!==e)).map((e=>({id:e.id})))
@@ -3925,4 +3925,4 @@ var t=Ember.Component.extend({})
 e.default=t})),define("ghost-admin/config/environment",[],(function(){try{var e="ghost-admin/config/environment",t=document.querySelector('meta[name="'+e+'"]').getAttribute("content"),n={default:JSON.parse(decodeURIComponent(t))}
 return Object.defineProperty(n,"__esModule",{value:!0}),n}catch(i){throw new Error('Could not read config from meta tag with name "'+e+'".')}})),runningTests||require("ghost-admin/app").default.create({version:"4.41",name:"ghost-admin"})
 
-//# sourceMappingURL=ghost.min-ee1d1d48a30dbd67513f647f360b39e3.map
+//# sourceMappingURL=ghost.min-8e2e6c7a01fde044c566c1650a36bfc2.map
