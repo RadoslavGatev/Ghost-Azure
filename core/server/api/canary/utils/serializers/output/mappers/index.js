@@ -1,9 +1,9 @@
 module.exports = {
     actions: require('./actions'),
+    authors: require('./authors'),
     emails: require('./emails'),
     images: require('./images'),
     integrations: require('./integrations'),
-    labels: require('./labels'),
     pages: require('./pages'),
     posts: require('./posts'),
     settings: require('./settings'),
