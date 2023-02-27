@@ -31,10 +31,10 @@ jobs:
       - name: Install dependencies
         run: npm install --production
 
-      - name: Create a zip
-        run: zip -r ghost-azure.zip .
+      # - name: Create a zip
+      #   run: zip -r ghost-azure.zip .
       - uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          package: ghost-azure.zip
+          package: ${GITHUB_WORKSPACE}
 
