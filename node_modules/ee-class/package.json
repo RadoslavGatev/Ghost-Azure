@@ -1,0 +1,35 @@
+{
+      "name"                        : "ee-class"
+    , "description"                 : "Fast prototype based javascript classes"
+    , "version"                     : "1.4.0"
+    , "homepage"                    : "https://github.com/eventEmitter/ee-class"
+    , "author"                      : "Michael van der Weg <michael@eventemitter.com> (http://eventemitter.com/)" 
+    , "license"                     : "MIT"
+    , "repository": {
+          "url"                     : "https://github.com/eventEmitter/ee-class.git"
+        , "type"                    : "git"
+    }
+    , "engines": {
+        "node"                      : ">=v4.2.1"
+    }
+    , "bugs": {
+        "url"                       : "https://github.com/eventEmitter/ee-class/issues"
+    }
+    , "dependencies": {}
+    , "devDependencies": {
+          "mocha"                   : "2.x"
+        , "ee-log"                  : "0.x"
+        , "gulp"                    : "3.x"
+        , "gulp-concat"             : "2.x"
+        , "gulp-sourcemaps"         : "1.x"
+        , "gulp-expect-file"        : "0.0.x"
+        , "gulp-uglify"             : "1.x"
+    }
+    , "optionalDependencies": {}
+    , "keywords"                    : ["class"]
+     , "scripts": {
+          "test"                    : "./node_modules/mocha/bin/_mocha --reporter spec"
+        , "posttest"                : "npm run js"
+        , "js"                      : "./node_modules/gulp/bin/gulp.js js js-min"
+    }
+}

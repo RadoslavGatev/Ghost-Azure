@@ -1,0 +1,60 @@
+{
+  "name": "mailgun-js",
+  "description": "Simple Node.js helper module for Mailgun API",
+  "keywords": [
+    "email",
+    "mailgun"
+  ],
+  "version": "0.22.0",
+  "homepage": "https://github.com/bojand/mailgun-js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/bojand/mailgun-js.git"
+  },
+  "bugs": {
+    "url": "http://github.com/bojand/mailgun-js/issues"
+  },
+  "engines": {
+    "node": ">=6.0.0"
+  },
+  "main": "./lib/mailgun.js",
+  "dependencies": {
+    "async": "^2.6.1",
+    "debug": "^4.1.0",
+    "form-data": "^2.3.3",
+    "inflection": "~1.12.0",
+    "is-stream": "^1.1.0",
+    "path-proxy": "~1.0.0",
+    "promisify-call": "^2.0.2",
+    "proxy-agent": "^3.0.3",
+    "tsscmp": "^1.0.6"
+  },
+  "author": {
+    "name": "Bojan Djurkovic <dbojan@gmail.com>"
+  },
+  "devDependencies": {
+    "clone": "^2.1.2",
+    "mocha": "~5.2.0",
+    "nodemailer": "^4.6.8",
+    "request": "^2.88.0",
+    "sinon": "^7.1.0",
+    "standard": "^12.0.0"
+  },
+  "scripts": {
+    "test": "npm run lint && npm run mocha",
+    "mocha": "mocha --ui exports --slow 1500ms --timeout 10000ms --reporter spec",
+    "lint": "standard lib/**/*.js && standard --env mocha test/**/*.js",
+    "lint:fix": "standard --fix lib/**/*.js && standard --env mocha --fix test/**/*.js",
+    "docs": "./bin/docs"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "standard": {
+    "env": {
+      "node": true,
+      "mocha": true
+    }
+  }
+}

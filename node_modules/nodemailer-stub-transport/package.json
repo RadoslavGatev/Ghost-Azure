@@ -1,0 +1,33 @@
+{
+  "name": "nodemailer-stub-transport",
+  "version": "1.1.0",
+  "description": "Stub transport for Nodemailer",
+  "main": "src/stub-transport.js",
+  "scripts": {
+    "test": "grunt"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/andris9/nodemailer-stub-transport.git"
+  },
+  "keywords": [
+    "Stub",
+    "Nodemailer"
+  ],
+  "author": "Andris Reinman",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/andris9/nodemailer-stub-transport/issues"
+  },
+  "homepage": "http://github.com/andris9/nodemailer-stub-transport",
+  "dependencies": {},
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "grunt": "^1.0.1",
+    "grunt-cli": "^1.2.0",
+    "grunt-eslint": "^19.0.0",
+    "grunt-mocha-test": "^0.12.7",
+    "mocha": "^3.0.2",
+    "sinon": "^1.17.5"
+  }
+}

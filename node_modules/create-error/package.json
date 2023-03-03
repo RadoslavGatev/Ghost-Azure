@@ -1,0 +1,27 @@
+{
+  "name": "create-error",
+  "version": "0.3.1",
+  "description": "Simple helper for sub-classing the Error object",
+  "main": "create-error.js",
+  "scripts": {
+    "test": "mocha -R spec test/index.js"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tgriesser/create-error.git"
+  },
+  "keywords": [
+    "errors"
+  ],
+  "author": {
+    "name": "Tim Griesser",
+    "web": "https://github.com/tgriesser"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "mocha": "~1.15.0"
+  }
+}

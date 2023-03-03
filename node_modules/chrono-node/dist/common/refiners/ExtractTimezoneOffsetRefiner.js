@@ -1,0 +1,36 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const TIMEZONE_OFFSET_PATTERN = new RegExp("^\\s*(?:(?:GMT|UTC)\\s?)?([+-])(\\d{1,2})(?::?(\\d{2}))?", "i");
+const TIMEZONE_OFFSET_SIGN_GROUP = 1;
+const TIMEZONE_OFFSET_HOUR_OFFSET_GROUP = 2;
+const TIMEZONE_OFFSET_MINUTE_OFFSET_GROUP = 3;
+class ExtractTimezoneOffsetRefiner {
+    refine(context, results) {
+        results.forEach(function (result) {
+            if (result.start.isCertain("timezoneOffset")) {
+                return;
+            }
+            const suffix = context.text.substring(result.index + result.text.length);
+            const match = TIMEZONE_OFFSET_PATTERN.exec(suffix);
+            if (!match) {
+                return;
+            }
+            context.debug(() => {
+                console.log(`Extracting timezone: '${match[0]}' into : ${result}`);
+            });
+            const hourOffset = parseInt(match[TIMEZONE_OFFSET_HOUR_OFFSET_GROUP]);
+            const minuteOffset = parseInt(match[TIMEZONE_OFFSET_MINUTE_OFFSET_GROUP] || "0");
+            let timezoneOffset = hourOffset * 60 + minuteOffset;
+            if (match[TIMEZONE_OFFSET_SIGN_GROUP] === "-") {
+                timezoneOffset = -timezoneOffset;
+            }
+            if (result.end != null) {
+                result.end.assign("timezoneOffset", timezoneOffset);
+            }
+            result.start.assign("timezoneOffset", timezoneOffset);
+            result.text += match[0];
+        });
+        return results;
+    }
+}
+exports.default = ExtractTimezoneOffsetRefiner;

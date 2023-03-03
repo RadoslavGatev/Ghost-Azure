@@ -1,0 +1,30 @@
+{
+      "name"                        : "ee-argv"
+    , "description"                 : "A simple and fast commandline arguments parser"
+    , "version"                     : "0.1.4"
+    , "homepage"                    : "https://github.com/eventEmitter/ee-argv"
+    , "author"                      : "Michael van der Weg <michael@eventemitter.com> (http://eventemitter.com/)" 
+    , "license"                     : "MIT"
+    , "repository": {
+          "url"                     : "https://github.com/eventEmitter/ee-argv.git"
+        , "type"                    : "git"
+    }
+    , "engines": {
+        "node"                      : ">=0.10.7"
+    }
+    , "bugs": {
+        "url"                       : "https://github.com/eventEmitter/ee-argv/issues"
+    }
+    , "dependencies": {}
+    , "devDependencies": {
+          "mocha"                   : "1.17.x"
+    }
+    , "optionalDependencies": {}
+    , "keywords"                    : [ "argv", "commandline", "parser" ]
+    , "scripts": {
+        "test"                      : "node test.js"
+    }
+     , "scripts": {
+        "test"                      : "./node_modules/mocha/bin/mocha --reporter spec"
+    }
+}

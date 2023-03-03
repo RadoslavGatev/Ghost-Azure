@@ -1,0 +1,18 @@
+dist: xenial
+language: node_js
+node_js:
+- '10'
+- '8'
+cache: yarn
+services:
+- mysql
+# Don't run builds for renovate PRs
+if: NOT head_branch =~ ^renovate
+env:
+  matrix:
+    - DB=sqlite3 NODE_ENV=testing
+    - DB=mysql NODE_ENV=testing-mysql
+before_script:
+  - if [ $DB == "mysql" ]; then mysql -e 'create database nql_testing'; fi
+
+

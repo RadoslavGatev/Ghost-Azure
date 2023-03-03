@@ -1,0 +1,193 @@
+import { __read } from "tslib";
+import { isPrimitive, isSyntheticEvent } from './is';
+import { memoBuilder } from './memo';
+import { getWalkSource } from './object';
+import { getFunctionName } from './stacktrace';
+/**
+ * Recursively normalizes the given object.
+ *
+ * - Creates a copy to prevent original input mutation
+ * - Skips non-enumerable properties
+ * - When stringifying, calls `toJSON` if implemented
+ * - Removes circular references
+ * - Translates non-serializable values (`undefined`/`NaN`/functions) to serializable format
+ * - Translates known global objects/classes to a string representations
+ * - Takes care of `Error` object serialization
+ * - Optionally limits depth of final output
+ * - Optionally limits number of properties/elements included in any single object/array
+ *
+ * @param input The object to be normalized.
+ * @param depth The max depth to which to normalize the object. (Anything deeper stringified whole.)
+ * @param maxProperties The max number of elements or properties to be included in any single array or
+ * object in the normallized output..
+ * @returns A normalized version of the object, or `"**non-serializable**"` if any errors are thrown during normalization.
+ */
+export function normalize(input, depth, maxProperties) {
+    if (depth === void 0) { depth = +Infinity; }
+    if (maxProperties === void 0) { maxProperties = +Infinity; }
+    try {
+        // since we're at the outermost level, there is no key
+        return walk('', input, depth, maxProperties);
+    }
+    catch (_oO) {
+        return '**non-serializable**';
+    }
+}
+/** JSDoc */
+export function normalizeToSize(object, 
+// Default Node.js REPL depth
+depth, 
+// 100kB, as 200kB is max payload size, so half sounds reasonable
+maxSize) {
+    if (depth === void 0) { depth = 3; }
+    if (maxSize === void 0) { maxSize = 100 * 1024; }
+    var serialized = normalize(object, depth);
+    if (jsonSize(serialized) > maxSize) {
+        return normalizeToSize(object, depth - 1, maxSize);
+    }
+    return serialized;
+}
+/**
+ * Walks an object to perform a normalization on it
+ *
+ * @param key of object that's walked in current iteration
+ * @param value object to be walked
+ * @param depth Optional number indicating how deep should walking be performed
+ * @param maxProperties Optional maximum  number of properties/elements included in any single object/array
+ * @param memo Optional Memo class handling decycling
+ */
+export function walk(key, value, depth, maxProperties, memo) {
+    if (depth === void 0) { depth = +Infinity; }
+    if (maxProperties === void 0) { maxProperties = +Infinity; }
+    if (memo === void 0) { memo = memoBuilder(); }
+    var _a = __read(memo, 2), memoize = _a[0], unmemoize = _a[1];
+    // If we reach the maximum depth, serialize whatever is left
+    if (depth === 0) {
+        return serializeValue(value);
+    }
+    // If value implements `toJSON` method, call it and return early
+    if (value !== null && value !== undefined && typeof value.toJSON === 'function') {
+        return value.toJSON();
+    }
+    // `makeSerializable` provides a string representation of certain non-serializable values. For all others, it's a
+    // pass-through. If what comes back is a primitive (either because it's been stringified or because it was primitive
+    // all along), we're done.
+    var serializable = makeSerializable(value, key);
+    if (isPrimitive(serializable)) {
+        return serializable;
+    }
+    // Create source that we will use for the next iteration. It will either be an objectified error object (`Error` type
+    // with extracted key:value pairs) or the input itself.
+    var source = getWalkSource(value);
+    // Create an accumulator that will act as a parent for all future itterations of that branch
+    var acc = Array.isArray(value) ? [] : {};
+    // If we already walked that branch, bail out, as it's circular reference
+    if (memoize(value)) {
+        return '[Circular ~]';
+    }
+    var propertyCount = 0;
+    // Walk all keys of the source
+    for (var innerKey in source) {
+        // Avoid iterating over fields in the prototype if they've somehow been exposed to enumeration.
+        if (!Object.prototype.hasOwnProperty.call(source, innerKey)) {
+            continue;
+        }
+        if (propertyCount >= maxProperties) {
+            acc[innerKey] = '[MaxProperties ~]';
+            break;
+        }
+        propertyCount += 1;
+        // Recursively walk through all the child nodes
+        var innerValue = source[innerKey];
+        acc[innerKey] = walk(innerKey, innerValue, depth - 1, maxProperties, memo);
+    }
+    // Once walked through all the branches, remove the parent from memo storage
+    unmemoize(value);
+    // Return accumulated values
+    return acc;
+}
+/**
+ * Transform any non-primitive, BigInt, or Symbol-type value into a string. Acts as a no-op on strings, numbers,
+ * booleans, null, and undefined.
+ *
+ * @param value The value to stringify
+ * @returns For non-primitive, BigInt, and Symbol-type values, a string denoting the value's type, type and value, or
+ *  type and `description` property, respectively. For non-BigInt, non-Symbol primitives, returns the original value,
+ *  unchanged.
+ */
+function serializeValue(value) {
+    // Node.js REPL notation
+    if (typeof value === 'string') {
+        return value;
+    }
+    var type = Object.prototype.toString.call(value);
+    if (type === '[object Object]') {
+        return '[Object]';
+    }
+    if (type === '[object Array]') {
+        return '[Array]';
+    }
+    // `makeSerializable` provides a string representation of certain non-serializable values. For all others, it's a
+    // pass-through.
+    var serializable = makeSerializable(value);
+    return isPrimitive(serializable) ? serializable : type;
+}
+/**
+ * makeSerializable()
+ *
+ * Takes unserializable input and make it serializer-friendly.
+ *
+ * Handles globals, functions, `undefined`, `NaN`, and other non-serializable values.
+ */
+function makeSerializable(value, key) {
+    if (key === 'domain' && value && typeof value === 'object' && value._events) {
+        return '[Domain]';
+    }
+    if (key === 'domainEmitter') {
+        return '[DomainEmitter]';
+    }
+    if (typeof global !== 'undefined' && value === global) {
+        return '[Global]';
+    }
+    // It's safe to use `window` and `document` here in this manner, as we are asserting using `typeof` first
+    // which won't throw if they are not present.
+    // eslint-disable-next-line no-restricted-globals
+    if (typeof window !== 'undefined' && value === window) {
+        return '[Window]';
+    }
+    // eslint-disable-next-line no-restricted-globals
+    if (typeof document !== 'undefined' && value === document) {
+        return '[Document]';
+    }
+    // React's SyntheticEvent thingy
+    if (isSyntheticEvent(value)) {
+        return '[SyntheticEvent]';
+    }
+    if (typeof value === 'number' && value !== value) {
+        return '[NaN]';
+    }
+    if (value === void 0) {
+        return '[undefined]';
+    }
+    if (typeof value === 'function') {
+        return "[Function: " + getFunctionName(value) + "]";
+    }
+    // symbols and bigints are considered primitives by TS, but aren't natively JSON-serilaizable
+    if (typeof value === 'symbol') {
+        return "[" + String(value) + "]";
+    }
+    if (typeof value === 'bigint') {
+        return "[BigInt: " + String(value) + "]";
+    }
+    return value;
+}
+/** Calculates bytes size of input string */
+function utf8Length(value) {
+    // eslint-disable-next-line no-bitwise
+    return ~-encodeURI(value).split(/%..|./).length;
+}
+/** Calculates bytes size of input object */
+function jsonSize(value) {
+    return utf8Length(JSON.stringify(value));
+}
+//# sourceMappingURL=normalize.js.map

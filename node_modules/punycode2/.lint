@@ -1,0 +1,21 @@
+@root
+
+module
+
+tabs
+indent 2
+maxlen 100
+
+ass
+bitwise
+continue
+evil
+forin
+nomen
+plusplus
+stupid
+vars
+regexp
+
+./test
+predef+ global, test, deepEqual, equal

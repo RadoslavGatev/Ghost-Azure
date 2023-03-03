@@ -1,0 +1,10 @@
+language: node_js
+node_js:
+  - 0.10
+  - 0.11
+
+notifications:
+  email:
+    - medikoo+punycode2@medikoo.com
+
+script: "npm test && npm run lint"

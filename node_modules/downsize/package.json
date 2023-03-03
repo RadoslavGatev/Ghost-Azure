@@ -1,0 +1,38 @@
+{
+  "name": "downsize",
+  "version": "0.0.8",
+  "description": "Tag-safe truncation for HTML and XML. Works by word!",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha -R spec test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/cgiffard/Downsize"
+  },
+  "keywords": [
+    "text",
+    "truncate",
+    "downsize",
+    "word",
+    "limit",
+    "character",
+    "html",
+    "xml",
+    "tag",
+    "safe"
+  ],
+  "author": "Christopher Giffard",
+  "license": "BSD",
+  "dependencies": {
+    "xregexp": "2.0.0"
+  },
+  "devDependencies": {
+    "chai": "~1.5.0",
+    "mocha": "~1.9.0"
+  },
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/cgiffard/Downsize/issues"
+  }
+}

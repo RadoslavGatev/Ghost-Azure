@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+    <html>
+        <head>
+            <title>require.js test</title>
+        </head>
+        <body>
+            <script src="requirejs.js"></script>
+            <script>
+                requirejs.config({
+                    paths: {
+                        'bower': '../bower_components'
+                    }
+                });
+
+
+                require(['../dist/ee-types.min'], function(types) {
+                    console.log(types.string(new String('hi')));
+                });
+            </script>
+        </body>
+    </html>

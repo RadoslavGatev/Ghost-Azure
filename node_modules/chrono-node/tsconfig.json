@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "sourceMap": false,
+    "inlineSources": false,
+    "inlineSourceMap": false,
+    "noEmit": false,
+    "declaration": true,
+    "stripInternal": true,
+    "outDir": "dist",
+    "downlevelIteration": true,
+    "esModuleInterop": true,
+    "importHelpers": false,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noFallthroughCasesInSwitch": true,
+    "removeComments": true,
+    "target": "es6"
+  },
+  "include": [
+    "src",
+    "test"
+  ],
+  "typedocOptions": {
+    "entryPoints": ["src/index.ts"],
+    "out": "docs",
+    "name": "Chrono",
+    "readme": "none",
+    "includeVersion": true,
+    "theme": "default"
+  }
+}
