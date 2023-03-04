@@ -107,7 +107,9 @@ async function doSettings(data, settingsAPI) {
     return user;
 }
 
-async function doProduct(data, productsAPI) {
+// Update names for default product and newsletter to site title
+async function doTiersAndNewsletter(data, api) {
+    const {tiers: tiersAPI, newsletters: newslettersAPI} = api;
     const context = {context: {user: data.user.id}};
     const user = data.user;
     const blogTitle = data.userData.blogTitle;
@@ -116,15 +118,23 @@ async function doProduct(data, productsAPI) {
         return user;
     }
     try {
-        const page = await productsAPI.browse({limit: 'all'});
+        const tierPage = await tiersAPI.browse({limit: 'all'});
+        const newsletterPage = await newslettersAPI.browse({limit: 'all'});
 
-        const product = page.products.find(p => p.slug === 'default-product');
+        const defaultTier = tierPage.tiers.find(p => p.slug === 'default-product');
+        const defaultNewsletter = newsletterPage.newsletters.find(p => p.slug === 'default-newsletter');
 
-        if (!product) {
-            return data;
+        if (defaultTier) {
+            await tiersAPI.edit({tiers: [{
+                name: blogTitle.trim()
+            }]}, {context: context.context, id: defaultTier.id});
         }
 
-        await productsAPI.edit({products: [{name: blogTitle.trim()}]}, {context: context.context, id: product.id});
+        if (defaultNewsletter) {
+            await newslettersAPI.edit({newsletters: [{
+                name: blogTitle.trim()
+            }]}, {context: context.context, id: defaultNewsletter.id});
+        }
     } catch (e) {
         return data;
     }
@@ -142,7 +152,10 @@ async function doFixtures(data) {
         mobiledoc = mobiledoc.replace(/{{date}}/, date);
 
         const post = await models.Post.findOne({slug: key});
-        await models.Post.edit({mobiledoc}, {id: post.id});
+
+        if (post) {
+            await models.Post.edit({mobiledoc}, {id: post.id});
+        }
     });
 
     return data;
@@ -155,7 +168,7 @@ function sendWelcomeEmail(email, mailAPI) {
         };
 
         return mail.utils.generateContent({data: data, template: 'welcome'})
-            .then((content) => {
+            .then(async (content) => {
                 const message = {
                     to: email,
                     subject: tpl(messages.yourNewGhostBlog),
@@ -170,7 +183,7 @@ function sendWelcomeEmail(email, mailAPI) {
                     }]
                 };
 
-                mailAPI.send(payload, {context: {internal: true}})
+                await mailAPI.send(payload, {context: {internal: true}})
                     .catch((err) => {
                         err.context = tpl(messages.unableToSendWelcomeEmail);
                         logging.error(err);
@@ -218,7 +231,7 @@ module.exports = {
     assertSetupCompleted: assertSetupCompleted,
     setupUser: setupUser,
     doSettings: doSettings,
-    doProduct: doProduct,
+    doProductAndNewsletter: doTiersAndNewsletter,
     installTheme: installTheme,
     doFixtures: doFixtures,
     sendWelcomeEmail: sendWelcomeEmail

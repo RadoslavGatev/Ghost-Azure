@@ -1,36 +1,16 @@
 const omit = require('lodash/omit');
-const crypto = require('crypto');
+const security = require('@tryghost/security');
 const ghostBookshelf = require('./base');
 const {Role} = require('./role');
-
-/*
- * Uses birthday problem estimation to calculate chance of collision
- * d = 16^26        // 26 char hex string
- * n = 10,000,000   // 10 million
- *
- *       (-n x (n-1)) / 2d
- * 1 - e^
- *
- *
- *           17
- * ~= 4 x 10^
- *
- * ref: https://medium.freecodecamp.org/how-long-should-i-make-my-api-key-833ebf2dc26f
- * ref: https://en.wikipedia.org/wiki/Birthday_problem#Approximations
- *
- * 26 char hex string = 13 bytes
- * 64 char hex string JWT secret = 32 bytes
- */
-const createSecret = (type) => {
-    const bytes = type === 'content' ? 13 : 32;
-    return crypto.randomBytes(bytes).toString('hex');
-};
 
 const ApiKey = ghostBookshelf.Model.extend({
     tableName: 'api_keys',
 
+    actionsCollectCRUD: true,
+    actionsResourceType: 'api_key',
+
     defaults() {
-        const secret = createSecret(this.get('type'));
+        const secret = security.secret.create(this.get('type'));
 
         return {
             secret
@@ -76,28 +56,10 @@ const ApiKey = ghostBookshelf.Model.extend({
         if (this.previous('secret') !== this.get('secret')) {
             this.addAction(model, 'refreshed', options);
         }
-    },
-
-    getAction(event, options) {
-        const actor = this.getActor(options);
-
-        // @NOTE: we ignore internal updates (`options.context.internal`) for now
-        if (!actor) {
-            return;
-        }
-
-        // @TODO: implement context
-        return {
-            event: event,
-            resource_id: this.id || this.previous('id'),
-            resource_type: 'api_key',
-            actor_id: actor.id,
-            actor_type: actor.type
-        };
     }
 }, {
     refreshSecret(data, options) {
-        const secret = createSecret(data.type);
+        const secret = security.secret.create(data.type);
         return this.edit(Object.assign({}, data, {secret}), options);
     }
 });

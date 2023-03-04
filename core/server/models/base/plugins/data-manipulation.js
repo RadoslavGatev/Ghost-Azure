@@ -31,6 +31,7 @@ module.exports = function (Bookshelf) {
 
             _.each(attrs, function each(value, key) {
                 if (value !== null
+                && Object.prototype.hasOwnProperty.call(schema.tables, self.tableName)
                 && Object.prototype.hasOwnProperty.call(schema.tables[self.tableName], key)
                 && schema.tables[self.tableName][key].type === 'dateTime') {
                     attrs[key] = moment(value).format('YYYY-MM-DD HH:mm:ss');
@@ -77,7 +78,7 @@ module.exports = function (Bookshelf) {
             _.each(attrs, function each(value, key) {
                 const tableDef = schema.tables[self.tableName];
                 const columnDef = tableDef ? tableDef[key] : null;
-                if (columnDef && (columnDef.type === 'bool' || columnDef.type === 'boolean')) {
+                if (columnDef?.type === 'boolean') {
                     attrs[key] = value ? true : false;
                 }
             });

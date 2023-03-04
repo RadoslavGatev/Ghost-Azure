@@ -1,0 +1,49 @@
+
+{{alias}}( [out,] x )
+    Returns a normal number and exponent satisfying `x = y * 2^exp` as an array.
+
+    The first element of the returned array corresponds to `y` and the second to
+    `exp`.
+
+    Parameters
+    ----------
+    out: Array|TypedArray|Object (optional)
+        Output array.
+
+    x: number
+        Double-precision floating-point number.
+
+    Returns
+    -------
+    out: Array|TypedArray|Object
+        An array containing `y` and `exp`.
+
+    Examples
+    --------
+    > var out = {{alias}}( 3.14e-319 )
+    [ 1.4141234400356668e-303, -52 ]
+    > var y = out[ 0 ];
+    > var exponent = out[ 1 ];
+    > var bool = ( y*{{alias:@stdlib/math/base/special/pow}}(2.0, exponent) === 3.14e-319 )
+    true
+
+    // Special cases:
+    > out = {{alias}}( 0.0 )
+    [ 0.0, 0 ];
+    > out = {{alias}}( {{alias:@stdlib/constants/float64/pinf}} )
+    [ Infinity, 0 ]
+    > out = {{alias}}( {{alias:@stdlib/constants/float64/ninf}} )
+    [ -Infinity, 0 ]
+    > out = {{alias}}( NaN )
+    [ NaN, 0 ]
+
+    // Provide an output array:
+    > out = new {{alias:@stdlib/array/float64}}( 2 );
+    > var v = {{alias}}( out, 3.14e-319 )
+    <Float64Array>[ 1.4141234400356668e-303, -52 ]
+    > bool = ( v === out )
+    true
+
+    See Also
+    --------
+

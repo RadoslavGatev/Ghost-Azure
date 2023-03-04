@@ -3,15 +3,15 @@ const urlUtils = require('../../../shared/url-utils');
 const controllers = require('./controllers');
 
 /**
- * @description Preview Router.
+ * @description Email Router.
  */
 class EmailRouter extends ParentRouter {
     constructor(RESOURCE_CONFIG) {
-        super('PreviewRouter');
+        super('EmailRouter');
 
         this.RESOURCE_CONFIG = RESOURCE_CONFIG.QUERY.email;
 
-        // @NOTE: hardcoded, not configureable
+        // @NOTE: hardcoded, not configurable
         this.route = {value: '/email/'};
 
         this._registerRoutes();

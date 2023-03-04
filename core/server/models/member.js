@@ -2,7 +2,7 @@ const ghostBookshelf = require('./base');
 const uuid = require('uuid');
 const _ = require('lodash');
 const config = require('../../shared/config');
-const crypto = require('crypto');
+const {gravatar} = require('../lib/image');
 
 const Member = ghostBookshelf.Model.extend({
     tableName: 'members',
@@ -10,10 +10,10 @@ const Member = ghostBookshelf.Model.extend({
     defaults() {
         return {
             status: 'free',
-            subscribed: true,
             uuid: uuid.v4(),
             email_count: 0,
-            email_opened_count: 0
+            email_opened_count: 0,
+            enable_comment_notifications: true
         };
     },
 
@@ -30,6 +30,33 @@ const Member = ghostBookshelf.Model.extend({
         }, {
             key: 'products',
             replacement: 'products.slug'
+        }, {
+            key: 'tier',
+            replacement: 'products.slug'
+        }, {
+            key: 'tiers',
+            replacement: 'products.slug'
+        }, {
+            key: 'tier_id',
+            replacement: 'products.id'
+        },{
+            key: 'newsletters',
+            replacement: 'newsletters.slug'
+        }, {
+            key: 'signup',
+            replacement: 'signups.attribution_id'
+        }, {
+            key: 'conversion',
+            replacement: 'conversions.attribution_id'
+        }, {
+            key: 'opened_emails.post_id',
+            replacement: 'emails.post_id',
+            // Currently we cannot expand on values such as null or a string in mongo-knex
+            // But the line below is essentially the same as: `email_recipients.opened_at:-null`
+            expansion: 'email_recipients.opened_at:>=0'
+        }, {
+            key: 'offer_redemptions',
+            replacement: 'offer_redemptions.offer_id'
         }];
     },
 
@@ -49,6 +76,13 @@ const Member = ghostBookshelf.Model.extend({
                 joinFrom: 'member_id',
                 joinTo: 'product_id'
             },
+            newsletters: {
+                tableName: 'newsletters',
+                type: 'manyToMany',
+                joinTable: 'members_newsletters',
+                joinFrom: 'member_id',
+                joinTo: 'newsletter_id'
+            },
             subscriptions: {
                 tableName: 'members_stripe_customers_subscriptions',
                 tableNameAs: 'subscriptions',
@@ -57,15 +91,60 @@ const Member = ghostBookshelf.Model.extend({
                 joinFrom: 'member_id',
                 joinTo: 'customer_id',
                 joinToForeign: 'customer_id'
+            },
+            signups: {
+                tableName: 'members_created_events',
+                tableNameAs: 'signups',
+                type: 'oneToOne',
+                joinFrom: 'member_id'
+            },
+            conversions: {
+                tableName: 'members_subscription_created_events',
+                tableNameAs: 'conversions',
+                type: 'oneToOne',
+                joinFrom: 'member_id'
+            },
+            clicked_links: {
+                tableName: 'redirects',
+                tableNameAs: 'clicked_links',
+                type: 'manyToMany',
+                joinTable: 'members_click_events',
+                joinFrom: 'member_id',
+                joinTo: 'redirect_id'
+            },
+            emails: {
+                tableName: 'emails',
+                tableNameAs: 'emails',
+                type: 'manyToMany',
+                joinTable: 'email_recipients',
+                joinFrom: 'member_id',
+                joinTo: 'email_id'
+            },
+            feedback: {
+                tableName: 'members_feedback',
+                tableNameAs: 'feedback',
+                type: 'oneToOne',
+                joinFrom: 'member_id'
+            },
+            offer_redemptions: {
+                tableName: 'offer_redemptions',
+                type: 'oneToOne',
+                joinFrom: 'member_id'
             }
         };
     },
 
-    relationships: ['products', 'labels', 'stripeCustomers', 'email_recipients'],
+    relationships: ['products', 'labels', 'stripeCustomers', 'email_recipients', 'newsletters'],
 
     // do not delete email_recipients records when a member is destroyed. Recipient
     // records are used for analytics and historical records
     relationshipConfig: {
+        products: {
+            editable: true
+        },
+        labels: {
+            editable: true
+        },
         email_recipients: {
             destroyRelated: false
         }
@@ -73,9 +152,11 @@ const Member = ghostBookshelf.Model.extend({
 
     relationshipBelongsTo: {
         products: 'products',
+        newsletters: 'newsletters',
         labels: 'labels',
         stripeCustomers: 'members_stripe_customers',
-        email_recipients: 'email_recipients'
+        email_recipients: 'email_recipients',
+        offers: 'offers'
     },
 
     productEvents() {
@@ -85,12 +166,22 @@ const Member = ghostBookshelf.Model.extend({
 
     products() {
         return this.belongsToMany('Product', 'members_products', 'member_id', 'product_id')
-            .withPivot('sort_order')
+            .withPivot('sort_order', 'expiry_at')
             .query('orderBy', 'sort_order', 'ASC')
             .query((qb) => {
                 // avoids bookshelf adding a `DISTINCT` to the query
                 // we know the result set will already be unique and DISTINCT hurts query performance
-                qb.columns('products.*');
+                qb.columns('products.*', 'expiry_at');
+            });
+    },
+
+    newsletters() {
+        return this.belongsToMany('Newsletter', 'members_newsletters', 'member_id', 'newsletter_id')
+            .query('orderBy', 'newsletters.sort_order', 'ASC')
+            .query((qb) => {
+                // avoids bookshelf adding a `DISTINCT` to the query
+                // we know the result set will already be unique and DISTINCT hurts query performance
+                qb.columns('newsletters.*');
             });
     },
 
@@ -127,6 +218,18 @@ const Member = ghostBookshelf.Model.extend({
 
     email_recipients() {
         return this.hasMany('EmailRecipient', 'member_id', 'id');
+    },
+
+    async updateTierExpiry(products = [], options = {}) {
+        for (const product of products) {
+            if (product?.id) {
+                const expiry = product.expiry_at ? new Date(product.expiry_at) : null;
+                const queryOptions = _.extend({}, options, {
+                    query: {where: {product_id: product.id}}
+                });
+                await this.products().updatePivot({expiry_at: expiry}, queryOptions);
+            }
+        }
     },
 
     serialize(options) {
@@ -291,8 +394,7 @@ const Member = ghostBookshelf.Model.extend({
         // Will not use gravatar if privacy.useGravatar is false in config
         attrs.avatar_image = null;
         if (attrs.email && !config.isPrivacyDisabled('useGravatar')) {
-            const emailHash = crypto.createHash('md5').update(attrs.email.toLowerCase().trim()).digest('hex');
-            attrs.avatar_image = `https://gravatar.com/avatar/${emailHash}?s=250&d=blank`;
+            attrs.avatar_image = gravatar.url(attrs.email, {size: 250, default: 'blank'});
         }
 
         return attrs;
@@ -319,7 +421,13 @@ const Member = ghostBookshelf.Model.extend({
                 return this.add(data, Object.assign({transacting}, unfilteredOptions));
             });
         }
-        return ghostBookshelf.Model.add.call(this, data, unfilteredOptions);
+
+        return ghostBookshelf.Model.add.call(this, data, unfilteredOptions).then(async (member) => {
+            if (data.products) {
+                await member.updateTierExpiry(data.products, _.pick(unfilteredOptions, 'transacting'));
+            }
+            return member;
+        });
     },
 
     edit(data, unfilteredOptions = {}) {
@@ -328,7 +436,13 @@ const Member = ghostBookshelf.Model.extend({
                 return this.edit(data, Object.assign({transacting}, unfilteredOptions));
             });
         }
-        return ghostBookshelf.Model.edit.call(this, data, unfilteredOptions);
+
+        return ghostBookshelf.Model.edit.call(this, data, unfilteredOptions).then(async (member) => {
+            if (data.products) {
+                await member.updateTierExpiry(data.products, _.pick(unfilteredOptions, 'transacting'));
+            }
+            return member;
+        });
     },
 
     destroy(unfilteredOptions = {}) {
@@ -345,6 +459,20 @@ const Member = ghostBookshelf.Model.extend({
             .select('id')
             .where('label_id', data.labelId)
             .whereIn('member_id', data.memberIds);
+
+        if (unfilteredOptions.transacting) {
+            query.transacting(unfilteredOptions.transacting);
+        }
+
+        return query;
+    },
+
+    fetchAllSubscribed(unfilteredOptions = {}) {
+        // we use raw queries instead of model relationships because model hydration is expensive
+        const query = ghostBookshelf.knex('members_newsletters')
+            .join('newsletters', 'members_newsletters.newsletter_id', '=', 'newsletters.id')
+            .where('newsletters.status', 'active')
+            .distinct('member_id as id');
 
         if (unfilteredOptions.transacting) {
             query.transacting(unfilteredOptions.transacting);

@@ -2,7 +2,7 @@ const debug = require('@tryghost/debug')('services:routing:controllers:emailpost
 const config = require('../../../../shared/config');
 const {routerManager} = require('../');
 const urlUtils = require('../../../../shared/url-utils');
-const helpers = require('../helpers');
+const renderer = require('../../rendering');
 
 /**
  * @description Email Post Controller.
@@ -14,7 +14,7 @@ const helpers = require('../helpers');
 module.exports = function emailPostController(req, res, next) {
     debug('emailPostController');
 
-    const api = require('../../proxy').api[res.locals.apiVersion];
+    const api = require('../../proxy').api;
 
     const params = {
         uuid: req.params.uuid,
@@ -51,15 +51,9 @@ module.exports = function emailPostController(req, res, next) {
                 return urlUtils.redirect301(res, routerManager.getUrlByResourceId(post.id, {withSubdirectory: true}));
             }
 
-            if (res.locals.apiVersion !== 'v0.1' && res.locals.apiVersion !== 'v2') {
-                post.access = !!post.html;
-            }
+            post.access = !!post.html;
 
-            // @TODO: See helpers/secure
-            helpers.secure(req, post);
-
-            const renderer = helpers.renderEntry(req, res);
-            return renderer(post);
+            return renderer.renderEntry(req, res)(post);
         })
-        .catch(helpers.handleError(next));
+        .catch(renderer.handleError(next));
 };

@@ -2,9 +2,8 @@
     "paths": {
         "appRoot": ".",
         "corePath": "core/",
-        "clientAssets": "core/built/assets",
+        "adminAssets": "core/built/admin",
         "helperTemplates": "core/frontend/helpers/tpl/",
-        "adminViews": "core/server/web/admin/views/",
         "defaultViews": "core/server/views/",
         "defaultRouteSettings": "core/server/services/route-settings/",
         "internalAppPath": "core/frontend/apps/",
@@ -31,7 +30,7 @@
             "contentTypes": ["image/jpeg", "image/png", "image/gif", "image/svg+xml", "image/x-icon", "image/vnd.microsoft.icon", "image/webp"]
         },
         "media": {
-            "extensions": [".mp4",".webm", ".ogv", ".mp3", ".wav", ".ogg"],
+            "extensions": [".mp4",".webm", ".ogv", ".mp3", ".wav", ".ogg", ".m4a"],
             "contentTypes": [
                 "video/mp4",
                 "video/webm",
@@ -41,7 +40,42 @@
                 "audio/wave",
                 "audio/wav",
                 "audio/x-wav",
-                "audio/ogg"
+                "audio/ogg",
+                "audio/mp4",
+                "audio/x-m4a"
+            ]
+        },
+        "files": {
+            "extensions": [
+                ".pdf",
+                ".json",
+                ".jsonld",
+                ".odp",
+                ".ods",
+                ".odt",
+                ".ppt",
+                ".pptx",
+                ".rtf",
+                ".txt",
+                ".xls",
+                ".xlsx",
+                ".xml"
+            ],
+            "contentTypes": [
+                "application/pdf",
+                "application/json",
+                "application/ld+json",
+                "application/vnd.oasis.opendocument.presentation",
+                "application/vnd.oasis.opendocument.spreadsheet",
+                "application/vnd.oasis.opendocument.text",
+                "application/vnd.ms-powerpoint",
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                "application/rtf",
+                "text/plain",
+                "application/vnd.ms-excel",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "application/xml",
+                "application/atom+xml"
             ]
         },
         "thumbnails": {
@@ -49,8 +83,8 @@
             "contentTypes": ["image/jpeg", "image/png", "image/gif", "image/svg+xml", "image/x-icon", "image/vnd.microsoft.icon", "image/webp"]
         },
         "icons": {
-            "extensions": [".png", ".ico"],
-            "contentTypes": ["image/png", "image/x-icon", "image/vnd.microsoft.icon"]
+            "extensions": [".jpg", ".jpeg", ".gif", ".png", ".svg", ".svgz", ".ico", ".webp"],
+            "contentTypes": ["image/jpeg", "image/png", "image/gif", "image/svg+xml", "image/x-icon", "image/vnd.microsoft.icon", "image/webp"]
         },
         "db": {
             "extensions": [".json", ".zip"],
@@ -70,38 +104,12 @@
         }
     },
     "times": {
-        "cannotScheduleAPostBeforeInMinutes": 2,
-        "publishAPostBySchedulerToleranceInMinutes": 2,
+        "cannotScheduleAPostBeforeInMinutes": -2,
+        "publishAPostBySchedulerToleranceInMinutes": 5,
         "getImageSizeTimeoutInMS": 5000
     },
     "maintenance": {
         "enabled": false
-    },
-    "api": {
-        "versions": {
-            "all": ["v2", "v3", "v4", "v5", "canary"],
-            "default": "v4",
-            "canary": {
-                "admin": "canary/admin",
-                "content": "canary/content"
-            },
-            "v5": {
-                "admin": "admin",
-                "content": "content"
-            },
-            "v4": {
-                "admin": "v4/admin",
-                "content": "v4/content"
-            },
-            "v3": {
-                "admin": "v3/admin",
-                "content": "v3/content"
-            },
-            "v2": {
-                "admin": "v2/admin",
-                "content": "v2/content"
-            }
-        }
     },
     "imageOptimization": {
         "defaultMaxWidth": 2000,
@@ -110,6 +118,10 @@
             "w1000": {"width": 1000},
             "w1600": {"width": 1600},
             "w2400": {"width": 2400}
+        },
+        "internalImageSizes": {
+            "icon": {"width": 256, "height": 256},
+            "email-header-image": {"width": 1200}
         }
     }
 }

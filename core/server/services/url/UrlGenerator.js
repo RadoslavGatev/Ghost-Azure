@@ -135,7 +135,9 @@ class UrlGenerator {
 
     /**
      * @description Listener which get's called when a resource was added on runtime.
-     * @param {String} event
+     * @param {Object} event
+     * @param {String} event.type
+     * @param {String} event.id
      * @private
      */
     _onAdded(event) {
@@ -188,7 +190,7 @@ class UrlGenerator {
     }
 
     /**
-     * @description Generate url based on the permlink configuration of the target router.
+     * @description Generate url based on the permalink configuration of the target router.
      *
      * @NOTE We currently generate relative urls (https://github.com/TryGhost/Ghost/commit/7b0d5d465ba41073db0c3c72006da625fa11df32).
      */
@@ -204,7 +206,7 @@ class UrlGenerator {
      * If the owned resource get's updated, we simply release/free the resource and push it back to the queue.
      * This is the easiest, less error prone implementation.
      *
-     * Imagine you have two collections: `featured:true` and `page:false`.
+     * Imagine you have two collections: `featured:true` and `type:page`.
      * If a published post status get's featured and you have not explicitly defined `featured:false`, we wouldn't
      * be able to figure out if this resource still belongs to me, because the filter still matches.
      */

@@ -5,7 +5,7 @@
 // `absolute` flag outputs absolute URL, else URL is relative
 
 const {metaData} = require('../services/proxy');
-const {SafeString} = require('../services/rendering');
+const {SafeString} = require('../services/handlebars');
 const logging = require('@tryghost/logging');
 const sentry = require('../../shared/sentry');
 const errors = require('@tryghost/errors');
@@ -17,7 +17,7 @@ module.exports = function url(options) {
     let outputUrl = getMetaDataUrl(this, absolute);
 
     try {
-        outputUrl = encodeURI(decodeURI(outputUrl));
+        outputUrl = encodeURI(decodeURI(outputUrl)).replace(/%5B/g, '[').replace(/%5D/g, ']');
     } catch (err) {
         // Happens when the outputURL contains an invalid URI character like "%%" or "%80"
 

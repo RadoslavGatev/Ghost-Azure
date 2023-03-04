@@ -3,75 +3,61 @@ const {BadRequestError} = require('@tryghost/errors');
 const tpl = require('@tryghost/tpl');
 
 const messages = {
-    invalidEmailRecipientFilter: 'Invalid filter in email_recipient_filter param.',
-    invalidVisibilityFilter: 'Invalid visibility filter.'
+    invalidVisibilityFilter: 'Invalid visibility filter.',
+    invalidEmailSegment: 'The email segment parameter doesn\'t contain a valid filter'
 };
 
 class PostsService {
-    constructor({mega, apiVersion, urlUtils, models, isSet}) {
-        this.apiVersion = apiVersion;
+    constructor({mega, urlUtils, models, isSet, stats, emailService}) {
         this.mega = mega;
         this.urlUtils = urlUtils;
         this.models = models;
         this.isSet = isSet;
+        this.stats = stats;
+        this.emailService = emailService;
     }
 
     async editPost(frame) {
-        let model;
-
-        if (!frame.options.email_recipient_filter && frame.options.send_email_when_published) {
-            await this.models.Base.transaction(async (transacting) => {
-                const options = {
-                    ...frame.options,
-                    transacting
-                };
-
-                /**
-                 * 1. We need to edit the post first in order to know what the visibility is.
-                 * 2. We can only pass the email_recipient_filter when we change the status.
-                 *
-                 * So, we first edit the post as requested, with all information except the status,
-                 * from there we can determine what the email_recipient_filter should be and then finish
-                 * the edit, with the status and the email_recipient_filter option.
-                 */
-                const status = frame.data.posts[0].status;
-                delete frame.data.posts[0].status;
-                const interimModel = await this.models.Post.edit(frame.data.posts[0], options);
-                frame.data.posts[0].status = status;
-
-                options.email_recipient_filter = interimModel.get('visibility') === 'paid' ? 'paid' : 'all';
-
-                model = await this.models.Post.edit(frame.data.posts[0], options);
-            });
-        } else {
-            model = await this.models.Post.edit(frame.data.posts[0], frame.options);
-        }
-
-        /**Handle newsletter email */
-        const emailRecipientFilter = model.get('email_recipient_filter');
-        if (emailRecipientFilter !== 'none') {
-            if (emailRecipientFilter !== 'all') {
+        // Make sure the newsletter is matching an active newsletter
+        // Note that this option is simply ignored if the post isn't published or scheduled
+        if (frame.options.newsletter && frame.options.email_segment) {
+            if (frame.options.email_segment !== 'all') {
                 // check filter is valid
                 try {
-                    await this.models.Member.findPage({filter: `subscribed:true+${emailRecipientFilter}`, limit: 1});
+                    await this.models.Member.findPage({filter: frame.options.email_segment, limit: 1});
                 } catch (err) {
                     return Promise.reject(new BadRequestError({
-                        message: tpl(messages.invalidEmailRecipientFilter),
+                        message: tpl(messages.invalidEmailSegment),
                         context: err.message
                     }));
                 }
             }
+        }
 
+        const model = await this.models.Post.edit(frame.data.posts[0], frame.options);
+
+        /**Handle newsletter email */
+        if (model.get('newsletter_id')) {
             const sendEmail = model.wasChanged() && this.shouldSendEmail(model.get('status'), model.previous('status'));
 
             if (sendEmail) {
                 let postEmail = model.relations.email;
+                let email;
 
                 if (!postEmail) {
-                    const email = await this.mega.addEmail(model, Object.assign({}, frame.options, {apiVersion: this.apiVersion}));
-                    model.set('email', email);
+                    if (this.isSet('emailStability')) {
+                        email = await this.emailService.createEmail(model);
+                    } else {
+                        email = await this.mega.addEmail(model, frame.options);
+                    }
                 } else if (postEmail && postEmail.get('status') === 'failed') {
-                    const email = await this.mega.retryFailedEmail(postEmail);
+                    if (this.isSet('emailStability')) {
+                        email = await this.emailService.retryEmail(postEmail);
+                    } else {
+                        email = await this.mega.retryFailedEmail(postEmail);
+                    }
+                }
+                if (email) {
                     model.set('email', email);
                 }
             }
@@ -140,21 +126,25 @@ class PostsService {
 }
 
 /**
- * @param {string} apiVersion - API version to use within the service
  * @returns {PostsService} instance of the PostsService
  */
-const getPostServiceInstance = (apiVersion) => {
+const getPostServiceInstance = () => {
     const urlUtils = require('../../../shared/url-utils');
     const {mega} = require('../mega');
     const labs = require('../../../shared/labs');
     const models = require('../../models');
+    const PostStats = require('./stats/post-stats');
+    const emailService = require('../email-service');
+
+    const postStats = new PostStats();
 
     return new PostsService({
-        apiVersion: apiVersion,
         mega: mega,
         urlUtils: urlUtils,
         models: models,
-        isSet: labs.isSet.bind(labs)
+        isSet: flag => labs.isSet(flag), // don't use bind, that breaks test subbing of labs
+        stats: postStats,
+        emailService: emailService.service
     });
 };
 

@@ -1,4 +1,5 @@
 const debug = require('@tryghost/debug')('web:admin:app');
+const path = require('path');
 const express = require('../../../shared/express');
 const serveStatic = express.static;
 const config = require('../../../shared/config');
@@ -16,9 +17,21 @@ module.exports = function setupAdminApp() {
     // Admin assets
     // @TODO ensure this gets a local 404 error handler
     const configMaxAge = config.get('caching:admin:maxAge');
+    // @NOTE: when we start working on HTTP/3 optimizations the immutable headers
+    //        produced below should be split into separate 'Cache-Control' entry.
+    //        For reference see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching#validation_2
+    // @NOTE: the maxAge config passed below are in milliseconds and the config
+    //        is specified in seconds. See https://github.com/expressjs/serve-static/issues/150 for more context
     adminApp.use('/assets', serveStatic(
-        config.get('paths').clientAssets,
-        {maxAge: (configMaxAge || configMaxAge === 0) ? configMaxAge : constants.ONE_YEAR_MS, fallthrough: false}
+        path.join(config.get('paths').adminAssets, 'assets'), {
+            maxAge: (configMaxAge || configMaxAge === 0) ? configMaxAge : constants.ONE_YEAR_MS,
+            immutable: true, 
+            fallthrough: false
+        }
+    ));
+
+    adminApp.use('/auth-frame', serveStatic(
+        path.join(config.getContentPath('public'), 'admin-auth')
     ));
 
     // Ember CLI's live-reload script

@@ -1,7 +1,7 @@
 // ### Navigation Helper
 // `{{navigation}}`
 // Outputs navigation menu of static urls
-const {SafeString, templates, hbs} = require('../services/rendering');
+const {SafeString, templates, hbs} = require('../services/handlebars');
 
 const errors = require('@tryghost/errors');
 const tpl = require('@tryghost/tpl');
@@ -29,7 +29,6 @@ module.exports = function navigation(options) {
 
     const navigationData = options.data.site[key];
     const currentUrl = options.data.root.relativeUrl;
-    const self = this;
     let output;
 
     if (!_.isObject(navigationData) || _.isFunction(navigationData)) {
@@ -78,7 +77,6 @@ module.exports = function navigation(options) {
         out.label = e.label;
         out.slug = slugify(e.label);
         out.url = e.url;
-        out.secure = self.secure;
         return out;
     });
 

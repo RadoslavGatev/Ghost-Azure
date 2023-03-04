@@ -5,7 +5,7 @@ const jobsService = require('../../../services/jobs');
 
 /** A bunch of helper routes for testing purposes */
 module.exports = function testRoutes() {
-    const router = express.Router('canary admin');
+    const router = express.Router('testmode');
 
     router.get('/500', (req, res) => res.sendStatus(500));
     router.get('/400', (req, res) => res.sendStatus(400));
@@ -40,6 +40,20 @@ module.exports = function testRoutes() {
             },
             offloaded: false
         });
+
+        res.sendStatus(202);
+    });
+
+    router.get('/oneoff/:name', (req, res) => {
+        logging.info('Create Slow Job with timeout of', req.params.name);
+
+        const options = {};
+
+        options.solo = true;
+        options.name = req.params.name;
+        options.job = path.resolve(__dirname, 'jobs', `${options.name}.js`);
+
+        jobsService.addOneOffJob(options);
 
         res.sendStatus(202);
     });

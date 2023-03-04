@@ -1,0 +1,2 @@
+/*! file-extension v4.0.5 | (c) silverwind | BSD license */
+"use strict";(function(e){if(typeof exports==="object"){module.exports=e()}else if(typeof define==="function"&&define.amd){define([],e)}else{this.fileExtension=e()}})(function(){return function e(t,n){if(!n)n={};if(!t)return"";var i=(/[^./\\]*$/.exec(t)||[""])[0];return n.preserveCase?i:i.toLowerCase()}});

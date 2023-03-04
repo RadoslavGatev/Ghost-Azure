@@ -163,39 +163,41 @@ class ImageSize {
                 width: dimensions.width,
                 height: dimensions.height
             };
-        }).catch({code: 'URL_MISSING_INVALID'}, (err) => {
-            return Promise.reject(new errors.InternalServerError({
-                message: err.message,
-                code: 'IMAGE_SIZE_URL',
-                statusCode: err.statusCode,
-                context: err.url || imagePath
-            }));
-        }).catch({code: 'ETIMEDOUT'}, {code: 'ESOCKETTIMEDOUT'}, {code: 'ECONNRESET'}, {statusCode: 408}, (err) => {
-            return Promise.reject(new errors.InternalServerError({
-                message: 'Request timed out.',
-                code: 'IMAGE_SIZE_URL',
-                statusCode: err.statusCode,
-                context: err.url || imagePath
-            }));
-        }).catch({code: 'ENOENT'}, {code: 'ENOTFOUND'}, {statusCode: 404}, (err) => {
-            return Promise.reject(new errors.NotFoundError({
-                message: 'Image not found.',
-                code: 'IMAGE_SIZE_URL',
-                statusCode: err.statusCode,
-                context: err.url || imagePath
-            }));
-        }).catch(function (err) {
-            if (errors.utils.isGhostError(err)) {
-                return Promise.reject(err);
-            }
+        }).catch((err) => {
+            if (err.code === 'URL_MISSING_INVALID') {
+                return Promise.reject(new errors.InternalServerError({
+                    message: err.message,
+                    code: 'IMAGE_SIZE_URL',
+                    statusCode: err.statusCode,
+                    context: err.url || imagePath
+                }));
+            } else if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKETTIMEDOUT' || err.code === 'ECONNRESET' || err.statusCode === 408) {
+                return Promise.reject(new errors.InternalServerError({
+                    message: 'Request timed out.',
+                    code: 'IMAGE_SIZE_URL',
+                    statusCode: err.statusCode,
+                    context: err.url || imagePath
+                }));
+            } else if (err.code === 'ENOENT' || err.code === 'ENOTFOUND' || err.statusCode === 404) {
+                return Promise.reject(new errors.NotFoundError({
+                    message: 'Image not found.',
+                    code: 'IMAGE_SIZE_URL',
+                    statusCode: err.statusCode,
+                    context: err.url || imagePath
+                }));
+            } else {
+                if (errors.utils.isGhostError(err)) {
+                    return Promise.reject(err);
+                }
 
-            return Promise.reject(new errors.InternalServerError({
-                message: 'Unknown Request error.',
-                code: 'IMAGE_SIZE_URL',
-                statusCode: err.statusCode,
-                context: err.url || imagePath,
-                err: err
-            }));
+                return Promise.reject(new errors.InternalServerError({
+                    message: 'Unknown Request error.',
+                    code: 'IMAGE_SIZE_URL',
+                    statusCode: err.statusCode,
+                    context: err.url || imagePath,
+                    err: err
+                }));
+            }
         });
     }
 
@@ -237,47 +239,67 @@ class ImageSize {
                     height: dimensions.height
                 };
             })
-            .catch({code: 'ENOENT'}, (err) => {
-                return Promise.reject(new errors.NotFoundError({
-                    message: err.message,
-                    code: 'IMAGE_SIZE_STORAGE',
-                    err: err,
-                    context: filePath,
-                    errorDetails: {
-                        originalPath: imagePath,
-                        reqFilePath: filePath
+            .catch((err) => {
+                if (err.code === 'ENOENT') {
+                    return Promise.reject(new errors.NotFoundError({
+                        message: err.message,
+                        code: 'IMAGE_SIZE_STORAGE',
+                        err: err,
+                        context: filePath,
+                        errorDetails: {
+                            originalPath: imagePath,
+                            reqFilePath: filePath
+                        }
+                    }));
+                } else {
+                    if (errors.utils.isGhostError(err)) {
+                        return Promise.reject(err);
                     }
-                }));
-            }).catch((err) => {
-                if (errors.utils.isGhostError(err)) {
-                    return Promise.reject(err);
-                }
 
-                return Promise.reject(new errors.InternalServerError({
-                    message: err.message,
-                    code: 'IMAGE_SIZE_STORAGE',
-                    err: err,
-                    context: filePath,
-                    errorDetails: {
-                        originalPath: imagePath,
-                        reqFilePath: filePath
-                    }
-                }));
+                    return Promise.reject(new errors.InternalServerError({
+                        message: err.message,
+                        code: 'IMAGE_SIZE_STORAGE',
+                        err: err,
+                        context: filePath,
+                        errorDetails: {
+                            originalPath: imagePath,
+                            reqFilePath: filePath
+                        }
+                    }));
+                }
             });
     }
 
-    async getOriginalImageSizeFromStoragePath(imagePath) {
+    /**
+     * Returns the path of the original image for a given image path (we always store the original image in a separate file, suffixed with _o, while we store a resized version of the image on the original name)
+     * TODO: Preferrably we want to move this to a separate image utils package. Currently not really a good place to put it in image lib.
+     */
+    async getOriginalImagePath(imagePath) {
         const {dir, name, ext} = path.parse(imagePath);
+        const storageInstance = this.storage.getStorage('images');
+
+        const preferredUnoptimizedImagePath = path.join(dir, `${name}_o${ext}`);
+        const preferredUnoptimizedImagePathExists = await storageInstance.exists(preferredUnoptimizedImagePath);
+        if (preferredUnoptimizedImagePathExists) {
+            return preferredUnoptimizedImagePath;
+        }
+
+        // Legacy format did some magic with the numbers that could cause bugs. We still need to support it for old files.
+        // refs https://github.com/TryGhost/Team/issues/481
         const [imageNameMatched, imageName, imageNumber] = name.match(/^(.+?)(-\d+)?$/) || [null];
 
         if (!imageNameMatched) {
-            return this.getImageSizeFromStoragePath(imagePath);
+            return imagePath;
         }
 
-        const originalImagePath = path.join(dir, `${imageName}_o${imageNumber || ''}${ext}`);
-        const originalImageExists = await this.storage.getStorage('images').exists(originalImagePath);
+        const legacyOriginalImagePath = path.join(dir, `${imageName}_o${imageNumber || ''}${ext}`);
+        const legacyOriginalImageExists = await storageInstance.exists(legacyOriginalImagePath);
 
-        return this.getImageSizeFromStoragePath(originalImageExists ? originalImagePath : imagePath);
+        return legacyOriginalImageExists ? legacyOriginalImagePath : imagePath;
+    }
+
+    async getOriginalImageSizeFromStoragePath(imagePath) {
+        return this.getImageSizeFromStoragePath(await this.getOriginalImagePath(imagePath));
     }
 
     _getPathFromUrl(imageUrl) {

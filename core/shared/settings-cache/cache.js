@@ -3,64 +3,95 @@
 // circular dependency bugs.
 const debug = require('@tryghost/debug')('settings:cache');
 const _ = require('lodash');
-const publicSettings = require('./public');
-
-// Local function, only ever used for initializing
-// We deliberately call "set" on each model so that set is a consistent interface
-const updateSettingFromModel = function updateSettingFromModel(settingModel) {
-    debug('Auto updating', settingModel.get('key'));
-    module.exports.set(settingModel.get('key'), settingModel.toJSON());
-};
 
 /**
- * ## Cache
- * Holds cached settings
- * Keyed by setting.key
- * Contains the JSON version of the model
- * @type {{}} - object of objects
+ * Why hasn't this been moved to @tryghost/settings-cache yet?
+ *
+ * - It currently still couples the frontend and server together in a weird way via the event system
+ * - See the notes in core/server/lib/common/events
+ * - There's also a plan to introduce a proper caching layer, and rewrite this on top of that
  */
-let settingsCache = {};
+class CacheManager {
+    /**
+     * @prop {Object} options
+     * @prop {Object} options.publicSettings - key/value pairs of settings which are publicly accessible
+     */
+    constructor({publicSettings}) {
+        // settingsCache holds cached settings, keyed by setting.key, contains the JSON version of the model
+        this.settingsCache;
+        this.publicSettings = publicSettings;
+        this.calculatedFields = [];
 
-const doGet = (key, options) => {
-    if (!settingsCache[key]) {
-        return;
+        this.get = this.get.bind(this);
+        this.set = this.set.bind(this);
+        this.getAll = this.getAll.bind(this);
+        this.getPublic = this.getPublic.bind(this);
+        this.reset = this.reset.bind(this);
+        this._doGet = this._doGet.bind(this);
+        this._updateSettingFromModel = this._updateSettingFromModel.bind(this);
+        this._updateCalculatedField = this._updateCalculatedField.bind(this);
     }
 
-    // Don't try to resolve to the value of the setting
-    if (options && options.resolve === false) {
-        return settingsCache[key];
+    // Local function, only ever used for initializing
+    // We deliberately call "set" on each model so that set is a consistent interface
+    _updateSettingFromModel(settingModel) {
+        debug('Auto updating', settingModel.get('key'));
+        this.set(settingModel.get('key'), settingModel.toJSON());
     }
 
-    // Default behaviour is to try to resolve the value and return that
-    try {
-        // CASE: if a string contains a number e.g. "1", JSON.parse will auto convert into integer
-        if (!isNaN(Number(settingsCache[key].value))) {
-            return settingsCache[key].value || null;
+    _updateCalculatedField(field) {
+        return () => {
+            debug('Auto updating', field.key);
+            this.set(field.key, field.getSetting());
+        };
+    }
+
+    _doGet(key, options) {
+        // NOTE: "!this.settingsCache" is for when setting's cache is used
+        //       before it had a chance to initialize. Should be fixed when
+        //       it is decoupled from the model layer
+        if (!this.settingsCache || !this.settingsCache.get(key)) {
+            return;
         }
 
-        return JSON.parse(settingsCache[key].value) || null;
-    } catch (err) {
-        return settingsCache[key].value || null;
-    }
-};
+        // Don't try to resolve to the value of the setting
+        if (options && options.resolve === false) {
+            return this.settingsCache.get(key);
+        }
 
-/**
- *
- * IMPORTANT:
- * We store settings with a type and a key in the database.
- *
- * {
- *   type: core
- *   key: db_hash
- *   value: ...
- * }
- *
- * But the settings cache does not allow requesting a value by type, only by key.
- * e.g. settingsCache.get('db_hash')
- */
-module.exports = {
+        // Default behavior is to try to resolve the value and return that
+        try {
+            // CASE: handle literal false
+            if (this.settingsCache.get(key).value === false || this.settingsCache.get(key).value === 'false') {
+                return false;
+            }
+
+            // CASE: if a string contains a number e.g. "1", JSON.parse will auto convert into integer
+            if (!isNaN(Number(this.settingsCache.get(key).value))) {
+                return this.settingsCache.get(key).value || null;
+            }
+
+            return JSON.parse(this.settingsCache.get(key).value) || null;
+        } catch (err) {
+            return this.settingsCache.get(key).value || null;
+        }
+    }
+
     /**
-     * Get a key from the settingsCache
+     *
+     * IMPORTANT:
+     * We store settings with a type and a key in the database.
+     *
+     * {
+     *   type: core
+     *   key: db_hash
+     *   value: ...
+     * }
+     *
+     * But the settings cache does not allow requesting a value by type, only by key.
+     * e.g. settingsCache.get('db_hash')
+     *
+     * Get a key from the this.settingsCache
      * Will resolve to the value, including parsing JSON, unless {resolve: false} is passed in as an option
      * In which case the full JSON version of the model will be resolved
      *
@@ -69,8 +100,9 @@ module.exports = {
      * @return {*}
      */
     get(key, options) {
-        return doGet(key, options);
-    },
+        return this._doGet(key, options);
+    }
+
     /**
      * Set a key on the cache
      * The only way to get an object into the cache
@@ -79,16 +111,28 @@ module.exports = {
      * @param {object} value json version of settings model
      */
     set(key, value) {
-        settingsCache[key] = _.cloneDeep(value);
-    },
+        this.settingsCache.set(key, _.cloneDeep(value));
+    }
+
     /**
      * Get the entire cache object
      * Uses clone to prevent modifications from being reflected
+     * This method is dangerous in case the cache is "lazily" initialized
+     * could result in returning only a partially filled cache
      * @return {object} cache
+     * @deprecated this method is not "cache-friendly" and should be avoided from further usage
+     *             instead using multiple "get" calls
      */
     getAll() {
-        return _.cloneDeep(settingsCache);
-    },
+        const keys = this.settingsCache.keys();
+        const all = {};
+
+        keys.forEach((key) => {
+            all[key] = _.cloneDeep(this.settingsCache.get(key));
+        });
+
+        return all;
+    }
 
     /**
      * Get all the publically accessible cache entries with their correct names
@@ -98,47 +142,74 @@ module.exports = {
     getPublic() {
         let settings = {};
 
-        _.each(publicSettings, (key, newKey) => {
-            settings[newKey] = doGet(key) || null;
+        _.each(this.publicSettings, (key, newKey) => {
+            settings[newKey] = this._doGet(key) ?? null;
         });
 
         return settings;
-    },
+    }
+
     /**
-     * Initialise the cache
+     * Initialize the cache
      *
      * Optionally takes a collection of settings & can populate the cache with these.
      *
      * @param {EventEmitter} events
-     * @param {Bookshelf.Collection<Settings>} [settingsCollection]
-     * @return {object}
+     * @param {Bookshelf.Collection<Settings>} settingsCollection
+     * @param {Array} calculatedFields
+     * @param {Object} cacheStore - cache storage instance base on Cache Base Adapter
+     * @return {Object} - filled out instance for Cache Base Adapter
      */
-    init(events, settingsCollection) {
-        // First, reset the cache and listeners
+    init(events, settingsCollection, calculatedFields, cacheStore) {
+        this.settingsCache = cacheStore;
+        // First, reset the cache and
         this.reset(events);
 
         // // if we have been passed a collection of settings, use this to populate the cache
         if (settingsCollection && settingsCollection.models) {
-            _.each(settingsCollection.models, updateSettingFromModel);
+            _.each(settingsCollection.models, this._updateSettingFromModel);
         }
 
-        // Bind to events to automatically keep up-to-date
-        events.on('settings.edited', updateSettingFromModel);
-        events.on('settings.added', updateSettingFromModel);
-        events.on('settings.deleted', updateSettingFromModel);
+        this.calculatedFields = Array.isArray(calculatedFields) ? calculatedFields : [];
 
-        return settingsCache;
-    },
+        // Bind to events to automatically keep up-to-date
+        events.on('settings.edited', this._updateSettingFromModel);
+        events.on('settings.added', this._updateSettingFromModel);
+        events.on('settings.deleted', this._updateSettingFromModel);
+
+        // set and bind calculated fields
+        this.calculatedFields.forEach((field) => {
+            this._updateCalculatedField(field)();
+            field.dependents.forEach((dependent) => {
+                events.on(`settings.${dependent}.edited`, this._updateCalculatedField(field));
+            });
+        });
+
+        return this.settingsCache;
+    }
 
     /**
      * Reset both the cache and the listeners, must be called during init
      * @param {EventEmitter} events
      */
     reset(events) {
-        settingsCache = {};
+        if (this.settingsCache) {
+            this.settingsCache.reset();
+        }
 
-        events.removeListener('settings.edited', updateSettingFromModel);
-        events.removeListener('settings.added', updateSettingFromModel);
-        events.removeListener('settings.deleted', updateSettingFromModel);
+        events.removeListener('settings.edited', this._updateSettingFromModel);
+        events.removeListener('settings.added', this._updateSettingFromModel);
+        events.removeListener('settings.deleted', this._updateSettingFromModel);
+
+        //unbind calculated fields
+        this.calculatedFields.forEach((field) => {
+            field.dependents.forEach((dependent) => {
+                events.removeListener(`settings.${dependent}.edited`, this._updateCalculatedField(field));
+            });
+        });
+
+        this.calculatedFields = [];
     }
-};
+}
+
+module.exports = CacheManager;

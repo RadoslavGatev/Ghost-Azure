@@ -1,0 +1,24 @@
+import type { Event } from './event';
+/**
+ * NOTE: These types are still considered Beta and subject to change.
+ * @hidden
+ */
+export interface ReplayEvent extends Event {
+    urls: string[];
+    error_ids: string[];
+    trace_ids: string[];
+    replay_id: string;
+    segment_id: number;
+    replay_type: ReplayRecordingMode;
+}
+/**
+ * NOTE: These types are still considered Beta and subject to change.
+ * @hidden
+ */
+export declare type ReplayRecordingData = string | Uint8Array;
+/**
+ * NOTE: These types are still considered Beta and subject to change.
+ * @hidden
+ */
+export declare type ReplayRecordingMode = 'session' | 'error';
+//# sourceMappingURL=replay.d.ts.map

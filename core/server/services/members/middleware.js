@@ -1,14 +1,18 @@
 const _ = require('lodash');
 const logging = require('@tryghost/logging');
 const membersService = require('./service');
+const emailSuppressionList = require('../email-suppression-list');
 const models = require('../../models');
-const offersService = require('../offers/service');
 const urlUtils = require('../../../shared/url-utils');
-const ghostVersion = require('@tryghost/version');
-const settingsCache = require('../../../shared/settings-cache');
+const spamPrevention = require('../../web/shared/middleware/api/spam-prevention');
 const {formattedMemberResponse} = require('./utils');
-const labsService = require('../../../shared/labs');
-const config = require('../../../shared/config');
+const errors = require('@tryghost/errors');
+const tpl = require('@tryghost/tpl');
+
+const messages = {
+    missingUuid: 'Missing uuid.',
+    invalidUuid: 'Invalid uuid.'
+};
 
 // @TODO: This piece of middleware actually belongs to the frontend, not to the member app
 // Need to figure a way to separate these things (e.g. frontend actually talks to members API)
@@ -21,6 +25,38 @@ const loadMemberSession = async function (req, res, next) {
     } catch (err) {
         Object.assign(req, {member: null});
         next();
+    }
+};
+
+/**
+ * Require member authentication, and make it possible to authenticate via uuid.
+ * You can chain this after loadMemberSession to make it possible to authenticate via both the uuid and the session.
+ */
+const authMemberByUuid = async function (req, res, next) {
+    try {
+        const uuid = req.query.uuid;
+        if (!uuid) {
+            if (res.locals.member && req.member) {
+                // Already authenticated via session
+                return next();
+            }
+
+            throw new errors.UnauthorizedError({
+                messsage: tpl(messages.missingUuid)
+            });
+        }
+
+        const member = await membersService.api.memberBREADService.read({uuid});
+        if (!member) {
+            throw new errors.UnauthorizedError({
+                message: tpl(messages.invalidUuid)
+            });
+        }
+        Object.assign(req, {member});
+        res.locals.member = req.member;
+        next();
+    } catch (err) {
+        next(err);
     }
 };
 
@@ -41,7 +77,12 @@ const deleteSession = async function (req, res) {
         res.writeHead(204);
         res.end();
     } catch (err) {
-        res.writeHead(err.statusCode);
+        if (!err.statusCode) {
+            logging.error(err);
+        }
+        res.writeHead(err.statusCode ?? 500, {
+            'Content-Type': 'text/plain;charset=UTF-8'
+        });
         res.end(err.message);
     }
 };
@@ -60,126 +101,113 @@ const getMemberData = async function (req, res) {
     }
 };
 
-const getOfferData = async function (req, res) {
-    const offerId = req.params.id;
-    const offer = await offersService.api.getOffer({id: offerId});
-    return res.json({
-        offers: [offer]
-    });
-};
-
-const updateMemberData = async function (req, res) {
+const deleteSuppression = async function (req, res) {
     try {
-        const data = _.pick(req.body, 'name', 'subscribed');
         const member = await membersService.ssr.getMemberDataFromSession(req, res);
-        if (member) {
-            const options = {
-                id: member.id,
-                withRelated: ['stripeSubscriptions', 'stripeSubscriptions.customer', 'stripeSubscriptions.stripePrice']
-            };
-            const updatedMember = await membersService.api.members.update(data, options);
+        const options = {
+            id: member.id,
+            withRelated: ['newsletters']
+        };
+        await emailSuppressionList.removeEmail(member.email);
+        await membersService.api.members.update({subscribed: true}, options);
 
-            res.json(formattedMemberResponse(updatedMember.toJSON()));
-        } else {
-            res.json(null);
-        }
+        res.writeHead(204);
+        res.end();
     } catch (err) {
-        res.writeHead(err.statusCode);
+        if (!err.statusCode) {
+            logging.error(err);
+        }
+        res.writeHead(err.statusCode ?? 500, {
+            'Content-Type': 'text/plain;charset=UTF-8'
+        });
         res.end(err.message);
     }
 };
 
-const getPortalProductPrices = async function () {
-    const page = await membersService.api.productRepository.list({
-        withRelated: ['monthlyPrice', 'yearlyPrice', 'benefits']
-    });
+const getMemberNewsletters = async function (req, res) {
+    try {
+        const memberUuid = req.query.uuid;
 
-    const products = page.data.map((productModel) => {
-        const product = productModel.toJSON();
-        const productPrices = [];
-        if (product.monthlyPrice) {
-            productPrices.push(product.monthlyPrice);
+        if (!memberUuid) {
+            res.writeHead(400);
+            return res.end('Invalid member uuid');
         }
-        if (product.yearlyPrice) {
-            productPrices.push(product.yearlyPrice);
+
+        const memberData = await membersService.api.members.get({
+            uuid: memberUuid
+        }, {
+            withRelated: ['newsletters']
+        });
+
+        if (!memberData) {
+            res.writeHead(404);
+            return res.end('Email address not found.');
         }
-        return {
-            id: product.id,
-            name: product.name,
-            description: product.description || '',
-            monthlyPrice: product.monthlyPrice,
-            yearlyPrice: product.yearlyPrice,
-            benefits: product.benefits,
-            active: product.active,
-            type: product.type,
-            visibility: product.visibility,
-            prices: productPrices
-        };
-    }).filter((product) => {
-        return !!product.active;
-    });
-    const defaultProduct = products.find((product) => {
-        return product.type === 'paid';
-    });
-    const defaultPrices = defaultProduct ? defaultProduct.prices : [];
-    let portalProducts = defaultProduct ? [defaultProduct] : [];
-    if (labsService.isSet('multipleProducts')) {
-        portalProducts = products;
+
+        const data = _.pick(memberData.toJSON(), 'uuid', 'email', 'name', 'newsletters', 'enable_comment_notifications', 'status');
+        return res.json(data);
+    } catch (err) {
+        res.writeHead(400);
+        res.end('Failed to unsubscribe this email address');
     }
-
-    return {
-        prices: defaultPrices,
-        products: portalProducts
-    };
 };
 
-const getMemberSiteData = async function (req, res) {
-    const isStripeConfigured = membersService.config.isStripeConnected();
-    const domain = urlUtils.urlFor('home', true).match(new RegExp('^https?://([^/:?#]+)(?:[/:?#]|$)', 'i'));
-    const firstpromoterId = settingsCache.get('firstpromoter') ? settingsCache.get('firstpromoter_id') : '';
-    const blogDomain = domain && domain[1];
-    let supportAddress = settingsCache.get('members_support_address') || 'noreply';
-    if (!supportAddress.includes('@')) {
-        supportAddress = `${supportAddress}@${blogDomain}`;
-    }
-    const {products = [], prices = []} = await getPortalProductPrices() || {};
-    const portalVersion = config.get('portal:version');
+const updateMemberNewsletters = async function (req, res) {
+    try {
+        const memberUuid = req.query.uuid;
+        if (!memberUuid) {
+            res.writeHead(400);
+            return res.end('Invalid member uuid');
+        }
 
-    const response = {
-        title: settingsCache.get('title'),
-        description: settingsCache.get('description'),
-        logo: settingsCache.get('logo'),
-        icon: settingsCache.get('icon'),
-        accent_color: settingsCache.get('accent_color'),
-        url: urlUtils.urlFor('home', true),
-        version: ghostVersion.safe,
-        portal_version: portalVersion,
-        free_price_name: settingsCache.get('members_free_price_name'),
-        free_price_description: settingsCache.get('members_free_price_description'),
-        allow_self_signup: membersService.config.getAllowSelfSignup(),
-        members_signup_access: settingsCache.get('members_signup_access'),
-        is_stripe_configured: isStripeConfigured,
-        portal_button: settingsCache.get('portal_button'),
-        portal_name: settingsCache.get('portal_name'),
-        portal_plans: settingsCache.get('portal_plans'),
-        portal_button_icon: settingsCache.get('portal_button_icon'),
-        portal_button_signup_text: settingsCache.get('portal_button_signup_text'),
-        portal_button_style: settingsCache.get('portal_button_style'),
-        firstpromoter_id: firstpromoterId,
-        members_support_address: supportAddress,
-        prices,
-        products
-    };
-    if (labsService.isSet('multipleProducts')) {
-        response.portal_products = settingsCache.get('portal_products');
-    }
-    if (config.get('portal_sentry') && !config.get('portal_sentry').disabled) {
-        response.portal_sentry = {
-            dsn: config.get('portal_sentry').dsn,
-            env: config.get('env')
+        const data = _.pick(req.body, 'newsletters', 'enable_comment_notifications');
+        const memberData = await membersService.api.members.get({
+            uuid: memberUuid
+        });
+        if (!memberData) {
+            res.writeHead(404);
+            return res.end('Email address not found.');
+        }
+
+        const options = {
+            id: memberData.get('id'),
+            withRelated: ['newsletters']
         };
+
+        const updatedMember = await membersService.api.members.update(data, options);
+        const updatedMemberData = _.pick(updatedMember.toJSON(), ['uuid', 'email', 'name', 'newsletters', 'enable_comment_notifications', 'status']);
+        res.json(updatedMemberData);
+    } catch (err) {
+        res.writeHead(400);
+        res.end('Failed to update newsletters');
     }
-    res.json({site: response});
+};
+
+const updateMemberData = async function (req, res) {
+    try {
+        const data = _.pick(req.body, 'name', 'expertise', 'subscribed', 'newsletters', 'enable_comment_notifications');
+        const member = await membersService.ssr.getMemberDataFromSession(req, res);
+        if (member) {
+            const options = {
+                id: member.id,
+                withRelated: ['stripeSubscriptions', 'stripeSubscriptions.customer', 'stripeSubscriptions.stripePrice', 'newsletters']
+            };
+            await membersService.api.members.update(data, options);
+            const updatedMember = await membersService.ssr.getMemberDataFromSession(req, res);
+
+            res.json(formattedMemberResponse(updatedMember));
+        } else {
+            res.json(null);
+        }
+    } catch (err) {
+        if (!err.statusCode) {
+            logging.error(err);
+        }
+        res.writeHead(err.statusCode ?? 500, {
+            'Content-Type': 'text/plain;charset=UTF-8'
+        });
+        res.end(err.message);
+    }
 };
 
 const createSessionFromMagicLink = async function (req, res, next) {
@@ -190,14 +218,16 @@ const createSessionFromMagicLink = async function (req, res, next) {
     // req.query is a plain object, copy it to a URLSearchParams object so we can call toString()
     const searchParams = new URLSearchParams('');
     Object.keys(req.query).forEach((param) => {
-        // don't copy the token param
-        if (param !== 'token') {
+        // don't copy the "token" or "r" params
+        if (param !== 'token' && param !== 'r') {
             searchParams.set(param, req.query[param]);
         }
     });
 
     try {
         const member = await membersService.ssr.exchangeTokenForSession(req, res);
+        spamPrevention.membersAuth().reset(req.ip, `${member.email}login`);
+        // Note: don't reset 'member_login', or that would give an easy way around user enumeration by logging in to a manually created account
         const subscriptions = member && member.subscriptions || [];
 
         const action = req.query.action;
@@ -212,18 +242,10 @@ const createSessionFromMagicLink = async function (req, res, next) {
                 })
                 .find(sub => ['active', 'trialing'].includes(sub.status));
             if (mostRecentActiveSubscription) {
-                if (labsService.isSet('tierWelcomePages')) {
-                    customRedirect = mostRecentActiveSubscription.tier.welcome_page_url;
-                } else {
-                    customRedirect = settingsCache.get('members_paid_signup_redirect') || '';
-                }
+                customRedirect = mostRecentActiveSubscription.tier.welcome_page_url;
             } else {
-                if (labsService.isSet('tierWelcomePages')) {
-                    const freeTier = await models.Product.findOne({type: 'free'});
-                    customRedirect = freeTier && freeTier.get('welcome_page_url') || '';
-                } else {
-                    customRedirect = settingsCache.get('members_free_signup_redirect') || '';
-                }
+                const freeTier = await models.Product.findOne({type: 'free'});
+                customRedirect = freeTier && freeTier.get('welcome_page_url') || '';
             }
 
             if (customRedirect && customRedirect !== '/') {
@@ -234,6 +256,18 @@ const createSessionFromMagicLink = async function (req, res, next) {
                 const redirectUrl = new URL(removeLeadingSlash(ensureEndsWith(customRedirect, '/')), ensureEndsWith(baseUrl, '/'));
 
                 return res.redirect(redirectUrl.href);
+            }
+        }
+
+        if (action === 'signin') {
+            const referrer = req.query.r;
+            const siteUrl = urlUtils.getSiteUrl();
+
+            if (referrer && referrer.startsWith(siteUrl)) {
+                const redirectUrl = new URL(referrer);
+                redirectUrl.searchParams.set('success', true);
+                redirectUrl.searchParams.set('action', 'signin');
+                return res.redirect(redirectUrl.pathname + redirectUrl.search);
             }
         }
 
@@ -252,11 +286,13 @@ const createSessionFromMagicLink = async function (req, res, next) {
 // Set req.member & res.locals.member if a cookie is set
 module.exports = {
     loadMemberSession,
+    authMemberByUuid,
     createSessionFromMagicLink,
     getIdentityToken,
+    getMemberNewsletters,
     getMemberData,
-    getOfferData,
     updateMemberData,
-    getMemberSiteData,
-    deleteSession
+    updateMemberNewsletters,
+    deleteSession,
+    deleteSuppression
 };

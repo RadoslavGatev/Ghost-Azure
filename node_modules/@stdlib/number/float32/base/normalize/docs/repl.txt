@@ -1,0 +1,52 @@
+
+{{alias}}( [out,] x )
+    Returns a normal number `y` and exponent `exp` satisfying `x = y * 2^exp` as
+    an array.
+
+    The first element of the returned array corresponds to `y` and the second to
+    `exp`.
+
+    While the function accepts higher precision floating-point numbers, beware
+    that providing such numbers can be a source of subtle bugs as the relation
+    `x = y * 2^exp` may not hold.
+
+    Parameters
+    ----------
+    out: Array|TypedArray|Object (optional)
+        Output array.
+
+    x: float
+        Single-precision floating-point number.
+
+    Returns
+    -------
+    out: Array|TypedArray|Object
+        An array containing `y` and `exp`.
+
+    Examples
+    --------
+    > var out = {{alias}}( {{alias:@stdlib/number/float64/base/to-float32}}( 1.401e-45 ) )
+    [ 1.1754943508222875e-38, -23 ]
+    > var y = out[ 0 ];
+    > var exp = out[ 1 ];
+    > var bool = ( y*{{alias:@stdlib/math/base/special/pow}}(2,exp) === {{alias:@stdlib/number/float64/base/to-float32}}(1.401e-45) )
+    true
+
+    // Special cases:
+    > out = {{alias}}( {{alias:@stdlib/constants/float32/pinf}} )
+    [ Infinity, 0 ]
+    > out = {{alias}}( {{alias:@stdlib/constants/float32/ninf}} )
+    [ -Infinity, 0 ]
+    > out = {{alias}}( NaN )
+    [ NaN, 0 ]
+
+    // Provide an output array:
+    > out = new {{alias:@stdlib/array/float32}}( 2 );
+    > var v = {{alias}}( out, {{alias:@stdlib/number/float64/base/to-float32}}( 1.401e-45 ) )
+    <Float32Array>[ 1.1754943508222875e-38, -23.0 ]
+    > bool = ( v === out )
+    true
+
+    See Also
+    --------
+

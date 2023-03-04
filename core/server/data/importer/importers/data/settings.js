@@ -1,24 +1,24 @@
 const debug = require('@tryghost/debug')('importer:settings');
-const Promise = require('bluebird');
 const ObjectId = require('bson-objectid').default;
 const _ = require('lodash');
 const BaseImporter = require('./base');
 const models = require('../../../../models');
 const defaultSettings = require('../../../schema').defaultSettings;
-const keyGroupMapper = require('../../../../api/shared/serializers/input/utils/settings-key-group-mapper');
-const keyTypeMapper = require('../../../../api/shared/serializers/input/utils/settings-key-type-mapper');
+const keyGroupMapper = require('../../../../api/endpoints/utils/serializers/input/utils/settings-key-group-mapper');
+const keyTypeMapper = require('../../../../api/endpoints/utils/serializers/input/utils/settings-key-type-mapper');
 const {WRITABLE_KEYS_ALLOWLIST} = require('../../../../../shared/labs');
+const {sequence} = require('@tryghost/promise');
 
 const labsDefaults = JSON.parse(defaultSettings.labs.labs.defaultValue);
-const ignoredSettings = ['slack_url', 'members_from_address', 'members_support_address'];
+const ignoredSettings = ['slack_url', 'members_from_address', 'members_support_address', 'portal_products'];
 
-// NOTE: drop support in Ghost 5.0
-const deprecatedSupportedSettingsMap = {
-    default_locale: 'lang',
-    active_timezone: 'timezone',
-    ghost_head: 'codeinjection_head',
-    ghost_foot: 'codeinjection_foot'
+// Importer maintains as much backwards compatibility as possible
+const renamedSettingsMap = {
+    default_locale: 'locale',
+    lang: 'locale',
+    active_timezone: 'timezone'
 };
+
 const deprecatedSupportedSettingsOneToManyMap = {
     // NOTE: intentionally ignoring slack_url setting
     slack: [{
@@ -80,9 +80,6 @@ class SettingsImporter extends BaseImporter {
         };
     }
 
-    /**
-     * - 'core' and 'theme' are blacklisted
-     */
     beforeImport() {
         debug('beforeImport');
 
@@ -104,8 +101,8 @@ class SettingsImporter extends BaseImporter {
 
         // NOTE: import settings removed in v3 and move them to ignored once Ghost v4 changes are done
         this.dataToImport = this.dataToImport.map((data) => {
-            if (deprecatedSupportedSettingsMap[data.key]) {
-                data.key = deprecatedSupportedSettingsMap[data.key];
+            if (renamedSettingsMap[data.key]) {
+                data.key = renamedSettingsMap[data.key];
             }
 
             return data;
@@ -255,22 +252,22 @@ class SettingsImporter extends BaseImporter {
         return Promise.resolve();
     }
 
-    doImport(options) {
+    async doImport(options) {
         debug('doImport', this.dataToImport.length);
 
         let ops = [];
 
         _.each(this.dataToImport, (model) => {
-            ops.push(
-                models.Settings.edit(model, options)
-                    .catch((err) => {
-                        return this.handleError(err, model);
-                    })
-                    .reflect()
-            );
+            ops.push(async () => {
+                try {
+                    await models.Settings.edit(model, options);
+                } catch (err) {
+                    this.handleError(err, model);
+                }
+            });
         });
 
-        return Promise.all(ops);
+        await sequence(ops);
     }
 }
 

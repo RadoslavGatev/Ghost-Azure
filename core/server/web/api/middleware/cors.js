@@ -2,9 +2,10 @@ const cors = require('cors');
 const url = require('url');
 const os = require('os');
 const urlUtils = require('../../../../shared/url-utils');
+const config = require('../../../../shared/config');
 
 let allowlist = [];
-const ENABLE_CORS = {origin: true, maxAge: 86400};
+const ENABLE_CORS = {origin: true, maxAge: config.get('caching:cors:maxAge')};
 const DISABLE_CORS = {origin: false};
 
 /**
@@ -64,7 +65,7 @@ function getAllowlist() {
  * @param  {Function} cb  callback that configures CORS.
  * @return {null}
  */
-function handleCORS(req, cb) {
+function corsOptionsDelegate(req, cb) {
     const origin = req.get('origin');
 
     // Request must have an Origin header
@@ -72,7 +73,7 @@ function handleCORS(req, cb) {
         return cb(null, DISABLE_CORS);
     }
 
-    // Origin matches whitelist
+    // Origin matches allowlist
     if (getAllowlist().indexOf(url.parse(origin).hostname) > -1) {
         return cb(null, ENABLE_CORS);
     }
@@ -80,4 +81,22 @@ function handleCORS(req, cb) {
     return cb(null, DISABLE_CORS);
 }
 
-module.exports = cors(handleCORS);
+/**
+ *
+ * @param {Express.Request} req
+ * @param {Express.Response} res
+ * @param {Function} next
+ */
+const handleCaching = (req, res, next) => {
+    const method = req.method && req.method.toUpperCase && req.method.toUpperCase();
+    if (method === 'OPTIONS') {
+        // @NOTE: try to add native support for dynamic 'vary' header value in 'cors' module
+        res.vary('Origin');
+    }
+    next();
+};
+
+module.exports = [
+    handleCaching,
+    cors(corsOptionsDelegate)
+];

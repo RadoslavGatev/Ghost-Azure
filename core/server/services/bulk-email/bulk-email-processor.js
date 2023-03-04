@@ -5,16 +5,24 @@ const errors = require('@tryghost/errors');
 const tpl = require('@tryghost/tpl');
 const logging = require('@tryghost/logging');
 const models = require('../../models');
-const mailgunProvider = require('./mailgun');
+const MailgunClient = require('@tryghost/mailgun-client');
 const sentry = require('../../../shared/sentry');
 const debug = require('@tryghost/debug')('mega');
 const postEmailSerializer = require('../mega/post-email-serializer');
+const configService = require('../../../shared/config');
+const settingsCache = require('../../../shared/settings-cache');
+
+async function sleep(ms) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+}
 
 const messages = {
-    error: 'The email service was unable to send an email batch.'
+    error: 'The email service received an error from mailgun and was unable to send.'
 };
 
-const BATCH_SIZE = mailgunProvider.BATCH_SIZE;
+const mailgunClient = new MailgunClient({config: configService, settings: settingsCache});
 
 /**
  * An object representing batch request result
@@ -63,33 +71,14 @@ class FailedBatch extends BatchResultBase {
  */
 
 module.exports = {
-    BATCH_SIZE,
+    BATCH_SIZE: MailgunClient.BATCH_SIZE,
     SuccessfulBatch,
     FailedBatch,
 
     // accepts an ID rather than an Email model to better support running via a job queue
-    async processEmail({emailId, options}) {
+    async processEmail({emailModel, options}) {
         const knexOptions = _.pick(options, ['transacting', 'forUpdate']);
-        const emailModel = await models.Email.findOne({id: emailId}, knexOptions);
-
-        if (!emailModel) {
-            throw new errors.IncorrectUsageError({
-                message: 'Provided email id does not match a known email record',
-                context: {
-                    id: emailId
-                }
-            });
-        }
-
-        if (emailModel.get('status') !== 'pending') {
-            throw new errors.IncorrectUsageError({
-                message: 'Emails can only be processed when in the "pending" state',
-                context: `Email "${emailId}" has state "${emailModel.get('status')}"`,
-                code: 'EMAIL_NOT_PENDING'
-            });
-        }
-
-        await emailModel.save({status: 'submitting'}, Object.assign({}, knexOptions, {patch: true}));
+        const emailId = emailModel.get('id');
 
         // get batch IDs via knex to avoid model instantiation
         // only fetch pending or failed batches to avoid re-sending previously sent emails
@@ -104,7 +93,7 @@ module.exports = {
             } catch (error) {
                 return new FailedBatch(emailBatchId, error);
             }
-        }, {concurrency: 10});
+        }, {concurrency: 2});
 
         const successes = batchResults.filter(response => (response instanceof SuccessfulBatch));
         const failures = batchResults.filter(response => (response instanceof FailedBatch));
@@ -139,6 +128,8 @@ module.exports = {
 
     // accepts an ID rather than an EmailBatch model to better support running via a job queue
     async processEmailBatch({emailBatchId, options, memberSegment}) {
+        logging.info('[sendEmailJob] Processing email batch ' + emailBatchId);
+
         const knexOptions = _.pick(options, ['transacting', 'forUpdate']);
 
         const emailBatchModel = await models.EmailBatch
@@ -160,15 +151,37 @@ module.exports = {
             });
         }
 
-        // get recipient rows via knex to avoid costly bookshelf model instantiation
-        const recipientRows = await models.EmailRecipient
-            .getFilteredCollectionQuery({filter: `batch_id:${emailBatchId}`});
-
-        await emailBatchModel.save({status: 'submitting'}, knexOptions);
+        // Patch to prevent saving the related email model
+        await emailBatchModel.save({status: 'submitting'}, {...knexOptions, patch: true});
 
         try {
+            // get recipient rows via knex to avoid costly bookshelf model instantiation
+            let recipientRows = await models.EmailRecipient.getFilteredCollectionQuery({filter: `batch_id:${emailBatchId}`}, knexOptions);
+
+            // For an unknown reason, the returned recipient rows is sometimes an empty array
+            // refs https://github.com/TryGhost/Team/issues/2246
+            let counter = 0;
+            while (recipientRows.length === 0 && counter < 5) {
+                logging.info('[sendEmailJob] Found zero recipients [retries:' + counter + '] for email batch ' + emailBatchId);
+
+                counter += 1;
+                await sleep(200);
+                recipientRows = await models.EmailRecipient.getFilteredCollectionQuery({filter: `batch_id:${emailBatchId}`}, knexOptions);
+            }
+            if (counter > 0) {
+                logging.info('[sendEmailJob] Recovered recipients [retries:' + counter + '] for email batch ' + emailBatchId + ' - ' + recipientRows.length + ' recipients found');
+            }
+
+            // Load newsletter data on email
+            await emailBatchModel.relations.email.getLazyRelation('newsletter', {require: false, ...knexOptions});
+
+            // Load post data on email - for content gating on paywall
+            await emailBatchModel.relations.email.getLazyRelation('post', {require: false, ...knexOptions});
+
             // send the email
             const sendResponse = await this.send(emailBatchModel.relations.email.toJSON(), recipientRows, memberSegment);
+
+            logging.info('[sendEmailJob] Submitted email batch ' + emailBatchId);
 
             // update batch success status
             return await emailBatchModel.save({
@@ -176,13 +189,18 @@ module.exports = {
                 provider_id: sendResponse.id.trim().replace(/^<|>$/g, '')
             }, Object.assign({}, knexOptions, {patch: true}));
         } catch (error) {
+            logging.info('[sendEmailJob] Failed email batch ' + emailBatchId);
+
             // update batch failed status
-            await emailBatchModel.save({status: 'failed'}, knexOptions);
+            await emailBatchModel.save({status: 'failed'}, {...knexOptions, patch: true});
 
             // log any error that didn't come from the provider which would have already logged it
             if (!error.code || error.code !== 'BULK_EMAIL_SEND_FAILED') {
-                let ghostError = new errors.InternalServerError({
-                    err: error
+                let ghostError = new errors.EmailError({
+                    err: error,
+                    code: 'BULK_EMAIL_SEND_FAILED',
+                    message: `Error sending email batch ${emailBatchId}`,
+                    context: error.message
                 });
                 sentry.captureException(ghostError);
                 logging.error(ghostError);
@@ -194,34 +212,42 @@ module.exports = {
             // update all email recipients with a processed_at
             await models.EmailRecipient
                 .where({batch_id: emailBatchId})
-                .save({processed_at: moment()}, Object.assign({}, knexOptions, {patch: true}));
+                .save({processed_at: moment()}, Object.assign({}, knexOptions, {autoRefresh: false, patch: true}));
         }
     },
 
     /**
      * @param {Email-like} emailData - The email to send, must be a POJO so emailModel.toJSON() before calling if needed
-     * @param {[EmailRecipient]} recipients - The recipients to send the email to with their associated data
+     * @param {EmailRecipient[]} recipients - The recipients to send the email to with their associated data
      * @param {string?} memberSegment - The member segment of the recipients
-     * @returns {Object} - {providerId: 'xxx'}
+     * @returns {Promise<Object>} - {providerId: 'xxx'}
      */
-    send(emailData, recipients, memberSegment) {
-        const mailgunInstance = mailgunProvider.getInstance();
-        if (!mailgunInstance) {
+    async send(emailData, recipients, memberSegment) {
+        logging.info(`[sendEmailJob] Sending email batch to ${recipients.length} recipients`);
+
+        const mailgunConfigured = mailgunClient.isConfigured();
+        if (!mailgunConfigured) {
+            logging.warn('Bulk email has not been configured');
             return;
         }
 
         const startTime = Date.now();
         debug(`sending message to ${recipients.length} recipients`);
 
+        // Update email content for this segment before searching replacements
+        emailData = postEmailSerializer.renderEmailForSegment(emailData, memberSegment);
+
+        // Check all the used replacements in this email
         const replacements = postEmailSerializer.parseReplacements(emailData);
 
         // collate static and dynamic data for each recipient ready for provider
         const recipientData = {};
+        const newsletterUuid = emailData.newsletter ? emailData.newsletter.uuid : null;
         recipients.forEach((recipient) => {
             // static data for every recipient
             const data = {
                 unique_id: recipient.member_uuid,
-                unsubscribe_url: postEmailSerializer.createUnsubscribeUrl(recipient.member_uuid)
+                unsubscribe_url: postEmailSerializer.createUnsubscribeUrl(recipient.member_uuid, {newsletterUuid})
             };
 
             // computed properties on recipients - TODO: better way of handling these
@@ -235,24 +261,29 @@ module.exports = {
             recipientData[recipient.member_email] = data;
         });
 
-        emailData = postEmailSerializer.renderEmailForSegment(emailData, memberSegment);
-
-        return mailgunProvider.send(emailData, recipientData, replacements).then((response) => {
+        try {
+            const response = await mailgunClient.send(emailData, recipientData, replacements);
             debug(`sent message (${Date.now() - startTime}ms)`);
+            logging.info(`[sendEmailJob] Sent message (${Date.now() - startTime}ms)`);
             return response;
-        }).catch((error) => {
-            // REF: possible mailgun errors https://documentation.mailgun.com/en/latest/api-intro.html#errors
+        } catch (err) {
             let ghostError = new errors.EmailError({
-                err: error,
-                context: tpl(messages.error),
+                err,
+                message: tpl(messages.error),
+                context: `Mailgun Error ${err.error.status}: ${err.error.details}`,
+                // REF: possible mailgun errors https://documentation.mailgun.com/en/latest/api-intro.html#errors
+                help: `https://ghost.org/docs/newsletters/#bulk-email-configuration`,
                 code: 'BULK_EMAIL_SEND_FAILED'
             });
 
             sentry.captureException(ghostError);
-            logging.warn(ghostError);
+            logging.error(ghostError);
 
             debug(`failed to send message (${Date.now() - startTime}ms)`);
             throw ghostError;
-        });
-    }
+        }
+    },
+
+    // NOTE: for testing only!
+    _mailgunClient: mailgunClient
 };

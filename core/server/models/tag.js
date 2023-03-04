@@ -14,6 +14,9 @@ Tag = ghostBookshelf.Model.extend({
 
     tableName: 'tags',
 
+    actionsCollectCRUD: true,
+    actionsResourceType: 'tag',
+
     defaults: function defaults() {
         return {
             visibility: 'public'
@@ -103,7 +106,7 @@ Tag = ghostBookshelf.Model.extend({
         // Support tag creation with `posts: [{..., tags: [{slug: 'new'}]}]`
         // In that situation we have a slug but no name so validation will fail
         // unless we set one automatically. Re-using slug for name matches our
-        // opposite name->slug behaviour.
+        // opposite name->slug behavior.
         if (!newTag.get('name') && newTag.get('slug')) {
             this.set('name', newTag.get('slug'));
         }
@@ -138,22 +141,8 @@ Tag = ghostBookshelf.Model.extend({
         return attrs;
     },
 
-    getAction(event, options) {
-        const actor = this.getActor(options);
-
-        // @NOTE: we ignore internal updates (`options.context.internal`) for now
-        if (!actor) {
-            return;
-        }
-
-        // @TODO: implement context
-        return {
-            event: event,
-            resource_id: this.id || this.previous('id'),
-            resource_type: 'tag',
-            actor_id: actor.id,
-            actor_type: actor.type
-        };
+    defaultColumnsToFetch() {
+        return ['id'];
     }
 }, {
     orderDefaultOptions: function orderDefaultOptions() {
@@ -163,7 +152,7 @@ Tag = ghostBookshelf.Model.extend({
     permittedOptions: function permittedOptions(methodName) {
         let options = ghostBookshelf.Model.permittedOptions.call(this, methodName);
 
-        // whitelists for the `options` hash argument on methods, by method name.
+        // allowlists for the `options` hash argument on methods, by method name.
         // these are the only options that can be passed to Bookshelf / Knex.
         const validOptions = {
             findAll: ['columns'],
@@ -176,6 +165,26 @@ Tag = ghostBookshelf.Model.extend({
         }
 
         return options;
+    },
+
+    countRelations() {
+        return {
+            posts(modelOrCollection, options) {
+                modelOrCollection.query('columns', 'tags.*', (qb) => {
+                    qb.count('posts.id')
+                        .from('posts')
+                        .leftOuterJoin('posts_tags', 'posts.id', 'posts_tags.post_id')
+                        .whereRaw('posts_tags.tag_id = tags.id')
+                        .as('count__posts');
+
+                    if (options.context && options.context.public) {
+                        // @TODO use the filter behavior for posts
+                        qb.andWhere('posts.type', '=', 'post');
+                        qb.andWhere('posts.status', '=', 'published');
+                    }
+                });
+            }
+        };
     },
 
     destroy: function destroy(unfilteredOptions) {

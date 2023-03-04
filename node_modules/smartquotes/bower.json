@@ -1,0 +1,27 @@
+{
+  "name": "smartquotes",
+  "description": "Smart quotes are smart typography.",
+  "main": "dist/smartquotes.js",
+  "authors": [
+    "Kelly Martin",
+    "Callum Macrae"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "smart",
+    "quotes",
+    "browser",
+    "node.js"
+  ],
+  "homepage": "http://smartquotesjs.com",
+  "moduleType": [
+    "amd",
+    "node"
+  ],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test"
+  ]
+}

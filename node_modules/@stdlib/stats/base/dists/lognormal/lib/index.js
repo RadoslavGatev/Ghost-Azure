@@ -1,0 +1,159 @@
+/**
+* @license Apache-2.0
+*
+* Copyright (c) 2018 The Stdlib Authors.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
+'use strict';
+
+/*
+* When adding modules to the namespace, ensure that they are added in alphabetical order according to module name.
+*/
+
+// MODULES //
+
+var setReadOnly = require( '@stdlib/utils/define-read-only-property' );
+
+
+// MAIN //
+
+/**
+* Top-level namespace.
+*
+* @namespace lognormal
+*/
+var lognormal = {};
+
+/**
+* @name cdf
+* @memberof lognormal
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/stats/base/dists/lognormal/cdf}
+*/
+setReadOnly( lognormal, 'cdf', require( './../../../../base/dists/lognormal/cdf' ) );
+
+/**
+* @name LogNormal
+* @memberof lognormal
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/stats/base/dists/lognormal/ctor}
+*/
+setReadOnly( lognormal, 'LogNormal', require( './../../../../base/dists/lognormal/ctor' ) );
+
+/**
+* @name entropy
+* @memberof lognormal
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/stats/base/dists/lognormal/entropy}
+*/
+setReadOnly( lognormal, 'entropy', require( './../../../../base/dists/lognormal/entropy' ) );
+
+/**
+* @name kurtosis
+* @memberof lognormal
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/stats/base/dists/lognormal/kurtosis}
+*/
+setReadOnly( lognormal, 'kurtosis', require( './../../../../base/dists/lognormal/kurtosis' ) );
+
+/**
+* @name logpdf
+* @memberof lognormal
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/stats/base/dists/lognormal/logpdf}
+*/
+setReadOnly( lognormal, 'logpdf', require( './../../../../base/dists/lognormal/logpdf' ) );
+
+/**
+* @name mean
+* @memberof lognormal
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/stats/base/dists/lognormal/mean}
+*/
+setReadOnly( lognormal, 'mean', require( './../../../../base/dists/lognormal/mean' ) );
+
+/**
+* @name median
+* @memberof lognormal
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/stats/base/dists/lognormal/median}
+*/
+setReadOnly( lognormal, 'median', require( './../../../../base/dists/lognormal/median' ) );
+
+/**
+* @name mode
+* @memberof lognormal
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/stats/base/dists/lognormal/mode}
+*/
+setReadOnly( lognormal, 'mode', require( './../../../../base/dists/lognormal/mode' ) );
+
+/**
+* @name pdf
+* @memberof lognormal
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/stats/base/dists/lognormal/pdf}
+*/
+setReadOnly( lognormal, 'pdf', require( './../../../../base/dists/lognormal/pdf' ) );
+
+/**
+* @name quantile
+* @memberof lognormal
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/stats/base/dists/lognormal/quantile}
+*/
+setReadOnly( lognormal, 'quantile', require( './../../../../base/dists/lognormal/quantile' ) );
+
+/**
+* @name skewness
+* @memberof lognormal
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/stats/base/dists/lognormal/skewness}
+*/
+setReadOnly( lognormal, 'skewness', require( './../../../../base/dists/lognormal/skewness' ) );
+
+/**
+* @name stdev
+* @memberof lognormal
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/stats/base/dists/lognormal/stdev}
+*/
+setReadOnly( lognormal, 'stdev', require( './../../../../base/dists/lognormal/stdev' ) );
+
+/**
+* @name variance
+* @memberof lognormal
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/stats/base/dists/lognormal/variance}
+*/
+setReadOnly( lognormal, 'variance', require( './../../../../base/dists/lognormal/variance' ) );
+
+
+// EXPORTS //
+
+module.exports = lognormal;

@@ -1,15 +1,56 @@
+// ---------------------------------------------
+// ---------------------------------------------
+//
+// WARNING!!
+//
+// THIS FILE IS DEPRECATED. PLEASE ALSO MAKE IDENTICAL CHANGES IN THE EMAIL-SERVICE PACKAGE -> email-templates/template.hbs
+//
+// WARNING!!
+//
+// ---------------------------------------------
+// ---------------------------------------------
+
+const {escapeHtml: escape} = require('@tryghost/string');
+const feedbackButtons = require('./feedback-buttons');
+
 /* eslint indent: warn, no-irregular-whitespace: warn */
 const iff = (cond, yes, no) => (cond ? yes : no);
-module.exports = ({post, site, templateSettings}) => {
+
+/**
+ * @template {Object.<string, any>} Input
+ * @param {Input} obj
+ * @param {string[]} [keys]
+ * @returns {Input}
+ */
+const sanitizeKeys = (obj, keys) => {
+    const sanitized = Object.assign({}, obj);
+    const keysToSanitize = keys || Object.keys(obj);
+
+    for (const key of keysToSanitize) {
+        if (typeof sanitized[key] === 'string') {
+            // @ts-ignore
+            sanitized[key] = escape(sanitized[key]);
+        }
+    }
+
+    return sanitized;
+};
+
+module.exports = ({post, site, newsletter, templateSettings}) => {
     const date = new Date();
     const hasFeatureImageCaption = templateSettings.showFeatureImage && post.feature_image && post.feature_image_caption;
+    const cleanPost = sanitizeKeys(post, ['url', 'published_at', 'title', 'excerpt', 'authors', 'feature_image', 'feature_image_alt']);
+    const cleanSite = sanitizeKeys(site, ['title']);
+    const cleanNewsletter = sanitizeKeys(newsletter, ['name']);
+
     return `<!doctype html>
 <html>
 
 <head>
 <meta name="viewport" content="width=device-width" />
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<title>${post.title}</title>
+<!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml><![endif]-->
+<title>${cleanPost.title}</title>
 <style>
 /* -------------------------------------
     GLOBAL RESETS
@@ -198,46 +239,53 @@ h5,
 h6 {
     margin-top: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
-    line-height: 1.15em;
-    font-weight: 600;
+    line-height: 1.11em;
+    font-weight: 700;
     text-rendering: optimizeLegibility;
 }
 
 h1 {
     margin: 1.5em 0 0.5em 0;
     font-size: 42px;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 h2 {
     margin: 1.5em 0 0.5em 0;
     font-size: 32px;
-    line-height: 1.22em;
 }
 
 h3 {
     margin: 1.5em 0 0.5em 0;
     font-size: 26px;
-    line-height: 1.25em;
 }
 
 h4 {
     margin: 1.8em 0 0.5em 0;
     font-size: 21px;
-    line-height: 1.3em;
+    line-height: 1.2em;
 }
 
 h5 {
     margin: 2em 0 0.5em 0;
     font-size: 19px;
-    line-height: 1.4em;
+    line-height: 1.3em;
 }
 
 h6 {
     margin: 2em 0 0.5em 0;
     font-size: 19px;
-    line-height: 1.4em;
+    line-height: 1.3em;
     font-weight: 700;
+}
+
+h1 strong,
+h2 strong,
+h3 strong,
+h4 strong,
+h5 strong,
+h6 strong {
+    font-weight: 800;
 }
 
 strong {
@@ -301,6 +349,10 @@ figure blockquote p {
 
 .site-info {
     padding-top: 50px;
+}
+
+.site-info-bordered {
+    padding-top: 50px;
     border-bottom: 1px solid #e5eff5;
 }
 
@@ -311,6 +363,9 @@ figure blockquote p {
     font-weight: 700;
     text-transform: uppercase;
     text-align: center;
+}
+
+.site-url-bottom-padding {
     padding-bottom: 50px;
 }
 
@@ -318,15 +373,23 @@ figure blockquote p {
     color: #15212A;
 }
 
+.site-subtitle {
+    color: #8695a4;
+    font-size: 14px;
+    font-weight: 400;
+    text-transform: none;
+}
+
 .post-title {
     padding-bottom: 10px;
     font-size: 42px;
     line-height: 1.1em;
-    font-weight: 600;
+    font-weight: 700;
     text-align: center;
 }
 .post-title-serif {
     font-family: Georgia, serif;
+    letter-spacing: -0.01em;
 }
 .post-title-left {
     text-align: left;
@@ -388,7 +451,7 @@ figure blockquote p {
     font-family: Georgia, serif;
     font-size: 18px;
     line-height: 1.5em;
-    color: #23323D;
+    color: #15212A;
     padding-bottom: 20px;
     border-bottom: 1px solid #e5eff5;
 }
@@ -397,7 +460,7 @@ figure blockquote p {
     max-width: 600px !important;
     font-size: 17px;
     line-height: 1.5em;
-    color: #23323D;
+    color: #15212A;
     padding-bottom: 20px;
     border-bottom: 1px solid #e5eff5;
 }
@@ -711,7 +774,7 @@ a[data-flickr-embed] img {
 }
 
 .kg-header-card h3 strong {
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .kg-header-card.kg-size-large h3 {
@@ -978,7 +1041,7 @@ a[data-flickr-embed] img {
     }
 
     table.body .kg-bookmark-card {
-        width: 90vw !important;
+        width: 90vw;
     }
 
     table.body .kg-bookmark-thumbnail {
@@ -1115,7 +1178,7 @@ ${ templateSettings.showBadge ? `
 </head>
 
 <body>
-    <span class="preheader">${ post.excerpt ? post.excerpt : `${post.title} – ` }</span>
+    <span class="preheader">${ cleanPost.excerpt ? cleanPost.excerpt : `${cleanPost.title} – ` }</span>
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="body" width="100%">
 
         <!-- Outlook doesn't respect max-width so we need an extra centered table -->
@@ -1130,7 +1193,6 @@ ${ templateSettings.showBadge ? `
             <td>&nbsp;</td>
             <td class="container">
                 <div class="content">
-
                     <!-- START CENTERED WHITE CONTAINER -->
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="main" width="100%">
 
@@ -1138,7 +1200,6 @@ ${ templateSettings.showBadge ? `
                         <tr>
                             <td class="wrapper">
                                 <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
-
                                     ${ templateSettings.headerImage ? `
                                     <tr>
                                         <td class="header-image" width="100%" align="center"><img src="${templateSettings.headerImage}"${templateSettings.headerImageWidth ? ` width="${templateSettings.headerImageWidth}"` : ''}></td>
@@ -1146,20 +1207,31 @@ ${ templateSettings.showBadge ? `
                                     ` : ''}
 
 
-                                    ${ templateSettings.showHeaderIcon || templateSettings.showHeaderTitle ? `
+                                    ${ templateSettings.showHeaderIcon || templateSettings.showHeaderTitle || templateSettings.showHeaderName ? `
                                     <tr>
-                                        <td class="site-info" width="100%" align="center">
+                                        <td class="${templateSettings.showHeaderTitle ? `site-info-bordered` : `site-info`}" width="100%" align="center">
                                             <table role="presentation" border="0" cellpadding="0" cellspacing="0">
-                                                ${ templateSettings.showHeaderIcon && site.iconUrl ? `
+                                                ${ templateSettings.showHeaderIcon && cleanSite.iconUrl ? `
                                                 <tr>
-                                                    <td class="site-icon"><a href="${site.url}"><img src="${site.iconUrl}" alt="${site.title}" border="0"></a></td>
+                                                    <td class="site-icon"><a href="${cleanSite.url}"><img src="${cleanSite.iconUrl}" alt="${cleanSite.title}" border="0"></a></td>
                                                 </tr>
                                                 ` : ``}
                                                 ${ templateSettings.showHeaderTitle ? `
                                                 <tr>
-                                                    <td class="site-url"><div style="width: 100% !important;"><a href="${site.url}" class="site-title">${site.title}</a></div></td>
+                                                    <td class="site-url ${!templateSettings.showHeaderName ? 'site-url-bottom-padding' : ''}"><div style="width: 100% !important;"><a href="${cleanSite.url}" class="site-title">${cleanSite.title}</a></div></td>
                                                 </tr>
                                                 ` : ``}
+                                                ${ templateSettings.showHeaderName && templateSettings.showHeaderTitle ? `
+                                                <tr>
+                                                    <td class="site-url site-url-bottom-padding"><div style="width: 100% !important;"><a href="${cleanSite.url}" class="site-subtitle">${cleanNewsletter.name}</a></div></td>
+                                                </tr>
+                                                ` : ``}
+                                                ${ templateSettings.showHeaderName && !templateSettings.showHeaderTitle ? `
+                                                <tr>
+                                                    <td class="site-url site-url-bottom-padding"><div style="width: 100% !important;"><a href="${cleanSite.url}" class="site-title">${cleanNewsletter.name}</a></div></td>
+                                                </tr>
+                                                ` : ``}
+
                                             </table>
                                         </td>
                                     </tr>
@@ -1168,7 +1240,7 @@ ${ templateSettings.showBadge ? `
 
                                     <tr>
                                         <td class="post-title ${templateSettings.titleFontCategory === 'serif' ? `post-title-serif` : `` } ${templateSettings.titleAlignment === 'left' ? `post-title-left` : ``}">
-                                            <a href="${post.url}" class="post-title-link ${templateSettings.titleAlignment === 'left' ? `post-title-link-left` : ``}">${post.title}</a>
+                                            <a href="${cleanPost.url}" class="post-title-link ${templateSettings.titleAlignment === 'left' ? `post-title-link-left` : ``}">${cleanPost.title}</a>
                                         </td>
                                     </tr>
                                     <tr>
@@ -1176,28 +1248,28 @@ ${ templateSettings.showBadge ? `
                                             <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                                                 <tr>
                                                     <td class="post-meta ${templateSettings.titleAlignment === 'left' ? `post-meta-left` : ``}">
-                                                        By ${post.authors} –
-                                                        ${post.published_at} –
-                                                        <a href="${post.url}" class="view-online-link">View online →</a>
+                                                        By ${cleanPost.authors} –
+                                                        ${cleanPost.published_at} –
+                                                        <a href="${cleanPost.url}" class="view-online-link">View online →</a>
                                                     </td>
                                                 </tr>
                                             </table>
                                         </td>
                                     </tr>
-                                    ${ templateSettings.showFeatureImage && post.feature_image ? `
+                                    ${ templateSettings.showFeatureImage && cleanPost.feature_image ? `
                                     <tr>
-                                        <td class="feature-image ${hasFeatureImageCaption ? 'feature-image-with-caption' : ''}"><img src="${post.feature_image}"${post.feature_image_width ? ` width="${post.feature_image_width}"` : ''}${post.feature_image_alt ? ` alt="${post.feature_image_alt}"` : ''}></td>
+                                        <td class="feature-image ${hasFeatureImageCaption ? 'feature-image-with-caption' : ''}"><img src="${cleanPost.feature_image}"${cleanPost.feature_image_width ? ` width="${cleanPost.feature_image_width}"` : ''}${cleanPost.feature_image_alt ? ` alt="${cleanPost.feature_image_alt}"` : ''}></td>
                                     </tr>
                                     ` : ``}
                                     ${ hasFeatureImageCaption ? `
                                     <tr>
-                                        <td class="feature-image-caption" align="center">${post.feature_image_caption}</td>
+                                        <td class="feature-image-caption" align="center">${cleanPost.feature_image_caption}</td>
                                     </tr>
                                     ` : ``}
                                     <tr>
                                         <td class="${(templateSettings.bodyFontCategory === 'sans_serif') ? `post-content-sans-serif` : `post-content` }">
                                             <!-- POST CONTENT START -->
-                                            ${post.html}
+                                            ${cleanPost.html}
                                             <!-- POST CONTENT END -->
                                         </td>
                                     </tr>
@@ -1207,12 +1279,14 @@ ${ templateSettings.showBadge ? `
 
                         <!-- END MAIN CONTENT AREA -->
 
+                        ${iff(templateSettings.feedbackEnabled, feedbackButtons.getTemplate(), '')}
+
                         <tr>
                             <td class="wrapper" align="center">
                                 <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="padding-top: 40px; padding-bottom: 30px;">
                                     ${iff(!!templateSettings.footerContent, `<tr><td class="footer">${templateSettings.footerContent}</td></tr>`, '')}
                                     <tr>
-                                        <td class="footer">${site.title} &copy; ${date.getFullYear()} – <a href="%recipient.unsubscribe_url%">Unsubscribe</a></td>
+                                        <td class="footer">${cleanSite.title} &copy; ${date.getFullYear()} – <a href="%recipient.unsubscribe_url%">Unsubscribe</a></td>
                                     </tr>
 
                                     ${ templateSettings.showBadge ? `

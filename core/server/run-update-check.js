@@ -1,4 +1,4 @@
-const {parentPort} = require('bthreads');
+const {parentPort} = require('worker_threads');
 
 const postParentPortMessage = (message) => {
     if (parentPort) {
@@ -38,11 +38,13 @@ if (parentPort) {
     const permissions = require('./services/permissions');
     await permissions.init();
 
-    const settings = require('./services/settings');
+    const settings = require('./services/settings/settings-service');
     await settings.init();
     // Finished INIT
 
-    await updateCheck();
+    await updateCheck({
+        rethrowErrors: true
+    });
 
     postParentPortMessage(`Ran update check`);
 

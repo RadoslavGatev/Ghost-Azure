@@ -7,6 +7,16 @@ const messages = {
     couldNotUnderstandRequest: 'Could not understand request.'
 };
 
+// If user requested an excerpt we need to ensure plaintext and custom_excerpt is also included so we can include it when we query the database.
+const requiredForExcerpt = (requestedColumns) => {
+    if (requestedColumns){
+        if (requestedColumns.includes('excerpt') && !requestedColumns.includes('plaintext') && !requestedColumns.includes('plaintext') || !requestedColumns) {
+            requestedColumns.push('plaintext');
+            requestedColumns.push('custom_excerpt');
+        }
+    }
+};
+
 /**
  * @param {Bookshelf} Bookshelf
  */
@@ -72,6 +82,8 @@ module.exports = function (Bookshelf) {
             const options = this.filterOptions(unfilteredOptions, 'findPage');
             const itemCollection = this.getFilteredCollection(options);
             const requestedColumns = options.columns;
+            // make sure we include plaintext and custom_excerpt if excerpt is requested
+            requiredForExcerpt(requestedColumns);
 
             // Set this to true or pass ?debug=true as an API option to get output
             itemCollection.debug = unfilteredOptions.debug && process.env.NODE_ENV !== 'production';
@@ -94,6 +106,18 @@ module.exports = function (Bookshelf) {
                 options.orderRaw = this.orderDefaultRaw(options);
             } else if (this.orderDefaultOptions) {
                 options.order = this.orderDefaultOptions();
+            }
+
+            if (options.selectRaw) {
+                itemCollection.query((qb) => {
+                    qb.select(qb.client.raw(options.selectRaw));
+                });
+            }
+
+            if (options.whereRaw) {
+                itemCollection.query((qb) => {
+                    qb.whereRaw(options.whereRaw);
+                });
             }
 
             const response = await itemCollection.fetchPage(options);
@@ -126,6 +150,9 @@ module.exports = function (Bookshelf) {
             const options = this.filterOptions(unfilteredOptions, 'findOne');
             data = this.filterData(data);
             const model = this.forge(data);
+            const requestedColumns = options.columns;
+            // make sure we include plaintext and custom_excerpt if excerpt is requested
+            requiredForExcerpt(requestedColumns);
 
             // @NOTE: The API layer decides if this option is allowed
             if (options.filter) {
@@ -135,6 +162,10 @@ module.exports = function (Bookshelf) {
             // Ensure only valid fields/columns are added to query
             if (options.columns) {
                 options.columns = _.intersection(options.columns, this.prototype.permittedAttributes());
+            }
+
+            if (options.transacting && options.forUpdate) {
+                options.lock = 'forUpdate';
             }
 
             return model.fetch(options)
@@ -177,6 +208,10 @@ module.exports = function (Bookshelf) {
             // We allow you to disable timestamps when run migration, so that the posts `updated_at` value is the same
             if (options.importing) {
                 model.hasTimestamps = false;
+            }
+
+            if (options.transacting) {
+                options.lock = 'forUpdate';
             }
 
             const object = await model.fetch(options);

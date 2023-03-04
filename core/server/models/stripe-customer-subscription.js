@@ -4,6 +4,10 @@ const _ = require('lodash');
 const StripeCustomerSubscription = ghostBookshelf.Model.extend({
     tableName: 'members_stripe_customers_subscriptions',
 
+    defaults: {
+        mrr: 0
+    },
+
     customer() {
         return this.belongsTo('MemberStripeCustomer', 'customer_id', 'customer_id');
     },
@@ -35,7 +39,9 @@ const StripeCustomerSubscription = ghostBookshelf.Model.extend({
             default_payment_card_last4: defaultSerializedObject.default_payment_card_last4,
             cancel_at_period_end: defaultSerializedObject.cancel_at_period_end,
             cancellation_reason: defaultSerializedObject.cancellation_reason,
-            current_period_end: defaultSerializedObject.current_period_end
+            current_period_end: defaultSerializedObject.current_period_end,
+            trial_start_at: defaultSerializedObject.trial_start_at,
+            trial_end_at: defaultSerializedObject.trial_end_at
         };
 
         if (!_.isEmpty(defaultSerializedObject.stripePrice)) {

@@ -1,0 +1,27 @@
+{
+  "name": "custom-error-instance",
+  "version": "2.1.1",
+  "description": "Create custom JavaScript errors that also match instanceof.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gi60s/custom-error-instance.git"
+  },
+  "keywords": [
+    "error",
+    "custom",
+    "custom-error",
+    "instance",
+    "instanceof"
+  ],
+  "author": "James Speirs",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Gi60s/custom-error-instance/issues"
+  },
+  "homepage": "https://github.com/Gi60s/custom-error-instance#readme",
+  "devDependencies": {
+    "chai": "^3.4.1"
+  },
+  "dependencies": {}
+}

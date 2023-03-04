@@ -13,8 +13,14 @@ const SingleUseTokenProvider = require('./SingleUseTokenProvider');
 const urlUtils = require('../../../shared/url-utils');
 const labsService = require('../../../shared/labs');
 const offersService = require('../offers');
+const tiersService = require('../tiers');
+const newslettersService = require('../newsletters');
+const memberAttributionService = require('../member-attribution');
+const emailSuppressionList = require('../email-suppression-list');
 
 const MAGIC_LINK_TOKEN_VALIDITY = 24 * 60 * 60 * 1000;
+const MAGIC_LINK_TOKEN_VALIDITY_AFTER_USAGE = 10 * 60 * 1000;
+const MAGIC_LINK_TOKEN_MAX_USAGE_COUNT = 3;
 
 const ghostMailer = new mail.GhostMailer();
 
@@ -26,7 +32,12 @@ function createApiInstance(config) {
         auth: {
             getSigninURL: config.getSigninURL.bind(config),
             allowSelfSignup: config.getAllowSelfSignup.bind(config),
-            tokenProvider: new SingleUseTokenProvider(models.SingleUseToken, MAGIC_LINK_TOKEN_VALIDITY)
+            tokenProvider: new SingleUseTokenProvider({
+                SingleUseTokenModel: models.SingleUseToken,
+                validityPeriod: MAGIC_LINK_TOKEN_VALIDITY,
+                validityPeriodAfterUsage: MAGIC_LINK_TOKEN_VALIDITY_AFTER_USAGE,
+                maxUsageCount: MAGIC_LINK_TOKEN_MAX_USAGE_COUNT
+            })
         },
         mail: {
             transporter: {
@@ -169,14 +180,12 @@ function createApiInstance(config) {
                 }
             }
         },
-        paymentConfig: {
-            stripe: config.getStripePaymentConfig()
-        },
         models: {
             EmailRecipient: models.EmailRecipient,
             StripeCustomer: models.MemberStripeCustomer,
             StripeCustomerSubscription: models.StripeCustomerSubscription,
             Member: models.Member,
+            MemberNewsletter: models.MemberNewsletter,
             MemberCancelEvent: models.MemberCancelEvent,
             MemberSubscribeEvent: models.MemberSubscribeEvent,
             MemberPaidSubscriptionEvent: models.MemberPaidSubscriptionEvent,
@@ -185,17 +194,26 @@ function createApiInstance(config) {
             MemberPaymentEvent: models.MemberPaymentEvent,
             MemberStatusEvent: models.MemberStatusEvent,
             MemberProductEvent: models.MemberProductEvent,
-            MemberAnalyticEvent: models.MemberAnalyticEvent,
+            MemberCreatedEvent: models.MemberCreatedEvent,
+            SubscriptionCreatedEvent: models.SubscriptionCreatedEvent,
+            MemberLinkClickEvent: models.MemberClickEvent,
             OfferRedemption: models.OfferRedemption,
             Offer: models.Offer,
             StripeProduct: models.StripeProduct,
             StripePrice: models.StripePrice,
             Product: models.Product,
-            Settings: models.Settings
+            Settings: models.Settings,
+            Comment: models.Comment,
+            MemberFeedback: models.MemberFeedback,
+            EmailSpamComplaintEvent: models.EmailSpamComplaintEvent
         },
         stripeAPIService: stripeService.api,
+        tiersService: tiersService,
         offersAPI: offersService.api,
-        labsService: labsService
+        labsService: labsService,
+        newslettersService: newslettersService,
+        memberAttributionService: memberAttributionService.service,
+        emailSuppressionList
     });
 
     return membersApiInstance;

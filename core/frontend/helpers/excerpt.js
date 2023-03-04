@@ -5,7 +5,7 @@
 //
 // Defaults to words="50"
 
-const {SafeString} = require('../services/rendering');
+const {SafeString} = require('../services/handlebars');
 const {metaData} = require('../services/proxy');
 const _ = require('lodash');
 const getMetaDataExcerpt = metaData.getMetaDataExcerpt;
@@ -17,8 +17,6 @@ module.exports = function excerpt(options) {
 
     if (this.custom_excerpt) {
         excerptText = String(this.custom_excerpt);
-    } else if (this.html) {
-        excerptText = String(this.html);
     } else if (this.excerpt) {
         excerptText = String(this.excerpt);
     } else {

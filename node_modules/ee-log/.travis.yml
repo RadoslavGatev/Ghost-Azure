@@ -1,0 +1,7 @@
+language: node_js
+
+node_js :
+    - "v10"
+    - "v11"
+
+sudo: false

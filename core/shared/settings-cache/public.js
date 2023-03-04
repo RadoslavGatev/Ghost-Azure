@@ -1,9 +1,5 @@
 /**
- * The settings with type "site" were originally meant to be public
- * This has been misused - unsplash and slack are incorrectly stored there
- * https://github.com/TryGhost/Ghost/issues/10318
- *
- * This file acts as a new whitelist for "public" settings
+ * This file acts as an allowlist for "public" settings
  */
 
 module.exports = {
@@ -15,8 +11,8 @@ module.exports = {
     cover_image: 'cover_image',
     facebook: 'facebook',
     twitter: 'twitter',
-    lang: 'lang',
-    locale: 'lang',
+    lang: 'locale',
+    locale: 'locale',
     timezone: 'timezone',
     codeinjection_head: 'codeinjection_head',
     codeinjection_foot: 'codeinjection_foot',
@@ -30,5 +26,16 @@ module.exports = {
     twitter_image: 'twitter_image',
     twitter_title: 'twitter_title',
     twitter_description: 'twitter_description',
-    members_support_address: 'members_support_address'
+    members_support_address: 'members_support_address',
+    members_enabled: 'members_enabled',
+    members_invite_only: 'members_invite_only',
+    paid_members_enabled: 'paid_members_enabled',
+    firstpromoter_account: 'firstpromoter_account',
+    portal_button_style: 'portal_button_style',
+    portal_button_signup_text: 'portal_button_signup_text',
+    portal_button_icon: 'portal_button_icon',
+    portal_plans: 'portal_plans',
+    portal_name: 'portal_name',
+    portal_button: 'portal_button',
+    comments_enabled: 'comments_enabled'
 };

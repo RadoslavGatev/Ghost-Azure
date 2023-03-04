@@ -4,15 +4,29 @@ const path = require('path');
 const os = require('os');
 const glob = require('glob');
 const uuid = require('uuid');
+const config = require('../../../shared/config');
 const {extract} = require('@tryghost/zip');
 const tpl = require('@tryghost/tpl');
+const debug = require('@tryghost/debug')('import-manager');
 const logging = require('@tryghost/logging');
 const errors = require('@tryghost/errors');
 const ImageHandler = require('./handlers/image');
+const ImporterContentFileHandler = require('@tryghost/importer-handler-content-files');
+const RevueHandler = require('./handlers/revue');
 const JSONHandler = require('./handlers/json');
 const MarkdownHandler = require('./handlers/markdown');
-const ImageImporter = require('./importers/image');
+const ContentFileImporter = require('./importers/ContentFileImporter');
+const RevueImporter = require('@tryghost/importer-revue');
 const DataImporter = require('./importers/data');
+const urlUtils = require('../../../shared/url-utils');
+const {GhostMailer} = require('../../services/mail');
+const jobManager = require('../../services/jobs');
+const mediaStorage = require('../../adapters/storage').getStorage('media');
+const imageStorage = require('../../adapters/storage').getStorage('images');
+const fileStorage = require('../../adapters/storage').getStorage('files');
+
+const emailTemplate = require('./email-template');
+const ghostMailer = new GhostMailer();
 
 const messages = {
     couldNotCleanUpFile: {
@@ -22,7 +36,10 @@ const messages = {
     noContentToImport: 'Zip did not include any content to import.',
     invalidZipStructure: 'Invalid zip file structure.',
     invalidZipFileBaseDirectory: 'Invalid zip file: base directory read failed',
-    zipContainsMultipleDataFormats: 'Zip file contains multiple data formats. Please split up and import separately.'
+    zipContainsMultipleDataFormats: 'Zip file contains multiple data formats. Please split up and import separately.',
+    invalidZipFileNameEncoding: 'The uploaded zip could not be read',
+    invalidZipFileNameEncodingContext: 'The filename was too long or contained invalid characters',
+    invalidZipFileNameEncodingHelp: 'Remove any special characters from the file name, or alternatively try another archiving tool if using MacOS Archive Utility'
 };
 
 // Glob levels
@@ -38,15 +55,55 @@ let defaults = {
 
 class ImportManager {
     constructor() {
+        const mediaHandler = new ImporterContentFileHandler({
+            type: 'media',
+            // @NOTE: making the second parameter strict folder "content/media" brakes the glob pattern
+            //        in the importer, so we need to keep it as general "content" unless
+            //        it becomes a strict requirement
+            directories: ['media', 'content'],
+            extensions: config.get('uploads').media.extensions,
+            contentTypes: config.get('uploads').media.contentTypes,
+            contentPath: config.getContentPath('media'),
+            urlUtils: urlUtils,
+            storage: mediaStorage
+        });
+
+        const filesHandler = new ImporterContentFileHandler({
+            type: 'files',
+            // @NOTE: making the second parameter strict folder "content/files" brakes the glob pattern
+            //        in the importer, so we need to keep it as general "content" unless
+            //        it becomes a strict requirement
+            directories: ['files', 'content'],
+            extensions: config.get('uploads').files.extensions,
+            contentTypes: config.get('uploads').files.contentTypes,
+            contentPath: config.getContentPath('files'),
+            urlUtils: urlUtils,
+            storage: fileStorage
+        });
+
+        const imageImporter = new ContentFileImporter({
+            type: 'images',
+            store: imageStorage
+        });
+        const mediaImporter = new ContentFileImporter({
+            type: 'media',
+            store: mediaStorage
+        });
+
+        const contentFilesImporter = new ContentFileImporter({
+            type: 'files',
+            store: fileStorage
+        });
+
         /**
          * @type {Importer[]} importers
          */
-        this.importers = [ImageImporter, DataImporter];
+        this.importers = [imageImporter, mediaImporter, contentFilesImporter, RevueImporter, DataImporter];
 
         /**
          * @type {Handler[]}
          */
-        this.handlers = [ImageHandler, JSONHandler, MarkdownHandler];
+        this.handlers = [ImageHandler, mediaHandler, filesHandler, RevueHandler, JSONHandler, MarkdownHandler];
 
         // Keep track of file to cleanup at the end
         /**
@@ -116,28 +173,6 @@ class ImportManager {
     }
 
     /**
-     * Remove files after we're done (abstracted into a function for easier testing)
-     * @returns {Promise<void>}
-     */
-    async cleanUp() {
-        if (this.fileToDelete === null) {
-            return;
-        }
-
-        try {
-            await fs.remove(this.fileToDelete);
-        } catch (err) {
-            logging.error(new errors.InternalServerError({
-                err: err,
-                context: tpl(messages.couldNotCleanUpFile.error),
-                help: tpl(messages.couldNotCleanUpFile.context)
-            }));
-        }
-
-        this.fileToDelete = null;
-    }
-
-    /**
      * Return true if the given file is a Zip
      * @returns Boolean
      */
@@ -182,13 +217,26 @@ class ImportManager {
      * @param {string} filePath
      * @returns {Promise<string>} full path to the extracted folder
      */
-    extractZip(filePath) {
+    async extractZip(filePath) {
         const tmpDir = path.join(os.tmpdir(), uuid.v4());
         this.fileToDelete = tmpDir;
 
-        return extract(filePath, tmpDir).then(function () {
-            return tmpDir;
-        });
+        try {
+            await extract(filePath, tmpDir);
+        } catch (err) {
+            if (err.message.startsWith('ENAMETOOLONG:')) {
+                // The file was probably zipped with MacOS zip utility. Which doesn't correctly set UTF-8 encoding flag.
+                // This causes ENAMETOOLONG error on Linux, because the resulting filename length is too long when decoded using the default string encoder.
+                throw new errors.UnsupportedMediaTypeError({
+                    message: tpl(messages.invalidZipFileNameEncoding),
+                    context: tpl(messages.invalidZipFileNameEncodingContext),
+                    help: tpl(messages.invalidZipFileNameEncodingHelp),
+                    code: 'INVALID_ZIP_FILE_NAME_ENCODING'
+                });
+            }
+            throw err;
+        }
+        return tmpDir;
     }
 
     /**
@@ -255,6 +303,8 @@ class ImportManager {
         for (const handler of this.handlers) {
             const files = this.getFilesFromZip(handler, zipDirectory);
 
+            debug('handler', handler.type, files);
+
             if (files.length > 0) {
                 if (Object.prototype.hasOwnProperty.call(importData, handler.type)) {
                     // This limitation is here to reduce the complexity of the importer for now
@@ -286,17 +336,27 @@ class ImportManager {
      * @param {File} file
      * @returns {Promise<ImportData>}
      */
-    processFile(file, ext) {
-        const fileHandler = _.find(this.handlers, function (handler) {
-            return _.includes(handler.extensions, ext);
+    async processFile(file, ext) {
+        const fileHandlers = _.filter(this.handlers, function (handler) {
+            let match = _.includes(handler.extensions, ext);
+
+            // CASE: content file handlers should ignore files in the root directory
+            if (match && handler.directories && handler.directories.length) {
+                const dir = path.dirname(file.path)?.split('/')[1];
+                match = _.includes(handler.directories, dir);
+            }
+
+            return match;
         });
 
-        return fileHandler.loadFile([_.pick(file, 'name', 'path')]).then(function (loadedData) {
-            // normalize the returned data
-            const importData = {};
-            importData[fileHandler.type] = loadedData;
-            return importData;
-        });
+        const importData = {};
+
+        await Promise.all(fileHandlers.map(async (fileHandler) => {
+            debug('fileHandler', fileHandler.type);
+            importData[fileHandler.type] = await fileHandler.loadFile([_.pick(file, 'name', 'path')]);
+        }));
+
+        return importData;
     }
 
     /**
@@ -320,6 +380,7 @@ class ImportManager {
      * @returns {Promise<ImportData>}
      */
     async preProcess(importData) {
+        debug('preProcess');
         for (const importer of this.importers) {
             importData = importer.preProcess(importData);
         }
@@ -333,15 +394,17 @@ class ImportManager {
      * data that it should import. Each importer then handles actually importing that data into Ghost
      * @param {ImportData} importData
      * @param {ImportOptions} [importOptions] to allow override of certain import features such as locking a user
-     * @returns {Promise<ImportResult[]>} importResults
+     * @returns {Promise<Object.<string, ImportResult>>} importResults
      */
     async doImport(importData, importOptions) {
+        debug('doImport', this.importers);
         importOptions = importOptions || {};
-        const importResults = [];
+        const importResults = {};
 
         for (const importer of this.importers) {
+            debug('importer looking for', importer.type, 'in', Object.keys(importData));
             if (Object.prototype.hasOwnProperty.call(importData, importer.type)) {
-                importResults.push(await importer.doImport(importData[importer.type], importOptions));
+                importResults[importer.type] = await importer.doImport(importData[importer.type], importOptions);
             }
         }
 
@@ -351,11 +414,62 @@ class ImportManager {
     /**
      * Import Step 4:
      * Report on what was imported, currently a no-op
-     * @param {ImportResult[]} importResults
-     * @returns {Promise<ImportResult[]>} importResults
+     * @param {Object.<string, ImportResult>} importResults
+     * @returns {Promise<Object.<string, ImportResult>>} importResults
      */
     async generateReport(importResults) {
         return Promise.resolve(importResults);
+    }
+
+    /**
+     * Step 5:
+     * Remove files after we're done (abstracted into a function for easier testing)
+     * @returns {Promise<void>}
+     */
+    async cleanUp() {
+        if (this.fileToDelete === null) {
+            return;
+        }
+
+        try {
+            await fs.remove(this.fileToDelete);
+        } catch (err) {
+            logging.error(new errors.InternalServerError({
+                err: err,
+                context: tpl(messages.couldNotCleanUpFile.error),
+                help: tpl(messages.couldNotCleanUpFile.context)
+            }));
+        }
+
+        this.fileToDelete = null;
+    }
+
+    /**
+     * Import Step 6:
+     * Create an email to notify the user that the import has completed
+     * @param {ImportResult} result
+     * @param {Object} options
+     * @param {string} options.emailRecipient
+     * @param {string} options.importTag
+     * @returns {string}
+     */
+    generateCompletionEmail(result, {
+        emailRecipient,
+        importTag
+    }) {
+        const siteUrl = new URL(urlUtils.urlFor('home', null, true));
+        const postsUrl = new URL('posts', urlUtils.urlFor('admin', null, true));
+        if (importTag && result?.data?.tags) {
+            const tag = result.data.tags.find(t => t.name === importTag);
+            postsUrl.searchParams.set('tag', tag.slug);
+        }
+
+        return emailTemplate({
+            result,
+            siteUrl,
+            postsUrl,
+            emailRecipient
+        });
     }
 
     /**
@@ -363,33 +477,78 @@ class ImportManager {
      * The main method of the ImportManager, call this to kick everything off!
      * @param {File} file
      * @param {ImportOptions} importOptions to allow override of certain import features such as locking a user
-     * @returns {Promise<ImportResult[]>}
+     * @returns {Promise<Object.<string, ImportResult>>}
      */
     async importFromFile(file, importOptions = {}) {
-        try {
+        let importData;
+        if (importOptions.data) {
+            importData = importOptions.data;
+        } else {
             // Step 1: Handle converting the file to usable data
-            let importData = await this.loadFile(file);
+            // Has to be completed outside of job to ensure file is processed before being deleted
+            importData = await this.loadFile(file);
+        }
 
+        debug('importFromFile completed file load', importData);
+
+        const env = config.get('env');
+        if (!env?.startsWith('testing') && !importOptions.runningInJob) {
+            return jobManager.addJob({
+                job: () => this.importFromFile(file, Object.assign({}, importOptions, {
+                    runningInJob: true,
+                    data: importData
+                })),
+                offloaded: false
+            });
+        }
+
+        let importResult;
+        try {
             // Step 2: Let the importers pre-process the data
             importData = await this.preProcess(importData);
-        
+
             // Step 3: Actually do the import
             // @TODO: It would be cool to have some sort of dry run flag here
-            let importResult = await this.doImport(importData, importOptions);
-            
+            importResult = await this.doImport(importData, importOptions);
+
             // Step 4: Report on the import
-            return await this.generateReport(importResult);
+            importResult = await this.generateReport(importResult);
+
+            return importResult;
+        } catch (err) {
+            logging.error(err, 'Content import was unsuccessful');
+            importResult = {data: {errors: [err]}};
         } finally {
             // Step 5: Cleanup any files
-            this.cleanUp();
+            await this.cleanUp();
+
+            if (!env?.startsWith('testing')) {
+                // Step 6: Send email
+                const email = this.generateCompletionEmail(importResult, {
+                    emailRecipient: importOptions.user.email,
+                    importTag: importOptions.importTag
+                });
+                await ghostMailer.send({
+                    to: importOptions.user.email,
+                    subject: importResult?.data?.errors
+                        ? 'Your content import was unsuccessful'
+                        : 'Your content import has finished',
+                    html: email
+                });
+            }
         }
     }
 }
 
 /**
  * @typedef {object} ImportOptions
+ * @property {boolean} [runningInJob]
  * @property {boolean} [returnImportedData]
  * @property {boolean} [importPersistUser]
+ * @property {Object} [user]
+ * @property {string} [user.email]
+ * @property {string} [importTag]
+ * @property {Object} [data]
  */
 
 /**

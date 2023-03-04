@@ -1,0 +1,90 @@
+{
+  "name": "parseley",
+  "version": "0.7.0",
+  "description": "CSS selectors parser, based on nearley",
+  "keywords": [
+    "CSS",
+    "selectors",
+    "parser",
+    "AST",
+    "serializer",
+    "specificity"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mxxii/parseley.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mxxii/parseley/issues"
+  },
+  "homepage": "https://github.com/mxxii/parseley",
+  "author": "KillyMXI",
+  "funding": "https://ko-fi.com/killymxi",
+  "license": "MIT",
+  "exports": {
+    "import": "./lib/parseley.mjs",
+    "require": "./lib/parseley.cjs"
+  },
+  "type": "module",
+  "main": "./lib/parseley.cjs",
+  "module": "./lib/parseley.mjs",
+  "types": "./lib/parseley.d.ts",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "build:docs": "typedoc",
+    "build:rollup": "rollup -c",
+    "build:types": "tsc -d --emitDeclarationOnly --declarationDir ./lib && rimraf ./lib/grammar.d.ts",
+    "build": "npm run nearley && npm run clean && npm run build:rollup && npm run build:types && npm run build:docs",
+    "checkAll": "npm run lint && npm test",
+    "clean": "rimraf lib",
+    "example": "node ./example/example.cjs",
+    "lint:eslint": "eslint .",
+    "lint:md": "markdownlint --ignore-path .gitignore .",
+    "lint": "npm run lint:eslint && npm run lint:md",
+    "nearley": "nearleyc ./src/grammar.ne -o ./src/grammar.ts",
+    "prepublishOnly": "npm run build && npm run checkAll",
+    "pretest": "npm run nearley",
+    "test": "ava"
+  },
+  "dependencies": {
+    "moo": "^0.5.1",
+    "nearley": "^2.20.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^8.2.1",
+    "@tsconfig/node10": "^1.0.7",
+    "@types/moo": "^0.5.4",
+    "@types/nearley": "^2.11.1",
+    "@typescript-eslint/eslint-plugin": "^4.22.0",
+    "@typescript-eslint/parser": "^4.22.0",
+    "ava": "^3.15.0",
+    "eslint": "^7.24.0",
+    "eslint-plugin-jsonc": "^1.2.1",
+    "eslint-plugin-tsdoc": "^0.2.12",
+    "markdownlint-cli": "^0.27.1",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.45.2",
+    "ts-node": "^9.1.1",
+    "tslib": "^2.2.0",
+    "typedoc": "^0.20.35",
+    "typedoc-plugin-markdown": "^3.7.0",
+    "typescript": "^4.2.4"
+  },
+  "ava": {
+    "extensions": [
+      "ts"
+    ],
+    "files": [
+      "test/**/*"
+    ],
+    "require": [
+      "ts-node/register"
+    ],
+    "environmentVariables": {
+      "TS_NODE_FILES": "true"
+    },
+    "verbose": true
+  }
+}

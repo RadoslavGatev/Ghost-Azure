@@ -1,0 +1,58 @@
+{
+  "name": "html-to-text",
+  "version": "8.2.1",
+  "description": "Advanced html to plain text converter",
+  "license": "MIT",
+  "author": {
+    "name": "Malte Legenhausen",
+    "email": "legenhausen@werk85.de"
+  },
+  "homepage": "https://github.com/html-to-text/node-html-to-text",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/html-to-text/node-html-to-text.git"
+  },
+  "bugs": {
+    "url": "https://github.com/html-to-text/node-html-to-text/issues"
+  },
+  "keywords": [
+    "html",
+    "node",
+    "text",
+    "mail",
+    "plain",
+    "converter"
+  ],
+  "engines": {
+    "node": ">=10.23.2"
+  },
+  "main": "index.js",
+  "bin": {
+    "html-to-text": "./bin/cli.js"
+  },
+  "scripts": {
+    "cover": "c8 --reporter=lcov --reporter=text-summary mocha -t 20000",
+    "example": "node ./example/html-to-text.js",
+    "lint": "eslint .",
+    "prepublishOnly": "npm run lint && npm test",
+    "test": "mocha"
+  },
+  "dependencies": {
+    "@selderee/plugin-htmlparser2": "^0.6.0",
+    "deepmerge": "^4.2.2",
+    "he": "^1.2.0",
+    "htmlparser2": "^6.1.0",
+    "minimist": "^1.2.6",
+    "selderee": "^0.6.0"
+  },
+  "devDependencies": {
+    "c8": "^7.12.0",
+    "chai": "^4.3.6",
+    "eslint": "^7.32.0",
+    "eslint-plugin-filenames": "^1.3.2",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-jsdoc": "^33.3.0",
+    "eslint-plugin-mocha": "^8.2.0",
+    "mocha": "^8.4.0"
+  }
+}

@@ -15,7 +15,20 @@
                     "slug":             "default-product",
                     "type":             "paid",
                     "active":           true,
-                    "visibility":       "public"
+                    "visibility":       "public",
+                    "currency":         "usd",
+                    "monthly_price":    500,
+                    "yearly_price":     5000
+                }
+            ]
+        },
+        {
+            "name": "Newsletter",
+            "entries": [
+                {
+                    "name":             "Default Newsletter",
+                    "slug":             "default-newsletter",
+                    "show_header_name": false
                 }
             ]
         },
@@ -60,6 +73,10 @@
                     "description": "External Apps"
                 },
                 {
+                    "name": "Ghost Explore Integration",
+                    "description": "Internal Integration for the Ghost Explore directory"
+                },
+                {
                     "name": "DB Backup Integration",
                     "description": "Internal DB Backup Client"
                 },
@@ -72,6 +89,11 @@
         {
             "name": "Permission",
             "entries": [
+                {
+                    "name": "Read explore data",
+                    "action_type": "read",
+                    "object_type": "explore"
+                },
                 {
                     "name": "Export database",
                     "action_type": "exportContent",
@@ -190,6 +212,11 @@
                 {
                     "name": "Activate themes",
                     "action_type": "activate",
+                    "object_type": "theme"
+                },
+                {
+                    "name": "View active theme details",
+                    "action_type": "readActive",
                     "object_type": "theme"
                 },
                 {
@@ -531,6 +558,86 @@
                     "name": "Edit custom theme settings",
                     "action_type": "edit",
                     "object_type": "custom_theme_setting"
+                },
+                {
+                    "name": "Browse newsletters",
+                    "action_type": "browse",
+                    "object_type": "newsletter"
+                },
+                {
+                    "name": "Read newsletters",
+                    "action_type": "read",
+                    "object_type": "newsletter"
+                },
+                {
+                    "name": "Add newsletters",
+                    "action_type": "add",
+                    "object_type": "newsletter"
+                },
+                {
+                    "name": "Edit newsletters",
+                    "action_type": "edit",
+                    "object_type": "newsletter"
+                },
+                {
+                    "name": "Browse comments",
+                    "action_type": "browse",
+                    "object_type": "comment"
+                },
+                {
+                    "name": "Read comments",
+                    "action_type": "read",
+                    "object_type": "comment"
+                },
+                {
+                    "name": "Edit comments",
+                    "action_type": "edit",
+                    "object_type": "comment"
+                },
+                {
+                    "name": "Add comments",
+                    "action_type": "add",
+                    "object_type": "comment"
+                },
+                {
+                    "name": "Delete comments",
+                    "action_type": "destroy",
+                    "object_type": "comment"
+                },
+                {
+                    "name": "Moderate comments",
+                    "action_type": "moderate",
+                    "object_type": "comment"
+                },
+                {
+                    "name": "Like comments",
+                    "action_type": "like",
+                    "object_type": "comment"
+                },
+                {
+                    "name": "Unlike comments",
+                    "action_type": "unlike",
+                    "object_type": "comment"
+                },
+                {
+                    "name": "Report comments",
+                    "action_type": "report",
+                    "object_type": "comment"
+                },
+                {
+                    "name": "Browse links",
+                    "action_type": "browse",
+                    "object_type": "link"
+                },
+                {
+                    "name": "Edit links",
+                    "action_type": "edit",
+                    "object_type": "link"
+                },
+                {
+                    "name": "Browse mentions",
+                    "action_type": "browse",
+                    "object_type": "mention"
                 }
             ]
         },
@@ -542,6 +649,9 @@
                     "name": "Ghost",
                     "email": "ghost@example.com",
                     "status": "inactive",
+                    "free_member_signup_notification": true,
+                    "paid_subscription_started_notification": true,
+                    "paid_subscription_canceled_notification": false,
                     "roles": []
                 }
             ]
@@ -559,8 +669,7 @@
                     "status": "published",
                     "visibility": "public",
                     "created_by": "1",
-                    "published_by": "1",
-                    "author_id": "1"
+                    "published_by": "1"
                 },
                 {
                     "title": "About this site",
@@ -571,8 +680,7 @@
                     "status": "published",
                     "visibility": "public",
                     "created_by": "1",
-                    "published_by": "1",
-                    "author_id": "1"
+                    "published_by": "1"
                 }
             ]
         },
@@ -587,6 +695,13 @@
                     "api_keys": [{"type": "admin"}]
                 },
                 {
+                    "slug": "ghost-explore",
+                    "name": "Ghost Explore",
+                    "description": "Built-in Ghost Explore integration",
+                    "type": "core",
+                    "api_keys": [{"type": "admin", "role": "Ghost Explore Integration"}]
+                },
+                {
                     "slug": "ghost-backup",
                     "name": "Ghost Backup",
                     "description": "Internal DB Backup integration",
@@ -599,6 +714,13 @@
                     "description": "Internal Scheduler integration",
                     "type": "internal",
                     "api_keys": [{"type": "admin", "role": "Scheduler Integration"}]
+                },
+                {
+                    "slug": "ghost-internal-frontend",
+                    "name": "Ghost Internal Frontend",
+                    "description": "Internal frontend integration",
+                    "type": "internal",
+                    "api_keys": [{"type": "content"}]
                 }
             ]
         }
@@ -642,13 +764,21 @@
                     "custom_theme_setting": "all",
                     "offer": "all",
                     "authentication": "resetAllPasswords",
-                    "members_stripe_connect": "auth"
+                    "members_stripe_connect": "auth",
+                    "newsletter": "all",
+                    "explore": "read",
+                    "comment": "all",
+                    "link": "all",
+                    "mention": "browse"
                 },
                 "DB Backup Integration": {
                     "db": "all"
                 },
                 "Scheduler Integration": {
                     "post": "publish"
+                },
+                "Ghost Explore Integration": {
+                    "explore": "read"
                 },
                 "Admin Integration": {
                     "mail": "all",
@@ -670,7 +800,12 @@
                     "email": "all",
                     "snippet": "all",
                     "product": ["browse", "read", "add", "edit"],
-                    "offer": ["browse", "read", "add", "edit"]
+                    "offer": ["browse", "read", "add", "edit"],
+                    "newsletter": ["browse", "read", "add", "edit"],
+                    "explore": "read",
+                    "comment": "all",
+                    "link": "all",
+                    "mention": "browse"
                 },
                 "Editor": {
                     "notification": "all",
@@ -681,12 +816,13 @@
                     "user": "all",
                     "role": "all",
                     "invite": "all",
-                    "theme": ["browse"],
+                    "theme": ["browse", "readActive"],
                     "email_preview": "all",
                     "email": "all",
                     "snippet": "all",
                     "label": ["browse", "read"],
-                    "product": ["browse", "read"]
+                    "product": ["browse", "read"],
+                    "newsletter": ["browse", "read"]
                 },
                 "Author": {
                     "post": ["browse", "read", "add"],
@@ -695,11 +831,13 @@
                     "tag": ["browse", "read", "add"],
                     "user": ["browse", "read"],
                     "role": ["browse"],
-                    "theme": ["browse"],
+                    "theme": ["browse", "readActive"],
                     "email_preview": "read",
                     "email": "read",
                     "snippet": ["browse", "read"],
-                    "product": ["browse", "read"]
+                    "label": ["browse", "read"],
+                    "product": ["browse", "read"],
+                    "newsletter": ["browse", "read"]
                 },
                 "Contributor": {
                     "post": ["browse", "read", "add"],

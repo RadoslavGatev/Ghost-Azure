@@ -1,0 +1,451 @@
+/**
+* @license Apache-2.0
+*
+* Copyright (c) 2018 The Stdlib Authors.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
+'use strict';
+
+/*
+* When adding modules to the namespace, ensure that they are added in alphabetical order according to module name.
+*/
+
+/*
+* The following modules are intentionally not exported: tools
+*/
+
+// MODULES //
+
+var setReadOnly = require( '@stdlib/utils/define-read-only-property' );
+
+
+// MAIN //
+
+/**
+* Top-level namespace.
+*
+* @namespace string
+*/
+var string = {};
+
+/**
+* @name acronym
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/acronym}
+*/
+setReadOnly( string, 'acronym', require( './../acronym' ) );
+
+/**
+* @name base
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/base}
+*/
+setReadOnly( string, 'base', require( './../base' ) );
+
+/**
+* @name camelcase
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/camelcase}
+*/
+setReadOnly( string, 'camelcase', require( './../camelcase' ) );
+
+/**
+* @name capitalize
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/capitalize}
+*/
+setReadOnly( string, 'capitalize', require( './../capitalize' ) );
+
+/**
+* @name codePointAt
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/code-point-at}
+*/
+setReadOnly( string, 'codePointAt', require( './../code-point-at' ) );
+
+/**
+* @name constantcase
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/constantcase}
+*/
+setReadOnly( string, 'constantcase', require( './../constantcase' ) );
+
+/**
+* @name endsWith
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/ends-with}
+*/
+setReadOnly( string, 'endsWith', require( './../ends-with' ) );
+
+/**
+* @name format
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/format}
+*/
+setReadOnly( string, 'format', require( './../format' ) );
+
+/**
+* @name fromCodePoint
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/from-code-point}
+*/
+setReadOnly( string, 'fromCodePoint', require( './../from-code-point' ) );
+
+/**
+* @name kebabcase
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/kebabcase}
+*/
+setReadOnly( string, 'kebabcase', require( './../kebabcase' ) );
+
+/**
+* @name lpad
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/left-pad}
+*/
+setReadOnly( string, 'lpad', require( './../left-pad' ) );
+
+/**
+* @name ltrim
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/left-trim}
+*/
+setReadOnly( string, 'ltrim', require( './../left-trim' ) );
+
+/**
+* @name ltrimN
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/left-trim-n}
+*/
+setReadOnly( string, 'ltrimN', require( './../left-trim-n' ) );
+
+/**
+* @name lowercase
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/lowercase}
+*/
+setReadOnly( string, 'lowercase', require( './../lowercase' ) );
+
+/**
+* @name nextGraphemeClusterBreak
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/next-grapheme-cluster-break}
+*/
+setReadOnly( string, 'nextGraphemeClusterBreak', require( './../next-grapheme-cluster-break' ) );
+
+/**
+* @name numGraphemeClusters
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/num-grapheme-clusters}
+*/
+setReadOnly( string, 'numGraphemeClusters', require( './../num-grapheme-clusters' ) );
+
+/**
+* @name pad
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/pad}
+*/
+setReadOnly( string, 'pad', require( './../pad' ) );
+
+/**
+* @name pascalcase
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/pascalcase}
+*/
+setReadOnly( string, 'pascalcase', require( './../pascalcase' ) );
+
+/**
+* @name percentEncode
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/percent-encode}
+*/
+setReadOnly( string, 'percentEncode', require( './../percent-encode' ) );
+
+/**
+* @name prevGraphemeClusterBreak
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/prev-grapheme-cluster-break}
+*/
+setReadOnly( string, 'prevGraphemeClusterBreak', require( './../prev-grapheme-cluster-break' ) );
+
+/**
+* @name removeFirst
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/remove-first}
+*/
+setReadOnly( string, 'removeFirst', require( './../remove-first' ) );
+
+/**
+* @name removeLast
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/remove-last}
+*/
+setReadOnly( string, 'removeLast', require( './../remove-last' ) );
+
+/**
+* @name removePunctuation
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/remove-punctuation}
+*/
+setReadOnly( string, 'removePunctuation', require( './../remove-punctuation' ) );
+
+/**
+* @name removeUTF8BOM
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/remove-utf8-bom}
+*/
+setReadOnly( string, 'removeUTF8BOM', require( './../remove-utf8-bom' ) );
+
+/**
+* @name removeWords
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/remove-words}
+*/
+setReadOnly( string, 'removeWords', require( './../remove-words' ) );
+
+/**
+* @name repeat
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/repeat}
+*/
+setReadOnly( string, 'repeat', require( './../repeat' ) );
+
+/**
+* @name replace
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/replace}
+*/
+setReadOnly( string, 'replace', require( './../replace' ) );
+
+/**
+* @name reverseString
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/reverse}
+*/
+setReadOnly( string, 'reverseString', require( './../reverse' ) );
+
+/**
+* @name rpad
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/right-pad}
+*/
+setReadOnly( string, 'rpad', require( './../right-pad' ) );
+
+/**
+* @name rtrim
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/right-trim}
+*/
+setReadOnly( string, 'rtrim', require( './../right-trim' ) );
+
+/**
+* @name rtrimN
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/right-trim-n}
+*/
+setReadOnly( string, 'rtrimN', require( './../right-trim-n' ) );
+
+/**
+* @name snakecase
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/snakecase}
+*/
+setReadOnly( string, 'snakecase', require( './../snakecase' ) );
+
+/**
+* @name splitGraphemeClusters
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/split-grapheme-clusters}
+*/
+setReadOnly( string, 'splitGraphemeClusters', require( './../split-grapheme-clusters' ) );
+
+/**
+* @name startcase
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/startcase}
+*/
+setReadOnly( string, 'startcase', require( './../startcase' ) );
+
+/**
+* @name startsWith
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/starts-with}
+*/
+setReadOnly( string, 'startsWith', require( './../starts-with' ) );
+
+/**
+* @name substringAfter
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/substring-after}
+*/
+setReadOnly( string, 'substringAfter', require( './../substring-after' ) );
+
+/**
+* @name substringAfterLast
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/substring-after-last}
+*/
+setReadOnly( string, 'substringAfterLast', require( './../substring-after-last' ) );
+
+/**
+* @name substringBefore
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/substring-before}
+*/
+setReadOnly( string, 'substringBefore', require( './../substring-before' ) );
+
+/**
+* @name substringBeforeLast
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/substring-before-last}
+*/
+setReadOnly( string, 'substringBeforeLast', require( './../substring-before-last' ) );
+
+/**
+* @name trim
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/trim}
+*/
+setReadOnly( string, 'trim', require( './../trim' ) );
+
+/**
+* @name truncate
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/truncate}
+*/
+setReadOnly( string, 'truncate', require( './../truncate' ) );
+
+/**
+* @name truncateMiddle
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/truncate-middle}
+*/
+setReadOnly( string, 'truncateMiddle', require( './../truncate-middle' ) );
+
+/**
+* @name uncapitalize
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/uncapitalize}
+*/
+setReadOnly( string, 'uncapitalize', require( './../uncapitalize' ) );
+
+/**
+* @name uppercase
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/uppercase}
+*/
+setReadOnly( string, 'uppercase', require( './../uppercase' ) );
+
+/**
+* @name utf16ToUTF8Array
+* @memberof string
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/string/utf16-to-utf8-array}
+*/
+setReadOnly( string, 'utf16ToUTF8Array', require( './../utf16-to-utf8-array' ) );
+
+
+// EXPORTS //
+
+module.exports = string;

@@ -5,7 +5,8 @@ const errors = require('@tryghost/errors');
 const security = require('@tryghost/security');
 const {routerManager} = require('../');
 const themeEngine = require('../../theme-engine');
-const helpers = require('../helpers');
+const renderer = require('../../rendering');
+const dataService = require('../../data');
 
 const messages = {
     pageNotFound: 'Page not found.'
@@ -49,7 +50,7 @@ module.exports = function collectionController(req, res, next) {
     }
 
     debug('fetching data');
-    return helpers.fetchData(pathOptions, res.routerOptions, res.locals)
+    return dataService.fetchData(pathOptions, res.routerOptions, res.locals)
         .then(function handleResult(result) {
             // CASE: requested page is greater than number of pages we have
             if (pathOptions.page > result.meta.pagination.pages) {
@@ -79,17 +80,7 @@ module.exports = function collectionController(req, res, next) {
                 debug(`'${post.slug}' is not owned by this collection`);
             });
 
-            // Format data 1
-            // @TODO: See helpers/secure for explanation.
-            helpers.secure(req, result.posts);
-
-            // @TODO: See helpers/secure for explanation.
-            _.each(result.data, function (data) {
-                helpers.secure(req, data);
-            });
-
-            const renderer = helpers.renderEntries(req, res);
-            return renderer(result);
+            return renderer.renderEntries(req, res)(result);
         })
-        .catch(helpers.handleError(next));
+        .catch(renderer.handleError(next));
 };

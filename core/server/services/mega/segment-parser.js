@@ -2,9 +2,16 @@ const getSegmentsFromHtml = (html) => {
     const cheerio = require('cheerio');
     const $ = cheerio.load(html);
 
-    const allSegments = $('[data-gh-segment]')
+    let allSegments = $('[data-gh-segment]')
         .get()
         .map(el => el.attribs['data-gh-segment']);
+
+    /**
+     * Always add free and paid segments if email has paywall card
+     */
+    if (html.indexOf('<!--members-only-->') !== -1) {
+        allSegments = allSegments.concat(['status:free', 'status:-free']);
+    }
 
     // only return unique elements
     return [...new Set(allSegments)];

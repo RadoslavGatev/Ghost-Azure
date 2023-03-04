@@ -1,0 +1,21 @@
+Object.defineProperty(exports, '__esModule', { value: true });
+
+/**
+ * Unwraps a module if it has been wrapped in an object under the key `default`.
+ *
+ * Adapted from Rollup (https://github.com/rollup/rollup)
+ *
+ * @param requireResult The result of calling `require` on a module
+ * @returns The full module, unwrapped if necessary.
+ */
+function _interopDefault$1(requireResult) {
+  return requireResult.__esModule ? (requireResult.default ) : requireResult;
+}
+
+// Rollup version:
+// function _interopDefault(e) {
+//   return e && e.__esModule ? e['default'] : e;
+// }
+
+exports._interopDefault = _interopDefault$1;
+//# sourceMappingURL=_interopDefault.js.map

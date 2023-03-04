@@ -1,5 +1,4 @@
 const _ = require('lodash');
-const Promise = require('bluebird');
 const logging = require('@tryghost/logging');
 const {sequence} = require('@tryghost/promise');
 
@@ -74,16 +73,25 @@ class FixtureManager {
             migrating: true
         }, options);
 
-        await Promise.mapSeries(this.fixtures.models, (model) => {
+        const roleModel = this.fixtures.models.find(m => m.name === 'Role');
+        await this.addFixturesForModel(roleModel, localOptions);
+
+        const userModel = this.fixtures.models.find(m => m.name === 'User');
+        await this.addFixturesForModel(userModel, localOptions);
+
+        const userRolesRelation = this.fixtures.relations.find(r => r.from.relation === 'roles');
+        await this.addFixturesForRelation(userRolesRelation, localOptions);
+
+        await sequence(this.fixtures.models.filter(m => !['User', 'Role'].includes(m.name)).map(model => () => {
             logging.info('Model: ' + model.name);
 
             return this.addFixturesForModel(model, localOptions);
-        });
+        }));
 
-        await Promise.mapSeries(this.fixtures.relations, (relation) => {
+        await sequence(this.fixtures.relations.filter(r => r.from.relation !== 'roles').map(relation => () => {
             logging.info('Relation: ' + relation.from.model + ' to ' + relation.to.model);
             return this.addFixturesForRelation(relation, localOptions);
-        });
+        }));
     }
 
     /*
@@ -182,12 +190,15 @@ class FixtureManager {
     fetchRelationData(relation, options) {
         const fromOptions = _.extend({}, options, {withRelated: [relation.from.relation]});
 
-        const props = {
-            from: models[relation.from.model].findAll(fromOptions),
-            to: models[relation.to.model].findAll(options)
-        };
+        const fromRelations = models[relation.from.model].findAll(fromOptions);
+        const toRelations = models[relation.to.model].findAll(options);
 
-        return Promise.props(props);
+        return Promise.all([fromRelations, toRelations]).then(([from, to]) => {
+            return {
+                from: from,
+                to: to
+            };
+        });
     }
 
     /**
@@ -204,7 +215,7 @@ class FixtureManager {
         // would change the fixturesHash.
         modelFixture = _.cloneDeep(modelFixture);
         // The Post model fixtures need a `published_at` date, where at least the seconds
-        // are different, otherwise `prev_post` and `next_post` helpers won't workd with
+        // are different, otherwise `prev_post` and `next_post` helpers won't work with
         // them.
         if (modelFixture.name === 'Post') {
             _.forEach(modelFixture.entries, (post, index) => {
@@ -214,7 +225,7 @@ class FixtureManager {
             });
         }
 
-        const results = await Promise.mapSeries(modelFixture.entries, async (entry) => {
+        const results = await sequence(modelFixture.entries.map(entry => async () => {
             let data = {};
 
             // CASE: if id is specified, only query by id
@@ -234,7 +245,7 @@ class FixtureManager {
             if (!found) {
                 return models[modelFixture.name].add(entry, options);
             }
-        });
+        }));
 
         return {expected: modelFixture.entries.length, done: _.compact(results).length};
     }
@@ -299,12 +310,12 @@ class FixtureManager {
     }
 
     async removeFixturesForModel(modelFixture, options) {
-        const results = await Promise.mapSeries(modelFixture.entries, async (entry) => {
+        const results = await sequence(modelFixture.entries.map(entry => async () => {
             const found = models[modelFixture.name].findOne(entry.id ? {id: entry.id} : entry, options);
             if (found) {
                 return models[modelFixture.name].destroy(_.extend(options, {id: found.id}));
             }
-        });
+        }));
 
         return {expected: modelFixture.entries.length, done: results.length};
     }

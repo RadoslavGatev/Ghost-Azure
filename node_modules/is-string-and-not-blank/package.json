@@ -1,0 +1,159 @@
+{
+  "name": "is-string-and-not-blank",
+  "description": "3x as fast as `is-whitespace` and `whitespace-regex` thanks to `is-string-blank`.  This package is a simple function that accepts an argument and returns `true` if it is a string AND it is not blank.  Supports Node and Browser environments.",
+  "version": "0.0.2",
+  "author": "Nick Baugh <niftylettuce@gmail.com> (http://niftylettuce.com/)",
+  "ava": {
+    "failFast": true,
+    "verbose": true
+  },
+  "bugs": {
+    "url": "https://github.com/niftylettuce/is-string-and-not-blank/issues",
+    "email": "niftylettuce@gmail.com"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "contributors": [
+    "Nick Baugh <niftylettuce@gmail.com> (http://niftylettuce.com/)"
+  ],
+  "dependencies": {
+    "is-string-blank": "^1.0.1"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.5.5",
+    "@babel/core": "^7.5.5",
+    "@babel/preset-env": "^7.5.5",
+    "@commitlint/cli": "latest",
+    "@commitlint/config-conventional": "latest",
+    "ava": "latest",
+    "babelify": "^10.0.0",
+    "benchmark": "^2.1.4",
+    "browserify": "^16.5.0",
+    "codecov": "latest",
+    "cross-env": "latest",
+    "eslint": "latest",
+    "eslint-config-xo-lass": "latest",
+    "eslint-plugin-compat": "^3.3.0",
+    "eslint-plugin-node": "^9.2.0",
+    "fixpack": "latest",
+    "husky": "latest",
+    "jsdom": "^15.1.1",
+    "lint-staged": "latest",
+    "nyc": "latest",
+    "remark-cli": "latest",
+    "remark-preset-github": "latest",
+    "tinyify": "https://github.com/niftylettuce/tinyify",
+    "whitespace-regex": "^0.1.2",
+    "xo": "latest"
+  },
+  "engines": {
+    "node": ">=6.4.0"
+  },
+  "files": [
+    "lib",
+    "dist"
+  ],
+  "homepage": "https://github.com/niftylettuce/is-string-and-not-blank",
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm test",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "jsdelivr": "dist/is-string-and-not-blank.min.js",
+  "keywords": [
+    "blank",
+    "break",
+    "browser",
+    "check",
+    "empty",
+    "ending",
+    "expression",
+    "is",
+    "isblank",
+    "isempty",
+    "line",
+    "lodash",
+    "not",
+    "null",
+    "regex",
+    "regexp",
+    "regular",
+    "str",
+    "string",
+    "test",
+    "underscore",
+    "underscore.string",
+    "whitespace"
+  ],
+  "license": "MIT",
+  "lint-staged": {
+    "*.js": [
+      "xo --fix",
+      "git add"
+    ],
+    "*.md": [
+      "remark . -qfo",
+      "git add"
+    ],
+    "package.json": [
+      "fixpack",
+      "git add"
+    ]
+  },
+  "main": "lib/index.js",
+  "nyc": {
+    "check-coverage": true,
+    "lines": 100,
+    "functions": 100,
+    "branches": 100,
+    "reporter": [
+      "lcov",
+      "html",
+      "text"
+    ]
+  },
+  "prettier": {
+    "singleQuote": true,
+    "bracketSpacing": true,
+    "trailingComma": "none"
+  },
+  "remarkConfig": {
+    "plugins": [
+      "preset-github"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/niftylettuce/is-string-and-not-blank"
+  },
+  "scripts": {
+    "ava": "cross-env NODE_ENV=test ava",
+    "browserify": "browserify src/index.js -o dist/is-string-and-not-blank.js -s isSANB -g [ babelify --configFile ./.dist.babelrc ]",
+    "build": "npm run build:clean && npm run build:lib && npm run build:dist",
+    "build:clean": "rimraf lib dist",
+    "build:dist": "npm run browserify && npm run minify",
+    "build:lib": "babel --config-file ./.lib.babelrc src --out-dir lib",
+    "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
+    "lint": "xo && remark . -qfo && eslint --no-inline-config -c .lib.eslintrc lib && eslint --no-inline-config -c .dist.eslintrc dist",
+    "minify": "cross-env NODE_ENV=production browserify src/index.js -o dist/is-string-and-not-blank.min.js -s isSANB -g [ babelify --configFile ./.dist.babelrc ] -p tinyify",
+    "nyc": "cross-env NODE_ENV=test nyc ava",
+    "test": "npm run build && npm run lint && npm run ava",
+    "test-coverage": "npm run build && npm run lint && npm run nyc"
+  },
+  "unpkg": "dist/is-string-and-not-blank.min.js",
+  "xo": {
+    "prettier": true,
+    "space": true,
+    "extends": [
+      "xo-lass"
+    ],
+    "env": [
+      "node",
+      "browser"
+    ]
+  }
+}

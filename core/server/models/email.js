@@ -10,9 +10,12 @@ const Email = ghostBookshelf.Model.extend({
             status: 'pending',
             recipient_filter: 'status:-free',
             track_opens: false,
+            track_clicks: false,
+            feedback_enabled: false,
             delivered_count: 0,
             opened_count: 0,
-            failed_count: 0
+            failed_count: 0,
+            source_type: 'html'
         };
     },
 
@@ -54,6 +57,10 @@ const Email = ghostBookshelf.Model.extend({
         return this.hasMany('EmailRecipient', 'email_id');
     },
 
+    newsletter() {
+        return this.belongsTo('Newsletter', 'newsletter_id');
+    },
+
     emitChange: function emitChange(event, options) {
         const eventToTrigger = 'email' + '.' + event;
         ghostBookshelf.Model.prototype.emitChange.bind(this)(this, eventToTrigger, options);
@@ -76,11 +83,7 @@ const Email = ghostBookshelf.Model.extend({
 
         model.emitChange('deleted', options);
     }
-}, {
-    post() {
-        return this.belongsTo('Post');
-    }
-});
+}, {});
 
 const Emails = ghostBookshelf.Collection.extend({
     model: Email

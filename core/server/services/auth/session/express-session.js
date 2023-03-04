@@ -15,7 +15,7 @@ function getExpressSessionMiddleware() {
     if (!unoExpressSessionMiddleware) {
         unoExpressSessionMiddleware = session({
             store: sessionStore,
-            secret: settingsCache.get('session_secret'),
+            secret: settingsCache.get('admin_session_secret'),
             resave: false,
             saveUninitialized: false,
             name: 'ghost-admin-api-session',
@@ -23,7 +23,7 @@ function getExpressSessionMiddleware() {
                 maxAge: constants.SIX_MONTH_MS,
                 httpOnly: true,
                 path: urlUtils.getSubdir() + '/ghost',
-                sameSite: 'lax',
+                sameSite: urlUtils.isSSL(config.get('url')) ? 'none' : 'lax',
                 secure: urlUtils.isSSL(config.get('url'))
             }
         });

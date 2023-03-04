@@ -1,0 +1,267 @@
+/**
+* @license Apache-2.0
+*
+* Copyright (c) 2018 The Stdlib Authors.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
+'use strict';
+
+/*
+* When adding modules to the namespace, ensure that they are added in alphabetical order according to module name.
+*/
+
+// MODULES //
+
+var setReadOnly = require( '@stdlib/utils/define-read-only-property' );
+
+
+// MAIN //
+
+/**
+* Top-level namespace.
+*
+* @namespace ns
+*/
+var ns = {};
+
+/**
+* @name isEvenInt32
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/int32-is-even}
+*/
+setReadOnly( ns, 'isEvenInt32', require( './../../../base/assert/int32-is-even' ) );
+
+/**
+* @name isOddInt32
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/int32-is-odd}
+*/
+setReadOnly( ns, 'isOddInt32', require( './../../../base/assert/int32-is-odd' ) );
+
+/**
+* @name isComposite
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-composite}
+*/
+setReadOnly( ns, 'isComposite', require( './../../../base/assert/is-composite' ) );
+
+/**
+* @name isCoprime
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-coprime}
+*/
+setReadOnly( ns, 'isCoprime', require( './../../../base/assert/is-coprime' ) );
+
+/**
+* @name isEven
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-even}
+*/
+setReadOnly( ns, 'isEven', require( './../../../base/assert/is-even' ) );
+
+/**
+* @name isFinite
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-finite}
+*/
+setReadOnly( ns, 'isFinite', require( './../../../base/assert/is-finite' ) );
+
+/**
+* @name isFinitef
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-finitef}
+*/
+setReadOnly( ns, 'isFinitef', require( './../../../base/assert/is-finitef' ) );
+
+/**
+* @name isInfinite
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-infinite}
+*/
+setReadOnly( ns, 'isInfinite', require( './../../../base/assert/is-infinite' ) );
+
+/**
+* @name isInfinitef
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-infinitef}
+*/
+setReadOnly( ns, 'isInfinitef', require( './../../../base/assert/is-infinitef' ) );
+
+/**
+* @name isInteger
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-integer}
+*/
+setReadOnly( ns, 'isInteger', require( './../../../base/assert/is-integer' ) );
+
+/**
+* @name isnan
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-nan}
+*/
+setReadOnly( ns, 'isnan', require( './../../../base/assert/is-nan' ) );
+
+/**
+* @name isnanf
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-nanf}
+*/
+setReadOnly( ns, 'isnanf', require( './../../../base/assert/is-nanf' ) );
+
+/**
+* @name isNegativeInteger
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-negative-integer}
+*/
+setReadOnly( ns, 'isNegativeInteger', require( './../../../base/assert/is-negative-integer' ) );
+
+/**
+* @name isNegativeZero
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-negative-zero}
+*/
+setReadOnly( ns, 'isNegativeZero', require( './../../../base/assert/is-negative-zero' ) );
+
+/**
+* @name isNegativeZerof
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-negative-zerof}
+*/
+setReadOnly( ns, 'isNegativeZerof', require( './../../../base/assert/is-negative-zerof' ) );
+
+/**
+* @name isNonNegativeInteger
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-nonnegative-integer}
+*/
+setReadOnly( ns, 'isNonNegativeInteger', require( './../../../base/assert/is-nonnegative-integer' ) );
+
+/**
+* @name isNonPositiveInteger
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-nonpositive-integer}
+*/
+setReadOnly( ns, 'isNonPositiveInteger', require( './../../../base/assert/is-nonpositive-integer' ) );
+
+/**
+* @name isOdd
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-odd}
+*/
+setReadOnly( ns, 'isOdd', require( './../../../base/assert/is-odd' ) );
+
+/**
+* @name isPositiveInteger
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-positive-integer}
+*/
+setReadOnly( ns, 'isPositiveInteger', require( './../../../base/assert/is-positive-integer' ) );
+
+/**
+* @name isPositiveZero
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-positive-zero}
+*/
+setReadOnly( ns, 'isPositiveZero', require( './../../../base/assert/is-positive-zero' ) );
+
+/**
+* @name isPositiveZerof
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-positive-zerof}
+*/
+setReadOnly( ns, 'isPositiveZerof', require( './../../../base/assert/is-positive-zerof' ) );
+
+/**
+* @name isPrime
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-prime}
+*/
+setReadOnly( ns, 'isPrime', require( './../../../base/assert/is-prime' ) );
+
+/**
+* @name isProbability
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-probability}
+*/
+setReadOnly( ns, 'isProbability', require( './../../../base/assert/is-probability' ) );
+
+/**
+* @name isSafeInteger
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/is-safe-integer}
+*/
+setReadOnly( ns, 'isSafeInteger', require( './../../../base/assert/is-safe-integer' ) );
+
+/**
+* @name isPow2Uint32
+* @memberof ns
+* @readonly
+* @type {Function}
+* @see {@link module:@stdlib/math/base/assert/uint32-is-pow2}
+*/
+setReadOnly( ns, 'isPow2Uint32', require( './../../../base/assert/uint32-is-pow2' ) );
+
+
+// EXPORTS //
+
+module.exports = ns;

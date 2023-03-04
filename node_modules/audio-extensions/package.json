@@ -1,0 +1,32 @@
+{
+  "name": "audio-extensions",
+  "version": "0.0.0",
+  "description": "List of audio extensions",
+  "license": "MIT",
+  "repository": "drkraken/audio-extensions",
+  "author": {
+    "name": "drKraken",
+    "email": "kuchuklehjs@gmail.com",
+    "url": "drkraken.github.io"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "main" : "audioExtensions.json",
+  "files": [
+    "audioExtensions.json"
+  ],
+  "keywords": [
+    "audio",
+    "extensions",
+    "files",
+    "format"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "mocha": "*"
+  }
+}

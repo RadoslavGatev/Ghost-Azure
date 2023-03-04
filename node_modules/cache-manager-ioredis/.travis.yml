@@ -1,0 +1,7 @@
+sudo: false
+language: node_js
+node_js:
+  - "node"
+  - "8.12"
+script: 'npm run test-cov'
+services: redis-server

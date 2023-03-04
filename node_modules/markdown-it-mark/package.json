@@ -1,0 +1,35 @@
+{
+  "name": "markdown-it-mark",
+  "version": "3.0.1",
+  "description": "<mark> tag for markdown-it markdown parser.",
+  "keywords": [
+    "markdown-it-plugin",
+    "markdown-it",
+    "markdown",
+    "mark"
+  ],
+  "repository": "markdown-it/markdown-it-mark",
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "dist/"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "test": "npm run lint && nyc mocha",
+    "coverage": "npm run test && nyc report --reporter html",
+    "report-coveralls": "nyc --reporter=lcov mocha",
+    "browserify": "rollup -c"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^17.0.0",
+    "@rollup/plugin-node-resolve": "^11.0.1",
+    "eslint": "^7.16.0",
+    "markdown-it": "markdown-it/markdown-it",
+    "markdown-it-testgen": "~0.1.0",
+    "mocha": "^8.2.1",
+    "nyc": "^15.1.0",
+    "rollup": "^2.35.1",
+    "rollup-plugin-terser": "^7.0.2"
+  }
+}

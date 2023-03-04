@@ -1,14 +1,18 @@
 const Promise = require('bluebird');
 const ghostBookshelf = require('./base');
+const ghostVersion = require('@tryghost/version');
 let Webhook;
 let Webhooks;
 
 Webhook = ghostBookshelf.Model.extend({
     tableName: 'webhooks',
 
+    actionsCollectCRUD: true,
+    actionsResourceType: 'webhook',
+
     defaults() {
         return {
-            api_version: 'v4',
+            api_version: `v${ghostVersion.safe}`,
             status: 'available'
         };
     },

@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const Promise = require('bluebird');
+const ObjectId = require('bson-objectid').default;
 const semver = require('semver');
 const {IncorrectUsageError} = require('@tryghost/errors');
 const debug = require('@tryghost/debug')('importer:data');
@@ -9,7 +9,15 @@ const PostsImporter = require('./posts');
 const TagsImporter = require('./tags');
 const SettingsImporter = require('./settings');
 const UsersImporter = require('./users');
+const NewslettersImporter = require('./newsletters');
+const ProductsImporter = require('./products');
+const StripeProductsImporter = require('./stripe-products');
+const StripePricesImporter = require('./stripe-prices');
+const CustomThemeSettingsImporter = require('./custom-theme-settings');
+const RevueSubscriberImporter = require('./revue-subscriber');
 const RolesImporter = require('./roles');
+const {slugify} = require('@tryghost/string/lib');
+
 let importers = {};
 let DataImporter;
 
@@ -17,6 +25,7 @@ DataImporter = {
     type: 'data',
 
     preProcess: function preProcess(importData) {
+        debug('preProcess');
         importData.preProcessedByData = true;
         return importData;
     },
@@ -25,19 +34,52 @@ DataImporter = {
         importers.users = new UsersImporter(importData.data);
         importers.roles = new RolesImporter(importData.data);
         importers.tags = new TagsImporter(importData.data);
-        importers.posts = new PostsImporter(importData.data);
+        importers.newsletters = new NewslettersImporter(importData.data);
         importers.settings = new SettingsImporter(importData.data);
+        importers.products = new ProductsImporter(importData.data);
+        importers.stripe_products = new StripeProductsImporter(importData.data);
+        importers.stripe_prices = new StripePricesImporter(importData.data);
+        importers.posts = new PostsImporter(importData.data);
+        importers.custom_theme_settings = new CustomThemeSettingsImporter(importData.data);
+        importers.revue_subscribers = new RevueSubscriberImporter(importData.data);
 
         return importData;
     },
 
     // Allow importing with an options object that is passed through the importer
-    doImport: function doImport(importData, importOptions) {
+    doImport: async function doImport(importData, importOptions) {
+        debug('doImport');
         importOptions = importOptions || {};
 
+        if (importOptions.importTag && importData?.data?.posts) {
+            const tagId = ObjectId().toHexString();
+            if (!('tags' in importData.data)) {
+                importData.data.tags = [];
+            }
+            importData.data.tags.push({
+                id: tagId,
+                name: importOptions.importTag,
+                slug: slugify(importOptions.importTag.replace(/^#/, 'hash-'))
+            });
+            if (!('posts_tags' in importData.data)) {
+                importData.data.posts_tags = [];
+            }
+            for (const post of importData.data.posts) {
+                if (!('id' in post)) {
+                    // Make sure post has an id if it doesn't already
+                    post.id = ObjectId().toHexString();
+                }
+                importData.data.posts_tags.push({
+                    post_id: post.id,
+                    tag_id: tagId
+                });
+            }
+        }
+
         const ops = [];
+        let problems = [];
         let errors = [];
-        let results = [];
+        let importedData = {};
 
         const modelOptions = {
             importing: true,
@@ -79,82 +121,79 @@ DataImporter = {
 
         this.init(importData);
 
-        return models.Base.transaction(function (transacting) {
+        return models.Base.transaction(async function (transacting) {
             modelOptions.transacting = transacting;
 
             _.each(importers, function (importer) {
-                ops.push(function doModelImport() {
-                    return importer.fetchExisting(modelOptions, importOptions)
-                        .then(function () {
-                            return importer.beforeImport(modelOptions, importOptions);
-                        })
-                        .then(function () {
-                            if (importer.options.requiredImportedData.length) {
-                                _.each(importer.options.requiredImportedData, (key) => {
-                                    importer.requiredImportedData[key] = importers[key].importedData;
-                                });
-                            }
+                ops.push(async function doModelImport() {
+                    await importer.fetchExisting(modelOptions, importOptions);
+                    await importer.beforeImport(modelOptions, importOptions);
 
-                            if (importer.options.requiredExistingData.length) {
-                                _.each(importer.options.requiredExistingData, (key) => {
-                                    importer.requiredExistingData[key] = importers[key].existingData;
-                                });
-                            }
-
-                            return importer.replaceIdentifiers(modelOptions, importOptions);
-                        })
-                        .then(function () {
-                            return importer.doImport(modelOptions, importOptions)
-                                .then(function (_results) {
-                                    results = results.concat(_results);
-                                });
+                    if (importer.options.requiredImportedData.length) {
+                        _.each(importer.options.requiredImportedData, (key) => {
+                            importer.requiredImportedData[key] = importers[key].importedData;
                         });
-                });
-            });
+                    }
 
-            return sequence(ops)
-                .then(function () {
-                    results.forEach(function (promise) {
-                        if (!promise.isFulfilled()) {
-                            errors = errors.concat(promise.reason());
-                        }
-                    });
+                    if (importer.options.requiredExistingData.length) {
+                        _.each(importer.options.requiredExistingData, (key) => {
+                            importer.requiredExistingData[key] = importers[key].existingData;
+                        });
+                    }
 
-                    if (errors.length === 0) {
-                        return;
-                    } else {
-                        throw errors;
+                    await importer.replaceIdentifiers(modelOptions, importOptions);
+                    await importer.doImport(modelOptions, importOptions);
+
+                    errors = errors.concat(importer.errors);
+                    problems = problems.concat(importer.problems);
+                    if (importOptions.returnImportedData) {
+                        importedData[importer.dataKeyToImport] = importer.importedDataToReturn;
                     }
                 });
-        }).then(function () {
-            /**
-             * data: imported data
-             * originalData: data from the json file
-             * problems: warnings
-             */
-            const toReturn = {
-                data: {},
-                originalData: importData.data,
-                problems: []
-            };
-
-            _.each(importers, function (importer) {
-                toReturn.problems = toReturn.problems.concat(importer.problems);
-
-                if (importOptions.returnImportedData) {
-                    toReturn.data[importer.dataKeyToImport] = importer.importedDataToReturn;
-                }
             });
 
-            return toReturn;
-        }).catch(function (err) {
-            debug(err);
-            return Promise.reject(err);
-        }).finally(() => {
-            // release memory
-            importers = {};
-            results = null;
-            importData = null;
+            /**
+             * @TODO: figure out how to fix this properly
+             * fixup the circular reference from
+             * stripe_prices -> stripe_products -> products -> stripe_prices
+             *
+             * Note: the product importer validates that all values are either
+             *   - being imported, or
+             *   - already exist in the db
+             * so we only need to map imported products
+             */
+            ops.push(() => {
+                const importedStripePrices = importers.stripe_prices.importedData;
+                const importedProducts = importers.products.importedData;
+                const productOps = [];
+
+                _.forEach(importedProducts, (importedProduct) => {
+                    return _.forEach(['monthly_price_id', 'yearly_price_id'], (field) => {
+                        const mappedPrice = _.find(importedStripePrices, {originalId: importedProduct[field]});
+                        if (mappedPrice) {
+                            productOps.push(() => {
+                                return models.Product.edit({[field]: mappedPrice.id}, {id: importedProduct.id, transacting});
+                            });
+                        }
+                    });
+                });
+
+                return sequence(productOps);
+            });
+
+            await sequence(ops);
+
+            // Errors preventing import:
+            if (errors.length > 0) {
+                debug(errors);
+                throw errors;
+            }
+
+            return {
+                data: importedData,
+                originalData: importData.data,
+                problems: problems
+            };
         });
     }
 };

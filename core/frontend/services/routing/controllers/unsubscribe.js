@@ -1,26 +1,27 @@
 const debug = require('@tryghost/debug')('services:routing:controllers:unsubscribe');
-const path = require('path');
-const megaService = require('../../../../server/services/mega');
-const helpers = require('../../../services/routing/helpers');
+const url = require('url');
+
+const urlUtils = require('../../../../shared/url-utils');
 
 module.exports = async function unsubscribeController(req, res) {
     debug('unsubscribeController');
 
-    let data = {};
+    const {query} = url.parse(req.url, true);
 
-    try {
-        data.member = await megaService.mega.handleUnsubscribeRequest(req);
-    } catch (err) {
-        data.error = err.message;
+    if (!query || !query.uuid) {
+        res.writeHead(400);
+        return res.end('Email address not found.');
     }
 
-    const templateName = 'unsubscribe';
+    const redirectUrl = new URL(urlUtils.urlFor('home', true));
+    redirectUrl.searchParams.append('uuid', query.uuid);
+    if (query.newsletter) {
+        redirectUrl.searchParams.append('newsletter', query.newsletter);
+    }
+    if (query.comments) {
+        redirectUrl.searchParams.append('comments', query.comments);
+    }
+    redirectUrl.searchParams.append('action', 'unsubscribe');
 
-    res.routerOptions = {
-        type: 'custom',
-        templates: templateName,
-        defaultTemplate: path.resolve(__dirname, '../../../views/', templateName)
-    };
-
-    return helpers.renderer(req, res, data);
+    return res.redirect(302, redirectUrl.href);
 };

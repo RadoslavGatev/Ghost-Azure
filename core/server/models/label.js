@@ -13,6 +13,9 @@ Label = ghostBookshelf.Model.extend({
 
     tableName: 'labels',
 
+    actionsCollectCRUD: true,
+    actionsResourceType: 'label',
+
     emitChange: function emitChange(event, options) {
         const eventToTrigger = 'label' + '.' + event;
         ghostBookshelf.Model.prototype.emitChange.bind(this)(this, eventToTrigger, options);
@@ -62,24 +65,6 @@ Label = ghostBookshelf.Model.extend({
         const attrs = ghostBookshelf.Model.prototype.toJSON.call(this, options);
 
         return attrs;
-    },
-
-    getAction(event, options) {
-        const actor = this.getActor(options);
-
-        // @NOTE: we ignore internal updates (`options.context.internal`) for now
-        if (!actor) {
-            return;
-        }
-
-        // @TODO: implement context
-        return {
-            event: event,
-            resource_id: this.id || this.previous('id'),
-            resource_type: 'label',
-            actor_id: actor.id,
-            actor_type: actor.type
-        };
     }
 }, {
     orderDefaultOptions: function orderDefaultOptions() {
@@ -92,7 +77,7 @@ Label = ghostBookshelf.Model.extend({
     permittedOptions: function permittedOptions(methodName) {
         let options = ghostBookshelf.Model.permittedOptions.call(this, methodName);
 
-        // whitelists for the `options` hash argument on methods, by method name.
+        // allowlists for the `options` hash argument on methods, by method name.
         // these are the only options that can be passed to Bookshelf / Knex.
         const validOptions = {
             findAll: ['columns'],
@@ -105,6 +90,20 @@ Label = ghostBookshelf.Model.extend({
         }
 
         return options;
+    },
+
+    countRelations() {
+        return {
+            members(modelOrCollection) {
+                modelOrCollection.query('columns', 'labels.*', (qb) => {
+                    qb.count('members.id')
+                        .from('members')
+                        .leftOuterJoin('members_labels', 'members.id', 'members_labels.member_id')
+                        .whereRaw('members_labels.label_id = labels.id')
+                        .as('count__members');
+                });
+            }
+        };
     },
 
     destroy: function destroy(unfilteredOptions) {

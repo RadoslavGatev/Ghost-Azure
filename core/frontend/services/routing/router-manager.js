@@ -1,4 +1,4 @@
-const debug = require('@tryghost/debug')('routing');
+const debug = require('@tryghost/debug')('frontend:routing');
 const _ = require('lodash');
 const StaticRoutesRouter = require('./StaticRoutesRouter');
 const StaticPagesRouter = require('./StaticPagesRouter');
@@ -13,10 +13,12 @@ const UnsubscribeRouter = require('./UnsubscribeRouter');
 const events = require('../../../server/lib/common/events');
 
 class RouterManager {
-    constructor({registry, defaultApiVersion = 'v4'}) {
+    constructor({registry}) {
         this.registry = registry;
-        this.defaultApiVersion = defaultApiVersion;
         this.siteRouter = null;
+        /**
+         * @type {URLService}
+         */
         this.urlService = null;
     }
 
@@ -52,24 +54,20 @@ class RouterManager {
     }
 
     /**
-     * @description The `init` function will return the wrapped parent express router and will start creating all
-     *              routers if you pass the option "start: true".
+     * The `init` function will return the wrapped parent express router and will start creating all
+     * routers if you pass the option "start: true".
      *
      * CASES:
      *   - if Ghost starts, it will first init the site app with the wrapper router and then call `start`
      *     separately, because it could be that your blog goes into maintenance mode
      *   - if you change your route settings, we will re-initialize routing
      *
-     * @param {Object} options
-     * @param {Boolean} [options.start] - flag controlling if the frontend Routes should be reinitialized
-     * @param {String} options.apiVersion - API version frontend Routes should communicate through
-     * @param {Object} options.routerSettings - JSON configuration to build frontend Routes
-     * @param {Object} options.urlService - service providing resource URL utility functions such as owns, getUrlByResourceId, and getResourceById
-     * @returns {ExpressRouter}
+     * @param {RouterConfig} options
+     * @returns {import('express').Router}
      */
-    init({start = false, routerSettings, apiVersion, urlService}) {
+    init({routeSettings, urlService}) {
         this.urlService = urlService;
-        debug('routing init', start, apiVersion, routerSettings);
+        debug('routing init', routeSettings);
 
         this.registry.resetAllRouters();
         this.registry.resetAllRoutes();
@@ -81,9 +79,8 @@ class RouterManager {
         this.siteRouter = new ParentRouter('SiteRouter');
         this.registry.setRouter('siteRouter', this.siteRouter);
 
-        if (start) {
-            apiVersion = apiVersion || this.defaultApiVersion;
-            this.start(apiVersion, routerSettings);
+        if (routeSettings) {
+            this.start(routeSettings);
         }
 
         return this.siteRouter.router();
@@ -102,12 +99,11 @@ class RouterManager {
      * 5. Static Pages: Weaker than collections, because we first try to find a post slug and fallback to lookup a static page.
      * 6. Internal Apps: Weakest
      *
-     * @param {string} apiVersion
      * @param {object} routerSettings
      */
-    start(apiVersion, routerSettings) {
-        debug('routing start', apiVersion, routerSettings);
-        const RESOURCE_CONFIG = require(`./config/${apiVersion}`);
+    start(routerSettings) {
+        debug('routing start', routerSettings);
+        const RESOURCE_CONFIG = require(`./config`);
 
         const unsubscribeRouter = new UnsubscribeRouter();
         this.siteRouter.mountRouter(unsubscribeRouter.router());
@@ -181,7 +177,7 @@ class RouterManager {
 
         // NOTE: timezone change only affects the collection router with dated permalinks
         const collectionRouter = this.registry.getRouterByName('CollectionRouter');
-        if (collectionRouter.getPermalinks().getValue().match(/:year|:month|:day/)) {
+        if (collectionRouter && collectionRouter.getPermalinks().getValue().match(/:year|:month|:day/)) {
             debug('handleTimezoneEdit: trigger regeneration');
 
             this.urlService.onRouterUpdated(collectionRouter.identifier);
@@ -190,3 +186,25 @@ class RouterManager {
 }
 
 module.exports = RouterManager;
+
+/**
+ * @typedef {Object} RouterConfig
+ * @property {RouteSettings} [routeSettings] - JSON config representing routes
+ * @property {URLService} urlService - service providing resource URL utility functions such as owns, getUrlByResourceId, and getResourceById
+ */
+
+/**
+ * @typedef {Object} RouteSettings
+ * @property {Object} routes
+ * @property {Object} collections
+ * @property {Object} taxonomies
+ */
+
+/**
+ * @typedef {Object} URLService
+ * @property {Function} owns
+ * @property {Function} getUrlByResourceId
+ * @property {Function} getResourceById
+ * @property {Function} onRouterAddedType
+ * @property {Function} onRouterUpdated
+ */

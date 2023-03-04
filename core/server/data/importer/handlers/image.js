@@ -1,5 +1,4 @@
 const _ = require('lodash');
-const Promise = require('bluebird');
 const path = require('path');
 const config = require('../../../../shared/config');
 const urlUtils = require('../../../../shared/url-utils');
@@ -16,7 +15,7 @@ ImageHandler = {
         const store = storage.getStorage('images');
         const baseDirRegex = baseDir ? new RegExp('^' + baseDir + '/') : new RegExp('');
 
-        const imageFolderRegexes = _.map(urlUtils.STATIC_IMAGE_URL_PREFIX.split('/'), function (dir) {
+        const imageFolderRegexes = _.map(store.staticFileURLPrefix.split('/'), function (dir) {
             return new RegExp('^' + dir + '/');
         });
 
@@ -35,14 +34,14 @@ ImageHandler = {
             return file;
         });
 
-        return Promise.map(files, function (image) {
+        return Promise.all(files.map(function (image) {
             return store.getUniqueFileName(image, image.targetDir).then(function (targetFilename) {
-                image.newPath = urlUtils.urlJoin('/', urlUtils.getSubdir(), urlUtils.STATIC_IMAGE_URL_PREFIX,
+                image.newPath = urlUtils.urlJoin('/', urlUtils.getSubdir(), store.staticFileURLPrefix,
                     path.relative(config.getContentPath('images'), targetFilename));
 
                 return image;
             });
-        });
+        }));
     }
 };
 

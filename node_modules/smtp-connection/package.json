@@ -1,0 +1,41 @@
+{
+  "name": "smtp-connection",
+  "version": "2.12.0",
+  "description": "Connect to SMTP servers",
+  "main": "lib/smtp-connection.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "grunt mochaTest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/andris9/smtp-connection.git"
+  },
+  "keywords": [
+    "SMTP"
+  ],
+  "author": "Andris Reinman",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/andris9/smtp-connection/issues"
+  },
+  "homepage": "https://github.com/andris9/smtp-connection",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "grunt": "^1.0.1",
+    "grunt-cli": "^1.2.0",
+    "grunt-eslint": "^19.0.0",
+    "grunt-mocha-test": "^0.12.7",
+    "mocha": "^3.0.2",
+    "proxy-test-server": "^1.0.0",
+    "sinon": "^1.17.5",
+    "smtp-server": "^1.14.2",
+    "xoauth2": "^1.2.0"
+  },
+  "dependencies": {
+    "httpntlm": "1.6.1",
+    "nodemailer-shared": "1.1.0"
+  }
+}

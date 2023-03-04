@@ -1,0 +1,9 @@
+{
+	"casting": "safe",
+	"copy": false,
+	"dtype": "float64",
+	"flatten": true,
+	"mode": "throw",
+	"ndmin": 0,
+	"order": "row-major"
+}

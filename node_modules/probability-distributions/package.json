@@ -1,0 +1,45 @@
+{
+  "name": "probability-distributions",
+  "version": "0.9.1",
+  "description": "Generate random variables from a variety of probability distributions. Includes tools to shuffle an array or sample from it.",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "keywords": [
+    "statistical distributions",
+    "normal distribution",
+    "gamma distribution",
+    "beta distribution",
+    "Laplace distribution",
+    "Poisson distribution",
+    "Chi-squared distribution",
+    "probability",
+    "probability distributions",
+    "random",
+    "random numbers",
+    "random variates",
+    "random variables",
+    "Random words",
+    "random number generator",
+    "Rstats",
+    "Rlang",
+    "R-stats",
+    "prng",
+    "Uniform distribution",
+    "Sampling"
+  ],
+  "author": "Matt Asher",
+  "license": "MIT",
+  "dependencies": {
+    "crypto": "0.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mattasher/probability-distributions"
+  },
+  "devDependencies": {
+    "chai": "^3.3.0",
+    "mocha": "^2.3.3"
+  }
+}

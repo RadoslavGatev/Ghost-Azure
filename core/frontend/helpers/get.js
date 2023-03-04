@@ -2,19 +2,18 @@
 // Usage: `{{#get "posts" limit="5"}}`, `{{#get "tags" limit="all"}}`
 // Fetches data from the API
 const {config, api, prepareContextResource} = require('../services/proxy');
-const {hbs} = require('../services/rendering');
+const {hbs} = require('../services/handlebars');
 
 const logging = require('@tryghost/logging');
 const errors = require('@tryghost/errors');
 const tpl = require('@tryghost/tpl');
 
 const _ = require('lodash');
-const Promise = require('bluebird');
 const jsonpath = require('jsonpath');
 
 const messages = {
     mustBeCalledAsBlock: 'The {\\{{helperName}}} helper must be called as a block. E.g. {{#{helperName}}}...{{/{helperName}}}',
-    invalidResource: 'Invalid resource given to get helper'
+    invalidResource: 'Invalid "{resource}" resource given to get helper'
 };
 
 const createFrame = hbs.handlebars.createFrame;
@@ -46,7 +45,6 @@ const pathAliases = {
 /**
  * ## Is Browse
  * Is this a Browse request or a Read request?
- * @param {Object} resource
  * @param {Object} options
  * @returns {boolean}
  */
@@ -80,7 +78,7 @@ function resolvePaths(globals, data, value) {
         path = path.replace(/\.\[/g, '[');
 
         if (path.charAt(0) === '@') {
-            result = jsonpath.query(globals, path.substr(1));
+            result = jsonpath.query(globals, path.slice(1));
         } else {
             // Do the query, which always returns an array of matches
             result = jsonpath.query(data, path);
@@ -120,12 +118,62 @@ function parseOptions(globals, data, options) {
 }
 
 /**
- * ## Get
- * @param {Object} resource
- * @param {Object} options
- * @returns {Promise}
+ *
+ * @param {String} resource
+ * @param {String} controllerName
+ * @param {String} action
+ * @param {Object} apiOptions
+ * @returns {Promise<Object>}
  */
-module.exports = function get(resource, options) {
+async function makeAPICall(resource, controllerName, action, apiOptions) {
+    const controller = api[controllerName];
+
+    let timer;
+
+    try {
+        let response;
+
+        if (config.get('optimization:getHelper:timeout:threshold')) {
+            const logLevel = config.get('optimization:getHelper:timeout:level') || 'error';
+            const threshold = config.get('optimization:getHelper:timeout:threshold');
+
+            const apiResponse = controller[action](apiOptions);
+
+            const timeout = new Promise((resolve) => {
+                timer = setTimeout(() => {
+                    logging[logLevel](new errors.HelperWarning({
+                        message: `{{#get}} took longer than ${threshold}ms and was aborted`,
+                        code: 'ABORTED_GET_HELPER',
+                        errorDetails: {
+                            api: `${controllerName}.${action}`,
+                            apiOptions
+                        }
+                    }));
+
+                    resolve({[resource]: []});
+                }, threshold);
+            });
+
+            response = await Promise.race([apiResponse, timeout]);
+            clearTimeout(timer);
+        } else {
+            response = await controller[action](apiOptions);
+        }
+
+        return response;
+    } catch (err) {
+        clearTimeout(timer);
+        throw err;
+    }
+}
+
+/**
+ * ## Get
+ * @param {String} resource
+ * @param {Object} options
+ * @returns {Promise<any>}
+ */
+module.exports = async function get(resource, options) {
     options = options || {};
     options.hash = options.hash || {};
     options.data = options.data || {};
@@ -134,73 +182,75 @@ module.exports = function get(resource, options) {
     const start = Date.now();
     const data = createFrame(options.data);
     const ghostGlobals = _.omit(data, ['_parent', 'root']);
-    const apiVersion = _.get(data, 'root._locals.apiVersion');
+
     let apiOptions = options.hash;
     let returnedRowsCount;
 
     if (!options.fn) {
         data.error = tpl(messages.mustBeCalledAsBlock, {helperName: 'get'});
         logging.warn(data.error);
-        return Promise.resolve();
+        return;
     }
 
     if (!RESOURCES[resource]) {
-        data.error = tpl(messages.invalidResource);
+        data.error = tpl(messages.invalidResource, {resource});
         logging.warn(data.error);
-        return Promise.resolve(options.inverse(self, {data: data}));
+        return options.inverse(self, {data: data});
     }
 
     const controllerName = RESOURCES[resource].alias;
-    const controller = api[apiVersion][controllerName];
     const action = isBrowse(apiOptions) ? 'browse' : 'read';
 
     // Parse the options we're going to pass to the API
     apiOptions = parseOptions(ghostGlobals, this, apiOptions);
     apiOptions.context = {member: data.member};
 
-    // @TODO: https://github.com/TryGhost/Ghost/issues/10548
-    return controller[action](apiOptions).then(function success(result) {
+    try {
+        const response = await makeAPICall(resource, controllerName, action, apiOptions);
+
         // prepare data properties for use with handlebars
-        if (result[resource] && result[resource].length) {
-            result[resource].forEach(prepareContextResource);
+        if (response[resource] && response[resource].length) {
+            response[resource].forEach(prepareContextResource);
         }
 
         // used for logging details of slow requests
-        returnedRowsCount = result[resource] && result[resource].length;
+        returnedRowsCount = response[resource] && response[resource].length;
 
         // block params allows the theme developer to name the data using something like
         // `{{#get "posts" as |result pageInfo|}}`
-        const blockParams = [result[resource]];
-        if (result.meta && result.meta.pagination) {
-            result.pagination = result.meta.pagination;
-            blockParams.push(result.meta.pagination);
+        const blockParams = [response[resource]];
+        if (response.meta && response.meta.pagination) {
+            response.pagination = response.meta.pagination;
+            blockParams.push(response.meta.pagination);
         }
 
         // Call the main template function
-        return options.fn(result, {
+        return options.fn(response, {
             data: data,
             blockParams: blockParams
         });
-    }).catch(function error(err) {
-        logging.error(err);
-        data.error = err.message;
+    } catch (error) {
+        logging.error(error);
+        data.error = error.message;
         return options.inverse(self, {data: data});
-    }).finally(function () {
-        const totalMs = Date.now() - start;
-        const logLevel = config.get('logging:slowHelper:level');
-        const threshold = config.get('logging:slowHelper:threshold');
-        if (totalMs > threshold) {
-            logging[logLevel](new errors.HelperWarning({
-                message: `{{#get}} helper took ${totalMs}ms to complete`,
-                code: 'SLOW_GET_HELPER',
-                errorDetails: {
-                    api: `${apiVersion}.${controllerName}.${action}`,
-                    apiOptions,
-                    returnedRows: returnedRowsCount
-                }
-            }));
+    } finally {
+        if (config.get('optimization:getHelper:notify:threshold')) {
+            const totalMs = Date.now() - start;
+            const logLevel = config.get('optimization:getHelper:notify:level') || 'warn';
+            const threshold = config.get('optimization:getHelper:notify:threshold');
+            if (totalMs > threshold) {
+                logging[logLevel](new errors.HelperWarning({
+                    message: `{{#get}} helper took ${totalMs}ms to complete`,
+                    code: 'SLOW_GET_HELPER',
+                    errorDetails: {
+                        api: `${controllerName}.${action}`,
+                        apiOptions,
+                        returnedRows: returnedRowsCount
+                    }
+                }));
+            }
         }
-    });
+    }
 };
 
 module.exports.async = true;

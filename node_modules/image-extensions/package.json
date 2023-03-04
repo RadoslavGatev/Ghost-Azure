@@ -1,0 +1,31 @@
+{
+  "name": "image-extensions",
+  "version": "1.1.0",
+  "description": "Collection of image extensions",
+  "keywords": [
+    "extensions",
+    "pictures",
+    "images",
+    "photo",
+    "file formats",
+    "array",
+    "json",
+    "list"
+  ],
+  "license": "MIT",
+  "author": "Arthur Verschaeve <contact@arthurverschaeve.be>",
+  "main": "image-extensions.json",
+  "files": [
+    "image-extensions.json"
+  ],
+  "repository": "arthurvr/image-extensions",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "devDependencies": {
+    "ava": "^0.0.4"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  }
+}

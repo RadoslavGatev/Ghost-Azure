@@ -1,0 +1,12 @@
+import { GenericObject } from './types';
+/**
+ * Copy a property from the given object into `exports`, under the given name.
+ *
+ * Adapted from Sucrase (https://github.com/alangpierce/sucrase)
+ *
+ * @param obj The object containing the property to copy.
+ * @param localName The name under which to export the property
+ * @param importedName The name under which the property lives in `obj`
+ */
+export declare function _createNamedExportFrom(obj: GenericObject, localName: string, importedName: string): void;
+//# sourceMappingURL=_createNamedExportFrom.d.ts.map

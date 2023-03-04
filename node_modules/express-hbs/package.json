@@ -1,0 +1,50 @@
+{
+  "name": "express-hbs",
+  "version": "2.4.0",
+  "description": "Express handlebars template engine complete with multiple layouts, partials and blocks.",
+  "keywords": [
+    "express4",
+    "express",
+    "handlebars",
+    "layout",
+    "partials"
+  ],
+  "main": "index.js",
+  "directories": {
+    "example": "example"
+  },
+  "scripts": {
+    "lint": "eslint --ext .js --cache lib/**",
+    "test": "mocha",
+    "posttest": "yarn lint",
+    "coverage": "nyc yarn test",
+    "preship": "yarn test",
+    "ship": "STATUS=$(git status --porcelain); echo $STATUS; if [ -z \"$STATUS\" ]; then yarn publish && git push --follow-tags; fi"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TryGhost/express-hbs"
+  },
+  "bugs": "https://github.com/TryGhost/express-hbs/issues",
+  "author": "Mario Gutierrez <mario@barc.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "cookie-parser": "1.4.5",
+    "eslint": "7.24.0",
+    "express": "4.17.1",
+    "i18n": "0.13.2",
+    "mocha": "8.3.2",
+    "nyc": "15.1.0",
+    "rewire": "5.0.0",
+    "supertest": "6.1.3"
+  },
+  "dependencies": {
+    "bluebird": "^3.5.3",
+    "handlebars": "^4.7.7",
+    "lodash": "^4.17.21",
+    "readdirp": "^3.6.0"
+  },
+  "optionalDependencies": {
+    "js-beautify": "^1.13.11"
+  }
+}

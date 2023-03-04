@@ -1,0 +1,19 @@
+{
+  "name": "isostring",
+  "version": "0.0.1",
+  "description": "Decides whether a string is a valid isodate format",
+  "keywords": [
+    "isostring",
+    "iso8601",
+    "date",
+    "format"
+  ],
+  "author": "Segmentio <friends@segment.io>",
+  "repository": { "type": "git", "url": "git://github.com/segmentio/isostring.git" },
+  "dependencies": {},
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*"
+  },
+  "main": "index"
+}

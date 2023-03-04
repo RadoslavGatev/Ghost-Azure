@@ -4,12 +4,21 @@ const _ = require('lodash');
 const Product = ghostBookshelf.Model.extend({
     tableName: 'products',
 
+    actionsCollectCRUD: true,
+    actionsResourceType: 'product',
+
     defaults: {
         active: true,
-        visibility: 'none'
+        visibility: 'none',
+        trial_days: 0
     },
 
     relationships: ['benefits'],
+    relationshipConfig: {
+        benefits: {
+            editable: true
+        }
+    },
 
     relationshipBelongsTo: {
         benefits: 'benefits'
@@ -134,7 +143,7 @@ const Product = ghostBookshelf.Model.extend({
     }
 }, {
     orderDefaultRaw() {
-        return 'stripe_prices.amount asc';
+        return 'monthly_price ASC';
     }
 });
 

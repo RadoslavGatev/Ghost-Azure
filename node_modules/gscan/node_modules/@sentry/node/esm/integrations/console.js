@@ -1,0 +1,57 @@
+import { getCurrentHub } from '@sentry/core';
+import { fill, severityLevelFromString } from '@sentry/utils';
+import * as util from 'util';
+
+/** Console module integration */
+class Console  {constructor() { Console.prototype.__init.call(this); }
+  /**
+   * @inheritDoc
+   */
+   static __initStatic() {this.id = 'Console';}
+
+  /**
+   * @inheritDoc
+   */
+   __init() {this.name = Console.id;}
+
+  /**
+   * @inheritDoc
+   */
+   setupOnce() {
+    for (const level of ['debug', 'info', 'warn', 'error', 'log']) {
+      fill(console, level, createConsoleWrapper(level));
+    }
+  }
+} Console.__initStatic();
+
+/**
+ * Wrapper function that'll be used for every console level
+ */
+function createConsoleWrapper(level) {
+  return function consoleWrapper(originalConsoleMethod) {
+    const sentryLevel = severityLevelFromString(level);
+
+    /* eslint-disable prefer-rest-params */
+    return function () {
+      if (getCurrentHub().getIntegration(Console)) {
+        getCurrentHub().addBreadcrumb(
+          {
+            category: 'console',
+            level: sentryLevel,
+            message: util.format.apply(undefined, arguments),
+          },
+          {
+            input: [...arguments],
+            level,
+          },
+        );
+      }
+
+      originalConsoleMethod.apply(this, arguments);
+    };
+    /* eslint-enable prefer-rest-params */
+  };
+}
+
+export { Console };
+//# sourceMappingURL=console.js.map

@@ -1,6 +1,6 @@
 const debug = require('@tryghost/debug')('themes');
 const fs = require('fs-extra');
-const ObjectID = require('bson-objectid');
+const ObjectID = require('bson-objectid').default;
 
 const tpl = require('@tryghost/tpl');
 const logging = require('@tryghost/logging');
@@ -86,10 +86,12 @@ module.exports = {
                 await activator.activateFromAPIOverride(themeName, loadedTheme, checkedTheme);
             }
 
+            const themeErrors = validate.getErrorsFromCheckedTheme(checkedTheme);
+
             // @TODO: unify the name across gscan and Ghost!
             return {
                 themeOverridden: overrideTheme,
-                theme: toJSON(themeName, checkedTheme)
+                theme: toJSON(themeName, themeErrors)
             };
         } catch (error) {
             // restore backup if we renamed an existing theme but saving failed

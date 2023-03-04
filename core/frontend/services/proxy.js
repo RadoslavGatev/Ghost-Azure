@@ -2,10 +2,16 @@
 const settingsCache = require('../../shared/settings-cache');
 const config = require('../../shared/config');
 
-// Require from the rendering framework
-const {SafeString} = require('./rendering');
+// Require from the handlebars framework
+const {SafeString} = require('./handlebars');
+
+let _dataService = {};
 
 module.exports = {
+    getFrontendKey: () => {
+        return _dataService.getFrontendKey();
+    },
+
     /**
      * Section two: data manipulation
      * Stuff that modifies API data (SDK layer)
@@ -22,8 +28,6 @@ module.exports = {
             }
         });
     },
-    // This is used to decide e.g. if a JSON object is a Post, Page, Tag etc
-    checks: require('../../server/data/schema').checks,
 
     /**
      * Section three: Core API
@@ -41,11 +45,15 @@ module.exports = {
     settingsCache: settingsCache,
 
     // TODO: Expose less of the API to make this safe
-    api: require('../../server/api'),
+    api: require('../../server/api').endpoints,
 
     // Labs utils for enabling/disabling helpers
     labs: require('../../shared/labs'),
     // URGH... Yuk (unhelpful comment :D)
     urlService: require('../../server/services/url'),
     urlUtils: require('../../shared/url-utils')
+};
+
+module.exports.init = ({dataService}) => {
+    _dataService = dataService;
 };

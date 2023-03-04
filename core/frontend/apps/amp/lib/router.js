@@ -7,7 +7,8 @@ const errors = require('@tryghost/errors');
 
 // Dirty requires
 const urlService = require('../../../../server/services/url');
-const helpers = require('../../../services/routing/helpers');
+const dataService = require('../../../services/data');
+const renderer = require('../../../services/rendering');
 const templateName = 'amp';
 
 const messages = {
@@ -23,15 +24,14 @@ function _renderer(req, res, next) {
 
     // Renderer begin
     // Format data
-    let data = req.body || {};
+    let body = req.body || {};
 
-    // CASE: we only support amp pages for posts that are not static pages
-    if (!data.post || data.post.page) {
+    if (!body.post) {
         return next(new errors.NotFoundError({message: tpl(messages.pageNotFound)}));
     }
 
     // Render Call
-    return helpers.renderer(req, res, data);
+    return renderer.renderer(req, res, body);
 }
 
 // This here is a controller.
@@ -69,9 +69,9 @@ function getPostData(req, res, next) {
         }));
     }
 
-    // @NOTE: amp is not supported for static pages
+    // @NOTE: amp is not supported for "page" resource
     // @TODO: https://github.com/TryGhost/Ghost/issues/10548
-    helpers.entryLookup(urlWithoutSubdirectoryWithoutAmp, {permalinks, query: {controller: 'postsPublic', resource: 'posts'}}, res.locals)
+    dataService.entryLookup(urlWithoutSubdirectoryWithoutAmp, {permalinks, query: {controller: 'postsPublic', resource: 'posts'}}, res.locals)
         .then((result) => {
             if (result && result.entry) {
                 req.body.post = result.entry;

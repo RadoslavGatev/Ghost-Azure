@@ -1,0 +1,29 @@
+
+{{alias}}( str[, n] )
+    Removes the first character(s) of a `string`.
+
+    Parameters
+    ----------
+    str: string
+        Input string.
+
+    n: integer (optional)
+        Number of characters to remove. Default: 1.
+
+    Returns
+    -------
+    out: string
+        Updated string.
+
+    Examples
+    --------
+    > var out = {{alias}}( 'beep' )
+    'eep'
+    > out = {{alias}}( 'Boop' )
+    'oop'
+    > out = {{alias}}( 'foo bar', 4 )
+    'bar'
+
+    See Also
+    --------
+

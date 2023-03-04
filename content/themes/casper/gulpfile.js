@@ -90,8 +90,9 @@ function zipper(done) {
 }
 
 const cssWatcher = () => watch('assets/css/**', css);
+const jsWatcher = () => watch('assets/js/**', js);
 const hbsWatcher = () => watch(['*.hbs', 'partials/**/*.hbs'], hbs);
-const watcher = parallel(cssWatcher, hbsWatcher);
+const watcher = parallel(cssWatcher, jsWatcher, hbsWatcher);
 const build = series(css, js);
 
 exports.build = build;
@@ -123,7 +124,7 @@ exports.release = async () => {
             type: 'input',
             name: 'compatibleWithGhost',
             message: 'Which version of Ghost is it compatible with?',
-            default: '4.0.0'
+            default: '5.0.0'
         }]);
 
         const compatibleWithGhost = result.compatibleWithGhost;

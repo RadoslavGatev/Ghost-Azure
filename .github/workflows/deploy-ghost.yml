@@ -1,8 +1,8 @@
 on:
-  push:
-    branches:
-      - dev
-      - test-new-cd
+  # push:
+  #   branches:
+  #     - dev
+  #     - test-new-cd
   workflow_dispatch:
 
 permissions:

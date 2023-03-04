@@ -97,7 +97,7 @@ async function initCore({ghostServer, config, bootLogger, frontend}) {
 
     // Settings are a core concept we use settings to store key-value pairs used in critical pathways as well as public data like the site title
     debug('Begin: settings');
-    const settings = require('./server/services/settings');
+    const settings = require('./server/services/settings/settings-service');
     await settings.init();
     await settings.syncEmailSettings(config.get('hostSettings:emailVerification:verified'));
     debug('End: settings');
@@ -105,11 +105,13 @@ async function initCore({ghostServer, config, bootLogger, frontend}) {
     // The URLService is a core part of Ghost, which depends on models.
     debug('Begin: Url Service');
     const urlService = require('./server/services/url');
+    const urlServiceStart = Date.now();
     // Note: there is no await here, we do not wait for the url service to finish
     // We can return, but the site will remain in maintenance mode until this finishes
     // This is managed on request: https://github.com/TryGhost/Ghost/blob/main/core/app.js#L10
     urlService.init({
         onFinished: () => {
+            bootLogger.metric('url-service', urlServiceStart);
             bootLogger.log('URL Service Ready');
         },
         urlCache: !frontend // hacky parameter to make the cache initialization kick in as we can't initialize labs before the boot
@@ -120,10 +122,28 @@ async function initCore({ghostServer, config, bootLogger, frontend}) {
         // Job Service allows parts of Ghost to run in the background
         debug('Begin: Job Service');
         const jobService = require('./server/services/jobs');
+
+        if (config.get('server:testmode')) {
+            jobService.initTestMode();
+        }
+
         ghostServer.registerCleanupTask(async () => {
             await jobService.shutdown();
         });
         debug('End: Job Service');
+
+        // Mentions Job Service allows mentions to be processed in the background
+        debug('Begin: Mentions Job Service');
+        const mentionsJobService = require('./server/services/mentions-jobs');
+
+        if (config.get('server:testmode')) {
+            mentionsJobService.initTestMode();
+        }
+
+        ghostServer.registerCleanupTask(async () => {
+            await mentionsJobService.shutdown();
+        });
+        debug('End: Mentions Job Service');
 
         ghostServer.registerCleanupTask(async () => {
             await urlService.shutdown();
@@ -148,12 +168,17 @@ async function initServicesForFrontend({bootLogger}) {
     debug('End: Routing Settings');
 
     debug('Begin: Redirects');
-    const customRedirects = require('./server/services/redirects');
-    await customRedirects.init(),
+    const customRedirects = require('./server/services/custom-redirects');
+    await customRedirects.init();
     debug('End: Redirects');
 
+    debug('Begin: Link Redirects');
+    const linkRedirects = require('./server/services/link-redirection');
+    await linkRedirects.init();
+    debug('End: Link Redirects');
+
     debug('Begin: Themes');
-    // customThemSettingsService.api must be initialized before any theme activation occurs
+    // customThemeSettingsService.api must be initialized before any theme activation occurs
     const customThemeSettingsService = require('./server/services/custom-theme-settings');
     customThemeSettingsService.init();
 
@@ -168,14 +193,21 @@ async function initServicesForFrontend({bootLogger}) {
     await offers.init();
     debug('End: Offers');
 
+    const frontendDataService = require('./server/services/frontend-data-service');
+    let dataService = await frontendDataService.init();
+
     debug('End: initServicesForFrontend');
+    return {dataService};
 }
 
 /**
  * Frontend is intended to be just Ghost's frontend
  */
-async function initFrontend() {
+async function initFrontend(dataService) {
     debug('Begin: initFrontend');
+
+    const proxyService = require('./frontend/services/proxy');
+    proxyService.init({dataService});
 
     const helperService = require('./frontend/services/helpers');
     await helperService.init();
@@ -196,7 +228,7 @@ async function initExpressApps({frontend, backend, config}) {
     debug('Begin: initExpressApps');
 
     const parentApp = require('./server/web/parent/app')();
-    const vhost = require('@tryghost/vhost-middleware');
+    const vhost = require('@tryghost/mw-vhost');
 
     // Mount the express apps on the parentApp
     if (backend) {
@@ -207,7 +239,8 @@ async function initExpressApps({frontend, backend, config}) {
 
     if (frontend) {
         // SITE + MEMBERS
-        const frontendApp = require('./server/web/parent/frontend')({});
+        const urlService = require('./server/services/url');
+        const frontendApp = require('./server/web/parent/frontend')({urlService});
         parentApp.use(vhost(config.getFrontendMountPath(), frontendApp));
     }
 
@@ -228,15 +261,13 @@ async function initDynamicRouting() {
     const bridge = require('./bridge');
     bridge.init();
 
-    // We pass the frontend API version + the dynamic routes here, so that the frontend services are slightly less tightly-coupled
-    const apiVersion = bridge.getFrontendApiVersion();
+    // We pass the dynamic routes here, so that the frontend services are slightly less tightly-coupled
     const routeSettings = await routeSettingsService.loadRouteSettings();
-    debug(`Frontend API Version: ${apiVersion}`);
 
-    routing.routerManager.start(apiVersion, routeSettings);
+    routing.routerManager.start(routeSettings);
     const getRoutesHash = () => routeSettingsService.api.getCurrentHash();
 
-    const settings = require('./server/services/settings');
+    const settings = require('./server/services/settings/settings-service');
     await settings.syncRoutesHash(getRoutesHash);
 
     debug('End: Dynamic Routing');
@@ -253,12 +284,10 @@ async function initDynamicRouting() {
 async function initServices({config}) {
     debug('Begin: initServices');
 
-    const defaultApiVersion = config.get('api:versions:default');
-    debug(`Default API Version: ${defaultApiVersion}`);
-
     debug('Begin: Services');
     const stripe = require('./server/services/stripe');
     const members = require('./server/services/members');
+    const tiers = require('./server/services/tiers');
     const permissions = require('./server/services/permissions');
     const xmlrpc = require('./server/services/xmlrpc');
     const slack = require('./server/services/slack');
@@ -266,7 +295,22 @@ async function initServices({config}) {
     const webhooks = require('./server/services/webhooks');
     const appService = require('./frontend/services/apps');
     const limits = require('./server/services/limits');
+    const apiVersionCompatibility = require('./server/services/api-version-compatibility');
     const scheduling = require('./server/adapters/scheduling');
+    const comments = require('./server/services/comments');
+    const staffService = require('./server/services/staff');
+    const memberAttribution = require('./server/services/member-attribution');
+    const membersEvents = require('./server/services/members-events');
+    const linkTracking = require('./server/services/link-tracking');
+    const audienceFeedback = require('./server/services/audience-feedback');
+    const emailSuppressionList = require('./server/services/email-suppression-list');
+    const emailService = require('./server/services/email-service');
+    const emailAnalytics = require('./server/services/email-analytics');
+    const mentionsService = require('./server/services/mentions');
+    const tagsPublic = require('./server/services/tags-public');
+    const postsPublic = require('./server/services/posts-public');
+    const slackNotifications = require('./server/services/slack-notifications');
+    const mediaInliner = require('./server/services/media-inliner');
 
     const urlUtils = require('./shared/url-utils');
 
@@ -279,22 +323,38 @@ async function initServices({config}) {
     await stripe.init();
 
     await Promise.all([
+        memberAttribution.init(),
+        mentionsService.init(),
+        staffService.init(),
         members.init(),
+        tiers.init(),
+        tagsPublic.init(),
+        postsPublic.init(),
+        membersEvents.init(),
         permissions.init(),
         xmlrpc.listen(),
         slack.listen(),
+        audienceFeedback.init(),
+        emailService.init(),
+        emailAnalytics.init(),
         mega.listen(),
         webhooks.listen(),
         appService.init(),
+        apiVersionCompatibility.init(),
         scheduling.init({
-            apiUrl: urlUtils.urlFor('api', {version: defaultApiVersion, versionType: 'admin'}, true)
-        })
+            apiUrl: urlUtils.urlFor('api', {type: 'admin'}, true)
+        }),
+        comments.init(),
+        linkTracking.init(),
+        emailSuppressionList.init(),
+        slackNotifications.init(),
+        mediaInliner.init()
     ]);
     debug('End: Services');
 
     // Initialize analytics events
     if (config.get('segment:key')) {
-        require('./server/analytics-events').init();
+        require('./server/services/segment').init();
     }
 
     debug('End: initServices');
@@ -328,6 +388,9 @@ async function initBackgroundServices({config}) {
 
     const updateCheck = require('./server/update-check');
     updateCheck.scheduleRecurringJobs();
+
+    const milestonesService = require('./server/services/milestones');
+    milestonesService.initAndRun();
 
     debug('End: initBackgroundServices');
 }
@@ -401,7 +464,7 @@ async function bootGhost({backend = true, frontend = true, server = true} = {}) 
 
         if (server) {
             const GhostServer = require('./server/ghost-server');
-            ghostServer = new GhostServer({url: config.getSiteUrl()});
+            ghostServer = new GhostServer({url: config.getSiteUrl(), env: config.get('env'), serverConfig: config.get('server')});
             await ghostServer.start(rootApp);
             bootLogger.log('server started');
             debug('End: load server + minimal app');
@@ -416,15 +479,22 @@ async function bootGhost({backend = true, frontend = true, server = true} = {}) 
         // Step 4 - Load Ghost with all its services
         debug('Begin: Load Ghost Services & Apps');
         await initCore({ghostServer, config, bootLogger, frontend});
-        await initServicesForFrontend({bootLogger});
+        const {dataService} = await initServicesForFrontend({bootLogger});
 
         if (frontend) {
-            await initFrontend();
+            await initFrontend(dataService);
         }
         const ghostApp = await initExpressApps({frontend, backend, config});
 
         if (frontend) {
             await initDynamicRouting();
+        }
+
+        // TODO: move this to the correct place once we figure out where that is
+        if (ghostServer) {
+            //  NOTE: changes in this labs setting requires server reboot since we don't re-init services after changes a labs flag
+            const websockets = require('./server/services/websockets');
+            await websockets.init(ghostServer);
         }
 
         await initServices({config});

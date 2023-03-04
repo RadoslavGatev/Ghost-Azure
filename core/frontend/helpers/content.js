@@ -10,7 +10,7 @@
 //
 // Dev flag feature: In case of restricted content access for member-only posts, shows CTA box
 
-const {templates, hbs, SafeString} = require('../services/rendering');
+const {templates, hbs, SafeString} = require('../services/handlebars');
 const downsize = require('downsize');
 const _ = require('lodash');
 const createFrame = hbs.handlebars.createFrame;
@@ -18,9 +18,12 @@ const createFrame = hbs.handlebars.createFrame;
 function restrictedCta(options) {
     options = options || {};
     options.data = options.data || {};
+
     _.merge(this, {
+        // @deprecated in Ghost 5.16.1 - not documented & removed from core templates
         accentColor: (options.data.site && options.data.site.accent_color)
     });
+
     const data = createFrame(options.data);
     return templates.execute('content-cta', this, {data});
 }

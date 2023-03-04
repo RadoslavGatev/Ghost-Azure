@@ -2,9 +2,8 @@ const _ = require('lodash');
 const Promise = require('bluebird');
 const debug = require('@tryghost/debug')('mega');
 const tpl = require('@tryghost/tpl');
-const url = require('url');
 const moment = require('moment');
-const ObjectID = require('bson-objectid');
+const ObjectID = require('bson-objectid').default;
 const errors = require('@tryghost/errors');
 const logging = require('@tryghost/logging');
 const settingsCache = require('../../../shared/settings-cache');
@@ -16,6 +15,7 @@ const db = require('../../data/db');
 const models = require('../../models');
 const postEmailSerializer = require('./post-email-serializer');
 const {getSegmentsFromHtml} = require('./segment-parser');
+const labs = require('../../../shared/labs');
 
 // Used to listen to email.added and email.edited model events originally, I think to offload this - ideally would just use jobs now if possible
 const events = require('../../lib/common/events');
@@ -25,27 +25,23 @@ const messages = {
     unexpectedFilterError: 'Unexpected {property} value "{value}", expected an NQL equivalent',
     noneFilterError: 'Cannot send email to "none" {property}',
     emailSendingDisabled: `Email sending is temporarily disabled because your account is currently in review. You should have an email about this from us already, but you can also reach us any time at support@ghost.org`,
-    sendEmailRequestFailed: 'The email service was unable to send an email batch.'
+    sendEmailRequestFailed: 'The email service was unable to send an email batch.',
+    archivedNewsletterError: 'Cannot send email to archived newsletters',
+    newsletterVisibilityError: 'Unexpected visibility value "{value}". Use one of the valid: "members", "paid".'
 };
 
-const getFromAddress = () => {
-    let fromAddress = membersService.config.getEmailFromAddress();
-
+const getFromAddress = (senderName, fromAddress) => {
     if (/@localhost$/.test(fromAddress) || /@ghost.local$/.test(fromAddress)) {
         const localAddress = 'localhost@example.com';
         logging.warn(`Rewriting bulk email from address ${fromAddress} to ${localAddress}`);
         fromAddress = localAddress;
     }
 
-    const siteTitle = settingsCache.get('title') ? settingsCache.get('title').replace(/"/g, '\\"') : '';
-
-    return siteTitle ? `"${siteTitle}"<${fromAddress}>` : fromAddress;
+    return senderName ? `"${senderName}"<${fromAddress}>` : fromAddress;
 };
 
-const getReplyToAddress = () => {
-    const fromAddress = membersService.config.getEmailFromAddress();
+const getReplyToAddress = (fromAddress, replyAddressOption) => {
     const supportAddress = membersService.config.getEmailSupportAddress();
-    const replyAddressOption = settingsCache.get('members_reply_address');
 
     return (replyAddressOption === 'support') ? supportAddress : fromAddress;
 };
@@ -54,17 +50,38 @@ const getReplyToAddress = () => {
  *
  * @param {Object} postModel - post model instance
  * @param {Object} options
- * @param {ValidAPIVersion} options.apiVersion - api version to be used when serializing email data
+ * @param {Object} options
  */
 const getEmailData = async (postModel, options) => {
-    const {subject, html, plaintext} = await postEmailSerializer.serialize(postModel, options);
+    let newsletter;
+    if (options.newsletterSlug) {
+        newsletter = await models.Newsletter.findOne({slug: options.newsletterSlug});
+    } else {
+        newsletter = await postModel.getLazyRelation('newsletter');
+    }
+    if (!newsletter) {
+        // The postModel doesn't have a newsletter in test emails
+        newsletter = await models.Newsletter.getDefaultNewsletter();
+    }
+    const {subject, html, plaintext} = await postEmailSerializer.serialize(postModel, newsletter, options);
+
+    let senderName = settingsCache.get('title') ? settingsCache.get('title').replace(/"/g, '\\"') : '';
+    if (newsletter.get('sender_name')) {
+        senderName = newsletter.get('sender_name');
+    }
+
+    let fromAddress = membersService.config.getEmailFromAddress();
+    if (newsletter.get('sender_email')) {
+        fromAddress = newsletter.get('sender_email');
+    }
 
     return {
+        post: postModel.toJSON(), // for content paywalling
         subject,
         html,
         plaintext,
-        from: getFromAddress(),
-        replyTo: getReplyToAddress()
+        from: getFromAddress(senderName, fromAddress),
+        replyTo: getReplyToAddress(fromAddress, newsletter.get('sender_reply_to'))
     };
 };
 
@@ -72,16 +89,12 @@ const getEmailData = async (postModel, options) => {
  *
  * @param {Object} postModel - post model instance
  * @param {[string]} toEmails - member email addresses to send email to
- * @param {ValidAPIVersion} apiVersion - api version to be used when serializing email data
  * @param {ValidMemberSegment} [memberSegment]
  */
-const sendTestEmail = async (postModel, toEmails, apiVersion, memberSegment) => {
-    let emailData = await getEmailData(postModel, {apiVersion});
+const sendTestEmail = async (postModel, toEmails, memberSegment, newsletterSlug) => {
+    let emailData = await getEmailData(postModel, {isTestEmail: true, newsletterSlug});
     emailData.subject = `[Test] ${emailData.subject}`;
 
-    if (memberSegment) {
-        emailData = postEmailSerializer.renderEmailForSegment(emailData, memberSegment);
-    }
     // fetch any matching members so that replacements use expected values
     const recipients = await Promise.all(toEmails.map(async (email) => {
         const member = await membersService.api.members.get({email});
@@ -98,10 +111,10 @@ const sendTestEmail = async (postModel, toEmails, apiVersion, memberSegment) => 
         };
     }));
 
-    // enable tracking for previews to match real-world behaviour
+    // enable tracking for previews to match real-world behavior
     emailData.track_opens = !!settingsCache.get('email_track_opens');
 
-    const response = await bulkEmailService.send(emailData, recipients);
+    const response = await bulkEmailService.send(emailData, recipients, memberSegment);
 
     if (response instanceof bulkEmailService.FailedBatch) {
         return Promise.reject(response.error);
@@ -123,22 +136,16 @@ const sendTestEmail = async (postModel, toEmails, apiVersion, memberSegment) => 
  *
  * Accepts a filter string, errors on unexpected legacy filter syntax and enforces subscribed:true
  *
+ * @param {Object} newsletter
  * @param {string} emailRecipientFilter NQL filter for members
- * @param {object} options
+ * @param {string} errorProperty
  */
-const transformEmailRecipientFilter = (emailRecipientFilter, {errorProperty = 'email_recipient_filter'} = {}) => {
+const transformEmailRecipientFilter = (newsletter, emailRecipientFilter, errorProperty) => {
+    const filter = [`newsletters.id:${newsletter.id}`];
+
     switch (emailRecipientFilter) {
-    // `paid` and `free` were swapped out for NQL filters in 4.5.0, we shouldn't see them here now
-    case 'paid':
-    case 'free':
-        throw new errors.InternalServerError({
-            message: tpl(messages.unexpectedFilterError, {
-                property: errorProperty,
-                value: emailRecipientFilter
-            })
-        });
     case 'all':
-        return 'subscribed:true';
+        break;
     case 'none':
         throw new errors.InternalServerError({
             message: tpl(messages.noneFilterError, {
@@ -146,8 +153,27 @@ const transformEmailRecipientFilter = (emailRecipientFilter, {errorProperty = 'e
             })
         });
     default:
-        return `subscribed:true+(${emailRecipientFilter})`;
+        filter.push(`(${emailRecipientFilter})`);
+        break;
     }
+
+    const visibility = newsletter.get('visibility');
+    switch (visibility) {
+    case 'members':
+        // No need to add a member status filter as the email is available to all members
+        break;
+    case 'paid':
+        filter.push(`status:-free`);
+        break;
+    default:
+        throw new errors.InternalServerError({
+            message: tpl(messages.newsletterVisibilityError, {
+                value: visibility
+            })
+        });
+    }
+
+    return filter.join('+');
 };
 
 /**
@@ -158,7 +184,6 @@ const transformEmailRecipientFilter = (emailRecipientFilter, {errorProperty = 'e
  *
  * @param {object} postModel Post Model Object
  * @param {object} options
- * @param {ValidAPIVersion} options.apiVersion - api version to be used when serializing email data
  */
 
 const addEmail = async (postModel, options) => {
@@ -166,21 +191,31 @@ const addEmail = async (postModel, options) => {
         await limitService.errorIfWouldGoOverLimit('emails');
     }
 
-    if (settingsCache.get('email_verification_required') === true) {
+    if (await membersService.verificationTrigger.checkVerificationRequired()) {
         throw new errors.HostLimitError({
             message: tpl(messages.emailSendingDisabled)
         });
     }
 
     const knexOptions = _.pick(options, ['transacting', 'forUpdate']);
-    const filterOptions = Object.assign({}, knexOptions, {limit: 1});
+    const filterOptions = {...knexOptions, limit: 1};
+    const sharedOptions = _.pick(options, ['transacting']);
+    const newsletter = await postModel.getLazyRelation('newsletter', {require: true, ...sharedOptions});
+
+    if (newsletter.get('status') !== 'active') {
+        // A post might have been scheduled to an archived newsletter.
+        // Don't send it (people can't unsubscribe any longer).
+        throw new errors.EmailError({
+            message: tpl(messages.archivedNewsletterError)
+        });
+    }
 
     const emailRecipientFilter = postModel.get('email_recipient_filter');
-    filterOptions.filter = transformEmailRecipientFilter(emailRecipientFilter, {errorProperty: 'email_recipient_filter'});
+    filterOptions.filter = transformEmailRecipientFilter(newsletter, emailRecipientFilter, 'email_segment');
 
     const startRetrieve = Date.now();
     debug('addEmail: retrieving members count');
-    const {meta: {pagination: {total: membersCount}}} = await membersService.api.members.list(Object.assign({}, knexOptions, filterOptions));
+    const {meta: {pagination: {total: membersCount}}} = await membersService.api.members.list({...knexOptions, ...filterOptions});
     debug(`addEmail: retrieved members count - ${membersCount} members (${Date.now() - startRetrieve}ms)`);
 
     // NOTE: don't create email object when there's nobody to send the email to
@@ -208,10 +243,15 @@ const addEmail = async (postModel, options) => {
             from: emailData.from,
             reply_to: emailData.replyTo,
             html: emailData.html,
+            source: emailData.html,
+            source_type: 'html',
             plaintext: emailData.plaintext,
             submitted_at: moment().toDate(),
             track_opens: !!settingsCache.get('email_track_opens'),
-            recipient_filter: emailRecipientFilter
+            track_clicks: !!settingsCache.get('email_track_clicks'),
+            feedback_enabled: !!newsletter.get('feedback_enabled'),
+            recipient_filter: emailRecipientFilter,
+            newsletter_id: newsletter.id
         }, knexOptions);
     } else {
         return existing;
@@ -233,55 +273,11 @@ const retryFailedEmail = async (emailModel) => {
     });
 };
 
-/**
- * handleUnsubscribeRequest
- *
- * Takes a request/response pair and reads the `unsubscribe` query parameter,
- * using the content to update the members service to set the `subscribed` flag
- * to false on the member
- *
- * If any operation fails, or the request is invalid the function will error - so using
- * as middleware should consider wrapping with `try/catch`
- *
- * @param {Request} req
- * @returns {Promise<void>}
- */
-async function handleUnsubscribeRequest(req) {
-    if (!req.url) {
-        throw new errors.BadRequestError({
-            message: 'Email address not found.'
-        });
-    }
-
-    const {query} = url.parse(req.url, true);
-    if (!query || !query.uuid) {
-        throw new errors.BadRequestError({
-            message: (query.preview ? 'Unsubscribe preview' : 'Email address not found.')
-        });
-    }
-
-    const member = await membersService.api.members.get({
-        uuid: query.uuid
-    });
-
-    if (!member) {
-        throw new errors.BadRequestError({
-            message: 'Email address not found.'
-        });
-    }
-
-    try {
-        const memberModel = await membersService.api.members.update({subscribed: false}, {id: member.id});
-        return memberModel.toJSON();
-    } catch (err) {
-        throw new errors.InternalServerError({
-            err,
-            message: 'Failed to unsubscribe this email address'
-        });
-    }
-}
-
 async function pendingEmailHandler(emailModel, options) {
+    if (labs.isSet('emailStability')) {
+        return;
+    }
+
     // CASE: do not send email if we import a database
     // TODO: refactor post.published events to never fire on importing
     if (options && options.importing) {
@@ -296,14 +292,18 @@ async function pendingEmailHandler(emailModel, options) {
     const emailAnalyticsJobs = require('../email-analytics/jobs');
     emailAnalyticsJobs.scheduleRecurringJobs();
 
-    return jobsService.addJob({
-        job: sendEmailJob,
-        data: {emailModel},
-        offloaded: false
-    });
+    // @TODO move this into the jobService
+    if (!process.env.NODE_ENV.startsWith('test')) {
+        return jobsService.addJob({
+            job: sendEmailJob,
+            data: {emailId: emailModel.id},
+            offloaded: false
+        });
+    }
 }
 
-async function sendEmailJob({emailModel, options}) {
+async function sendEmailJob({emailId, options}) {
+    logging.info('[sendEmailJob] Started for ' + emailId);
     let startEmailSend = null;
 
     try {
@@ -318,26 +318,78 @@ async function sendEmailJob({emailModel, options}) {
             await limitService.errorIfWouldGoOverLimit('emails');
         }
 
+        // Check email verification required
+        // We need to check this inside the job again
+        if (await membersService.verificationTrigger.checkVerificationRequired()) {
+            throw new errors.HostLimitError({
+                message: tpl(messages.emailSendingDisabled)
+            });
+        }
+
+        // Check if the email is still pending. And set the status to submitting in one transaction.
+        let hasSingleAccess = false;
+        let emailModel;
+        await models.Base.transaction(async (transacting) => {
+            const knexOptions = {...options, transacting, forUpdate: true};
+            emailModel = await models.Email.findOne({id: emailId}, knexOptions);
+
+            if (!emailModel) {
+                throw new errors.IncorrectUsageError({
+                    message: 'Provided email id does not match a known email record',
+                    context: {
+                        id: emailId
+                    }
+                });
+            }
+
+            if (emailModel.get('status') !== 'pending') {
+                // We don't throw this, because we don't want to mark this email as failed
+                logging.error(new errors.IncorrectUsageError({
+                    message: 'Emails can only be processed when in the "pending" state',
+                    context: `Email "${emailId}" has state "${emailModel.get('status')}"`,
+                    code: 'EMAIL_NOT_PENDING'
+                }));
+                return;
+            }
+
+            await emailModel.save({status: 'submitting'}, Object.assign({}, knexOptions, {patch: true}));
+            hasSingleAccess = true;
+        });
+
+        if (!hasSingleAccess || !emailModel) {
+            return;
+        }
+
         // Create email batch and recipient rows unless this is a retry and they already exist
         const existingBatchCount = await emailModel.related('emailBatches').count('id');
 
         if (existingBatchCount === 0) {
-            let newBatchCount;
+            logging.info('[sendEmailJob] Creating new batches for ' + emailId);
+            let newBatchCount = 0;
 
             await models.Base.transaction(async (transacting) => {
-                newBatchCount = await createSegmentedEmailBatches({emailModel, options: {transacting}});
+                const emailBatches = await createSegmentedEmailBatches({emailModel, options: {transacting}});
+                newBatchCount = emailBatches.length;
             });
 
             if (newBatchCount === 0) {
+                logging.info('[sendEmailJob] No batches created for ' + emailId);
+                await emailModel.save({status: 'submitted'}, {patch: true});
                 return;
             }
         }
 
         debug('sendEmailJob: sending email');
         startEmailSend = Date.now();
-        await bulkEmailService.processEmail({emailId: emailModel.get('id'), options});
+        await bulkEmailService.processEmail({emailModel, options});
         debug(`sendEmailJob: sent email (${Date.now() - startEmailSend}ms)`);
     } catch (error) {
+        if (startEmailSend) {
+            logging.info(`[sendEmailJob] Failed sending ${emailId} (${Date.now() - startEmailSend}ms)`);
+        } else {
+            logging.info(`[sendEmailJob] Failed sending ${emailId}`);
+        }
+
         if (startEmailSend) {
             debug(`sendEmailJob: send email failed (${Date.now() - startEmailSend}ms)`);
         }
@@ -347,10 +399,10 @@ async function sendEmailJob({emailModel, options}) {
             errorMessage = errorMessage.substring(0, 2000);
         }
 
-        await emailModel.save({
+        await models.Email.edit({
             status: 'failed',
             error: errorMessage
-        }, {patch: true});
+        }, {id: emailId});
 
         throw new errors.InternalServerError({
             err: error,
@@ -373,9 +425,11 @@ async function sendEmailJob({emailModel, options}) {
  */
 async function getEmailMemberRows({emailModel, memberSegment, options}) {
     const knexOptions = _.pick(options, ['transacting', 'forUpdate']);
+    const sharedOptions = _.pick(options, ['transacting']);
     const filterOptions = Object.assign({}, knexOptions);
 
-    const recipientFilter = transformEmailRecipientFilter(emailModel.get('recipient_filter'), {errorProperty: 'recipient_filter'});
+    const newsletter = await emailModel.getLazyRelation('newsletter', {require: true, ...sharedOptions});
+    const recipientFilter = transformEmailRecipientFilter(newsletter, emailModel.get('recipient_filter'), 'recipient_filter');
     filterOptions.filter = recipientFilter;
 
     if (memberSegment) {
@@ -437,6 +491,8 @@ function partitionMembersBySegment(memberRows, segments) {
  * @param {Object} options
  * @param {Object} options.emailModel - instance of Email model
  * @param {Object} options.options - knex options
+ *
+ * @returns {Promise<string[]>}
  */
 async function createSegmentedEmailBatches({emailModel, options}) {
     let memberRows = await getEmailMemberRows({emailModel, options});
@@ -458,11 +514,11 @@ async function createSegmentedEmailBatches({emailModel, options}) {
                 memberSegment: partition === 'unsegmented' ? null : partition,
                 options
             });
-            batchIds.push(emailBatchIds);
+            batchIds.push(...emailBatchIds);
         }
     } else {
         const emailBatchIds = await createEmailBatches({emailModel, memberRows, options});
-        batchIds.push(emailBatchIds);
+        batchIds.push(...emailBatchIds);
     }
 
     return batchIds;
@@ -520,26 +576,34 @@ async function createEmailBatches({emailModel, memberRows, memberSegment, option
 
     debug('createEmailBatches: storing recipient list');
     const startOfRecipientStorage = Date.now();
-    const batches = _.chunk(memberRows, bulkEmailService.BATCH_SIZE);
+    let rowsToBatch = memberRows;
+    const batches = _.chunk(rowsToBatch, bulkEmailService.BATCH_SIZE);
     const batchIds = await Promise.mapSeries(batches, storeRecipientBatch);
     debug(`createEmailBatches: stored recipient list (${Date.now() - startOfRecipientStorage}ms)`);
+    logging.info(`[createEmailBatches] stored recipient list (${Date.now() - startOfRecipientStorage}ms)`);
 
     return batchIds;
 }
 
-const statusChangedHandler = (emailModel, options) => {
+const statusChangedHandler = async (emailModel, options) => {
     const emailRetried = emailModel.wasChanged()
         && emailModel.get('status') === 'pending'
         && emailModel.previous('status') === 'failed';
 
     if (emailRetried) {
-        pendingEmailHandler(emailModel, options);
+        await pendingEmailHandler(emailModel, options);
     }
 };
 
 function listen() {
-    events.on('email.added', pendingEmailHandler);
-    events.on('email.edited', statusChangedHandler);
+    events.on('email.added', (emailModel, options) => pendingEmailHandler(emailModel, options).catch((e) => {
+        logging.error('Error in email.added event handler');
+        logging.error(e);
+    }));
+    events.on('email.edited', (emailModel, options) => statusChangedHandler(emailModel, options).catch((e) => {
+        logging.error('Error in email.edited event handler');
+        logging.error(e);
+    }));
 }
 
 // Public API
@@ -548,14 +612,15 @@ module.exports = {
     addEmail,
     retryFailedEmail,
     sendTestEmail,
-    handleUnsubscribeRequest,
     // NOTE: below are only exposed for testing purposes
     _transformEmailRecipientFilter: transformEmailRecipientFilter,
     _partitionMembersBySegment: partitionMembersBySegment,
-    _getEmailMemberRows: getEmailMemberRows
+    _getEmailMemberRows: getEmailMemberRows,
+    _getFromAddress: getFromAddress,
+    _getReplyToAddress: getReplyToAddress,
+    _sendEmailJob: sendEmailJob
 };
 
 /**
- * @typedef {'v2' | 'v3' | 'v4' | 'canary' } ValidAPIVersion
  * @typedef {'status:free' | 'status:-free'} ValidMemberSegment
  */

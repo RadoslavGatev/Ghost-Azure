@@ -3,18 +3,26 @@
 const fs = require('fs-extra');
 
 const path = require('path');
-const Promise = require('bluebird');
 const config = require('../../../shared/config');
 const logging = require('@tryghost/logging');
 const urlUtils = require('../../../shared/url-utils');
 const exporter = require('../exporter');
 
-const writeExportFile = function writeExportFile(exportResult) {
+/**
+ * @param {object} exportResult
+ * @param {string} exportResult.filename
+ * @param {object} exportResult.data
+ */
+const writeExportFile = async (exportResult) => {
     const filename = path.resolve(urlUtils.urlJoin(config.get('paths').contentPath, 'data', exportResult.filename));
 
-    return Promise.resolve(fs.writeFile(filename, JSON.stringify(exportResult.data))).return(filename);
+    await fs.writeFile(filename, JSON.stringify(exportResult.data));
+    return filename;
 };
 
+/**
+ * @param {string} filename
+ */
 const readBackup = async (filename) => {
     const parsedFileName = path.parse(filename);
     const sanitized = `${parsedFileName.name}${parsedFileName.ext}`;
@@ -23,7 +31,7 @@ const readBackup = async (filename) => {
     const exists = await fs.pathExists(backupPath);
 
     if (exists) {
-        const backupFile = await fs.readFile(backupPath);
+        const backupFile = await fs.readFile(backupPath, 'utf8');
         return JSON.parse(backupFile);
     } else {
         return null;
@@ -31,25 +39,24 @@ const readBackup = async (filename) => {
 };
 
 /**
- * ## Backup
- * does an export, and stores this in a local file
- * @returns {Promise<*>}
+ * Does an export, and stores this in a local file
+ *
+ * @param {Object} options
+ * @returns {Promise<String>}
  */
-const backup = function backup(options) {
+const backup = async function backup(options = {}) {
     logging.info('Creating database backup');
-    options = options || {};
 
-    const props = {
-        data: exporter.doExport(options),
-        filename: exporter.fileName(options)
-    };
+    const filename = await exporter.fileName(options);
+    const data = await exporter.doExport(options);
 
-    return Promise.props(props)
-        .then(writeExportFile)
-        .then(function successMessage(filename) {
-            logging.info('Database backup written to: ' + filename);
-            return filename;
-        });
+    const filePath = await writeExportFile({
+        data,
+        filename
+    });
+
+    logging.info(`Database backup written to ${filePath}`);
+    return filePath;
 };
 
 module.exports = {

@@ -1,0 +1,37 @@
+{
+  "name": "compare-ver",
+  "version": "2.0.2",
+  "description": "Compares two software version numbers (only number)",
+  "main": "index.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/lmtdit/compare-ver.git"
+  },
+  "scripts": {
+    "pretest": "npm install",
+    "test": "mocha tests/*.js"
+  },
+  "author": "lmtdit <lmtdit@gmail.com> (https://github.com/lmtdit)",
+  "keywords": [
+    "compare",
+    "number",
+    "semver",
+    "version"
+  ],
+  "devDependencies": {
+    "karma": "^0.12.24",
+    "karma-chrome-launcher": "^0.1.5",
+    "karma-mocha": "^0.1.9",
+    "mocha": "^2.0.1",
+    "should": "^4.1.0"
+  },
+  "bugs": {
+    "url": "https://github.com/lmtdit/compare-ver/issues"
+  },
+  "homepage": "https://github.com/lmtdit/compare-ver#readme",
+  "directories": {
+    "test": "tests"
+  },
+  "dependencies": {}
+}

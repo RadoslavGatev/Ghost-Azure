@@ -15,18 +15,26 @@ const adapterManager = new AdapterManager({
 adapterManager.registerAdapter('storage', require('ghost-storage-base'));
 adapterManager.registerAdapter('scheduling', require('../../adapters/scheduling/SchedulingBase'));
 adapterManager.registerAdapter('sso', require('../../adapters/sso/Base'));
+adapterManager.registerAdapter('cache', require('@tryghost/adapter-base-cache'));
 
 module.exports = {
     /**
      *
-     * @param {String} name - one of 'storage', 'scheduling', 'sso' etc. Or can contain a "resource" extension like "storage:image"
+     * @param {String} name - one of 'storage', 'scheduling', 'sso', 'cache' etc. Or can contain a "resource" extension like "storage:image"
      * @returns {Object} instance of an adapter
      */
     getAdapter(name) {
         const adapterServiceConfig = getAdapterServiceConfig(config);
 
-        const {adapterType, adapterName, adapterConfig} = resolveAdapterOptions(name, adapterServiceConfig);
+        const {adapterClassName, adapterConfig} = resolveAdapterOptions(name, adapterServiceConfig);
 
-        return adapterManager.getAdapter(adapterType, adapterName, adapterConfig);
+        return adapterManager.getAdapter(name, adapterClassName, adapterConfig);
+    },
+
+    /**
+     * Force recreation of all instances instead of reusing cached instances. Use when editing config file during tests.
+     */
+    clearCache() {
+        adapterManager.clearInstanceCache();
     }
 };

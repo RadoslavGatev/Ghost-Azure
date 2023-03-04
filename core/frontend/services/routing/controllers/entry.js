@@ -3,7 +3,8 @@ const url = require('url');
 const config = require('../../../../shared/config');
 const {routerManager} = require('../');
 const urlUtils = require('../../../../shared/url-utils');
-const helpers = require('../helpers');
+const dataService = require('../../data');
+const renderer = require('../../rendering');
 
 /**
  * @description Entry controller.
@@ -15,7 +16,7 @@ const helpers = require('../helpers');
 module.exports = function entryController(req, res, next) {
     debug('entryController', res.routerOptions);
 
-    return helpers.entryLookup(req.path, res.routerOptions, res.locals)
+    return dataService.entryLookup(req.path, res.routerOptions, res.locals)
         .then(function then(lookup) {
             // Format data 1
             const entry = lookup ? lookup.entry : false;
@@ -39,7 +40,7 @@ module.exports = function entryController(req, res, next) {
                 }
 
                 debug('redirect. is edit url');
-                const resourceType = entry.page ? 'page' : 'post';
+                const resourceType = res.routerOptions?.context?.includes('page') ? 'page' : 'post';
 
                 return urlUtils.redirectToAdmin(302, res, `/#/editor/${resourceType}/${entry.id}`);
             }
@@ -83,10 +84,7 @@ module.exports = function entryController(req, res, next) {
                 }));
             }
 
-            helpers.secure(req, entry);
-
-            const renderer = helpers.renderEntry(req, res);
-            return renderer(entry);
+            return renderer.renderEntry(req, res)(entry);
         })
-        .catch(helpers.handleError(next));
+        .catch(renderer.handleError(next));
 };

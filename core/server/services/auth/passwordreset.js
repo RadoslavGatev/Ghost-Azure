@@ -61,10 +61,10 @@ function generateToken(email, settingsAPI, transaction) {
 }
 
 function extractTokenParts(options) {
-    options.data.passwordreset[0].token = security.url.decodeBase64(options.data.passwordreset[0].token);
+    options.data.password_reset[0].token = security.url.decodeBase64(options.data.password_reset[0].token);
 
     const tokenParts = security.tokens.resetToken.extract({
-        token: options.data.passwordreset[0].token
+        token: options.data.password_reset[0].token
     });
 
     if (!tokenParts) {
@@ -93,7 +93,7 @@ function protectBruteForce({options, tokenParts}) {
 function doReset(options, tokenParts, settingsAPI) {
     let dbHash;
 
-    const data = options.data.passwordreset[0];
+    const data = options.data.password_reset[0];
     const resetToken = data.token;
     const oldPassword = data.oldPassword;
     const newPassword = data.newPassword;
@@ -143,9 +143,6 @@ function doReset(options, tokenParts, settingsAPI) {
         .then((updatedUser) => {
             updatedUser.set('status', 'active');
             return updatedUser.save(options);
-        })
-        .catch(errors.ValidationError, (err) => {
-            return Promise.reject(err);
         })
         .catch((err) => {
             if (errors.utils.isGhostError(err)) {

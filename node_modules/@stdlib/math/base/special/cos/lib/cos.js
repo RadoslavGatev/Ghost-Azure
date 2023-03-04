@@ -1,0 +1,121 @@
+/**
+* @license Apache-2.0
+*
+* Copyright (c) 2018 The Stdlib Authors.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+*
+* ## Notice
+*
+* The following copyright, license, and long comment were part of the original implementation available as part of [FreeBSD]{@link https://svnweb.freebsd.org/base/release/9.3.0/lib/msun/src/s_cos.c}. The implementation follows the original, but has been modified for JavaScript.
+*
+* ```text
+* Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
+*
+* Developed at SunPro, a Sun Microsystems, Inc. business.
+* Permission to use, copy, modify, and distribute this
+* software is freely granted, provided that this notice
+* is preserved.
+* ```
+*/
+
+'use strict';
+
+// MODULES //
+
+var getHighWord = require( '@stdlib/number/float64/base/get-high-word' );
+var kernelCos = require( './../../../../base/special/kernel-cos' );
+var kernelSin = require( './../../../../base/special/kernel-sin' );
+var rempio2 = require( './../../../../base/special/rempio2' );
+
+
+// VARIABLES //
+
+// Scratch array for storing temporary values:
+var buffer = [ 0.0, 0.0 ]; // WARNING: not thread safe
+
+// High word absolute value mask: 0x7fffffff => 01111111111111111111111111111111
+var HIGH_WORD_ABS_MASK = 0x7fffffff|0; // asm type annotation
+
+// High word of π/4: 0x3fe921fb => 00111111111010010010000111111011
+var HIGH_WORD_PIO4 = 0x3fe921fb|0; // asm type annotation
+
+// High word of 2^-27: 0x3e400000 => 00111110010000000000000000000000
+var HIGH_WORD_TWO_NEG_27 = 0x3e400000|0; // asm type annotation
+
+// High word exponent mask: 0x7ff00000 => 01111111111100000000000000000000
+var HIGH_WORD_EXPONENT_MASK = 0x7ff00000|0; // asm type annotation
+
+
+// MAIN //
+
+/**
+* Computes the cosine of a number.
+*
+* @param {number} x - input value (in radians)
+* @returns {number} cosine
+*
+* @example
+* var v = cos( 0.0 );
+* // returns 1.0
+*
+* @example
+* var v = cos( 3.141592653589793/4.0 );
+* // returns ~0.707
+*
+* @example
+* var v = cos( -3.141592653589793/6.0 );
+* // returns ~0.866
+*
+* @example
+* var v = cos( NaN );
+* // returns NaN
+*/
+function cos( x ) {
+	var ix;
+	var n;
+
+	ix = getHighWord( x );
+	ix &= HIGH_WORD_ABS_MASK;
+
+	// Case: |x| ~< pi/4
+	if ( ix <= HIGH_WORD_PIO4 ) {
+		// Case: x < 2**-27
+		if ( ix < HIGH_WORD_TWO_NEG_27 ) {
+			return 1.0;
+		}
+		return kernelCos( x, 0.0 );
+	}
+	// Case: cos(Inf or NaN) is NaN */
+	if ( ix >= HIGH_WORD_EXPONENT_MASK ) {
+		return NaN;
+	}
+	// Case: Argument reduction needed...
+	n = rempio2( x, buffer );
+	switch ( n & 3 ) {
+	case 0:
+		return kernelCos( buffer[ 0 ], buffer[ 1 ] );
+	case 1:
+		return -kernelSin( buffer[ 0 ], buffer[ 1 ] );
+	case 2:
+		return -kernelCos( buffer[ 0 ], buffer[ 1 ] );
+	default:
+		return kernelSin( buffer[ 0 ], buffer[ 1 ] );
+	}
+}
+
+
+// EXPORTS //
+
+module.exports = cos;
