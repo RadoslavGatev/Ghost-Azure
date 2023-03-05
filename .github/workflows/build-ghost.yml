@@ -1,0 +1,32 @@
+on:
+  # push:
+  #   branches:
+  #     - dev
+  #     - test-new-cd
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "18.x"
+  AZURE_WEBAPP_NAME: ghost-azure-test
+
+jobs:
+  build-and-deploy:
+    runs-on: windows-2019
+    steps:
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          architecture: 'x86'
+      - name: Install dependencies
+        run: npm install -g ghost-cli@latest
+      - name: Install ghost
+        run: ghost install 5.37.0 --local --no-setup --no-prompt --no-start
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ghost
+          path: ${{ github.workspace }}
+
