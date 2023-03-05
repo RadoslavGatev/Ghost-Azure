@@ -102,7 +102,7 @@ IF EXIST "%DEPLOYMENT_TARGET%\package.json" (
   pushd "%DEPLOYMENT_TARGET%"
   call :ExecuteCmd !NPM_CMD! config set scripts-prepend-node-path true
   ::  call :ExecuteCmd !NPM_CMD! install --production
-  ::  call :ExecuteCmd !NPM_CMD! rebuild --production
+  call :ExecuteCmd !NPM_CMD! rebuild --production
   IF !ERRORLEVEL! NEQ 0 goto error
   popd
 )
