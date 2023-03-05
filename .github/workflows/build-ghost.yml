@@ -38,8 +38,8 @@ jobs:
           out-file-path: ghost-temp
       - run: |
           $zip = Get-ChildItem -Path './ghost-temp/*.zip' | Select -First 1
-          Expand-Archive -Path $zip.FullName -DestinationPath 'ghost-temp/unzip'
-          Get-Item -Path 'ghost-temp/unzip/*' | Move-Item -Destination "$env:GITHUB_WORKSPACE" -Force
+          Expand-Archive -Path $zip.FullName -DestinationPath "$env:GITHUB_WORKSPACE" -Force
+          Remove-Item -Path './ghost-temp/ -Force -Recurse -EA SilentlyContinue -Verbose
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Add new version
