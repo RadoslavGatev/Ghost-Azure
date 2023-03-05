@@ -22,7 +22,7 @@ jobs:
           architecture: 'x86'
       - name: Install dependencies
         run: npm install -g ghost-cli@latest
-      - run: mkdir ghost & cd ghost
+      - run: mkdir ghost && cd ghost
       - name: Install ghost
         run: ghost install 5.37.0 --local --no-setup --no-prompt --no-start
       - uses: actions/upload-artifact@v3
