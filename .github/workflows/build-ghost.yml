@@ -29,7 +29,7 @@ jobs:
       - run: echo "network-timeout 1000000" >> .yarnrc
       - name: Install ghost
         run: ghost install 5.37.0 --dir ghost-temp --local --no-setup --no-prompt --no-start
-      - run: Get-Item -Path '.\ghost-temp\versions\*\*' | Move-Item -Destination '${{ github.workspace }}' -Force
+      - run: Get-Item -Path '.\ghost-temp\versions\*\*' | Move-Item -Destination "$env:GITHUB_WORKSPACE" -Force
       - uses: robinraju/release-downloader@v1.7
         with:
           repository: "RadoslavGatev/Ghost-Azure-Additional-Files"
@@ -39,7 +39,7 @@ jobs:
       - run: |
           $zip = Get-ChildItem -Path './ghost-temp/*.zip' | Select -First 1
           Expand-Archive -Path $zip.FullName -DestinationPath 'ghost-temp/unzip'
-          Get-Item -Path 'ghost-temp/unzip/*' | Move-Item -Destination '${{ github.workspace }}' -Force
+          Get-Item -Path 'ghost-temp/unzip/*' | Move-Item -Destination "$env:GITHUB_WORKSPACE" -Force
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Add new version
