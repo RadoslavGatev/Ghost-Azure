@@ -16,8 +16,7 @@ jobs:
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@main
-      - run: 
-          Get-ChildItem -Path $path -Exclude .git -Recurse | Remove-Item -Force -EA SilentlyContinue -Verbose
+      - run: Get-ChildItem -Exclude '.git', '.github' | Remove-Item -Force -Recurse -EA SilentlyContinue -Verbose
       - name: Use Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v3
         with:
