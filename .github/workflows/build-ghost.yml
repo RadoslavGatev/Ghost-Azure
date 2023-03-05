@@ -29,7 +29,7 @@ jobs:
       - run: echo "network-timeout 1000000" >> .yarnrc
       - name: Install ghost
         run: ghost install 5.37.0 --dir ghost-temp --local --no-setup --no-prompt --no-start
-      - run: Get-Item -Path '.\ghost\versions\*\*' | Move-Item -Destination '${{ github.workspace }}' -Force
+      - run: Get-Item -Path '.\ghost-temp\versions\*\*' | Move-Item -Destination '${{ github.workspace }}' -Force
       - uses: robinraju/release-downloader@v1.7
         with:
           repository: "RadoslavGatev/Ghost-Azure-Additional-Files"
