@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: "18.x"
+  NODE_VERSION: "18"
   AZURE_WEBAPP_NAME: ghost-azure-test
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
     runs-on: windows-2019
     steps:
       - name: Use Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           architecture: 'x86'
