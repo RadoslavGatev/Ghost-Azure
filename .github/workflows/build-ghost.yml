@@ -24,6 +24,7 @@ jobs:
         run: npm install -g ghost-cli@latest
       - run: mkdir ghost
       - run: yarn cache clean
+      - run: echo "network-timeout 240000" >> .yarnrc
       - name: Install ghost
         run: ghost install 5.37.0 --dir ghost --local --no-setup --no-prompt --no-start
       - uses: actions/upload-artifact@v3
