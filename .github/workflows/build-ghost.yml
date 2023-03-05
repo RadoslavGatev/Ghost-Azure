@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   NODE_VERSION: "18"
@@ -15,6 +15,9 @@ jobs:
   build-and-deploy:
     runs-on: windows-2019
     steps:
+      - uses: actions/checkout@main
+      - run: 
+          Get-ChildItem -Path $path -Exclude .git -Recurse | Remove-Item -Force -EA SilentlyContinue -Verbose
       - name: Use Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v3
         with:
@@ -22,13 +25,27 @@ jobs:
           architecture: 'x86'
       - name: Install dependencies
         run: npm install -g ghost-cli@latest
-      - run: mkdir ghost
+      - run: mkdir ghost-temp
       - run: yarn cache clean
       - run: echo "network-timeout 1000000" >> .yarnrc
       - name: Install ghost
-        run: ghost install 5.37.0 --dir ghost --local --no-setup --no-prompt --no-start
-      - uses: actions/upload-artifact@v3
+        run: ghost install 5.37.0 --dir ghost-temp --local --no-setup --no-prompt --no-start
+      - run: Get-Item -Path '.\ghost\versions\*\*' | Move-Item -Destination '${{ github.workspace }}' -Force
+      - uses: robinraju/release-downloader@v1.7
         with:
-          name: ghost
-          path: ${{ github.workspace }}/ghost
+          repository: "RadoslavGatev/Ghost-Azure-Additional-Files"
+          latest: true
+          fileName: "*.zip"
+          out-file-path: ghost-temp
+      - run: |
+          $zip = Get-ChildItem -Path './ghost-temp/*.zip' | Select -First 1
+          Expand-Archive -Path $zip.FullName -DestinationPath 'ghost-temp/unzip'
+          Get-Item -Path 'ghost-temp/unzip/*' | Move-Item -Destination '${{ github.workspace }}' -Force
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Add new version
+      # - uses: actions/upload-artifact@v3
+      #   with:
+      #     name: ghost
+      #     path: ${{ github.workspace }}/ghost
 
